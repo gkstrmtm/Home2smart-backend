@@ -2530,13 +2530,19 @@ body.app-ready #outlet > * {
     <!-- Rule-based Recommendations -->
     <div id="recsPanel" class="recs-panel" style="display:none;min-height:60px"></div>
     
-    <!-- Sign-in banner -->
-    <div id="signinBanner" class="signin-banner" style="display:none;min-height:80px">
-      <div>
-        <strong>Save time at checkout.</strong>
-        <div>Sign in so we can prefill your info.</div>
+    <!-- Account Benefits Banner (shown when not signed in) -->
+    <div id="signinBanner" class="signin-banner" style="display:none;min-height:auto;background:linear-gradient(135deg,#f5f9ff 0%,#e8f3ff 100%);border:1px solid #d7eafc;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+      <div style="display:flex;align-items:start;gap:12px;">
+        <div style="font-size:20px;line-height:1;margin-top:2px;">✨</div>
+        <div style="flex:1;">
+          <strong style="color:var(--cobalt);font-size:14px;display:block;margin-bottom:4px;">Make an account for faster checkout</strong>
+          <div style="font-size:13px;color:#6b778c;line-height:1.4;">Save your details, track orders, and skip the form next time</div>
+        </div>
       </div>
-      <button class="btn btn-primary" id="bannerSignIn" style="padding:8px 16px;font-size:13px;">Sign in</button>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-ghost" onclick="navSet({view:'signin'}); toggleCart();" style="flex:1;padding:8px 12px;font-size:13px;white-space:nowrap;">Sign In</button>
+        <button class="btn btn-primary" onclick="navSet({view:'signup'}); toggleCart();" style="flex:1;padding:8px 12px;font-size:13px;white-space:nowrap;">Create Account</button>
+      </div>
     </div>
     
     <!-- Empty state -->
@@ -4054,13 +4060,13 @@ function paintCart(){
   // SAFETY CHECK
   if(!cart || !Array.isArray(cart)) cart = [];
   
-  // Show/hide sign-in banner
+  // Show/hide account benefits banner
   if(signinBanner){
     if(!user || !user.email){
-      signinBanner.style.display = 'flex';
-      const btn = byId('bannerSignIn');
-      if(btn) btn.onclick = ()=> { closeAll(); navSet({view:'signin'}); };
+      // Show banner when not signed in AND cart has items
+      signinBanner.style.display = cart.length > 0 ? 'block' : 'none';
     }else{
+      // Hide banner when signed in
       signinBanner.style.display = 'none';
     }
   }
