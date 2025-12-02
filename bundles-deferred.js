@@ -41,9 +41,9 @@ window.checkout = async function(){
     return;
   }
 
-  // GUEST CHECKOUT: Collect customer data if not signed in
+  // ACCOUNT REQUIRED: Must be signed in to checkout
   if(!user || !user.email){
-    showGuestCheckoutForm();
+    showAccountRequiredModal();
     return;
   }
 
@@ -154,8 +154,8 @@ function showCheckoutError(msg){
   alert(msg);
 }
 
-// Guest checkout form to collect customer data
-function showGuestCheckoutForm(){
+// Account required modal - blocks checkout until account created
+function showAccountRequiredModal(){
   const modal = document.getElementById('modal');
   const backdrop = document.getElementById('backdrop');
   
@@ -165,34 +165,41 @@ function showGuestCheckoutForm(){
   }
   
   modal.innerHTML = `
-    <div style="padding: 24px; max-width: 480px;">
-      <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 24px; color: var(--cobalt);">Complete Your Order</h2>
-      <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 14px;">We need a few details to process your order and schedule installation.</p>
-      
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Full Name *</label>
-        <input type="text" id="guestName" class="inp" placeholder="John Smith" style="width: 100%;" required>
+    <div style="padding: 32px; max-width: 440px; text-align: center;">
+      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
       </div>
       
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Email Address *</label>
-        <input type="email" id="guestEmail" class="inp" placeholder="john@example.com" style="width: 100%;" required>
+      <h2 style="margin: 0 0 12px 0; font-weight: 900; font-size: 26px; color: var(--cobalt);">Quick Account Setup</h2>
+      <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 15px; line-height: 1.5;">Create a free account to complete your order. It takes less than 30 seconds.</p>
+      
+      <div style="background: #f5f9ff; border: 1px solid #d7eafc; border-radius: 12px; padding: 16px; margin-bottom: 28px; text-align: left;">
+        <div style="font-weight: 600; color: var(--cobalt); margin-bottom: 10px; font-size: 14px;">✨ Why we need an account:</div>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #6b778c; line-height: 1.7;">
+          <li>Track your installation appointment</li>
+          <li>Receive order updates and receipts</li>
+          <li>Manage your smart home services</li>
+          <li>Fast checkout on future orders</li>
+        </ul>
       </div>
       
-      <div style="margin-bottom: 24px;">
-        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Phone Number *</label>
-        <input type="tel" id="guestPhone" class="inp" placeholder="(864) 123-4567" style="width: 100%;" required>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button class="btn btn-primary" onclick="closeAccountRequiredModal(); navSet({view:'signup'});" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 700;">
+          Create Free Account
+        </button>
+        <button class="btn" onclick="closeAccountRequiredModal(); navSet({view:'signin'});" style="width: 100%; background: white; border: 2px solid var(--cobalt); color: var(--cobalt); font-weight: 600;">
+          Sign In to Existing Account
+        </button>
+        <button class="btn btn-ghost" onclick="closeAccountRequiredModal()" style="width: 100%; margin-top: 8px;">
+          Back to Cart
+        </button>
       </div>
       
-      <div id="guestCheckoutMsg" style="margin-bottom: 16px; font-size: 14px;"></div>
-      
-      <div style="display: flex; gap: 12px;">
-        <button class="btn btn-ghost" onclick="closeGuestCheckoutForm()" style="flex: 1;">Cancel</button>
-        <button class="btn btn-primary" id="guestCheckoutSubmit" style="flex: 2;">Continue to Payment</button>
-      </div>
-      
-      <p style="margin: 16px 0 0 0; font-size: 12px; color: var(--muted); text-align: center;">
-        Have an account? <a href="#" onclick="closeGuestCheckoutForm(); navSet({view:'signin'}); return false;" style="color: var(--azure); font-weight: 600;">Sign in</a>
+      <p style="margin: 24px 0 0 0; font-size: 12px; color: var(--muted);">
+        🔒 Your information is secure and never shared.
       </p>
     </div>
   `;
@@ -200,16 +207,9 @@ function showGuestCheckoutForm(){
   modal.classList.add('show');
   backdrop.classList.add('show');
   document.body.style.overflow = 'hidden';
-  
-  setTimeout(() => {
-    const nameInput = document.getElementById('guestName');
-    if(nameInput) nameInput.focus();
-  }, 100);
-  
-  document.getElementById('guestCheckoutSubmit').onclick = processGuestCheckout;
 }
 
-window.closeGuestCheckoutForm = function(){
+window.closeAccountRequiredModal = function(){
   const modal = document.getElementById('modal');
   const backdrop = document.getElementById('backdrop');
   
