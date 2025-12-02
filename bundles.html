@@ -2577,7 +2577,7 @@ body.app-ready #outlet > * {
       <button class="btn btn-ghost" onclick="window.location.href='tel:864-528-1475'">
         Need Help?
       </button>
-      <button id="checkoutBtn" class="btn btn-primary" onclick="checkout()">
+      <button id="checkoutBtn" class="btn btn-primary" onclick="console.log('[HTML] Checkout button clicked'); checkout();">
         Checkout
       </button>
     </div>
@@ -4562,6 +4562,7 @@ window.money = money;
 window.escapeHtml = escapeHtml;
 window.paintCart = paintCart;
 window.updateCartBadge = updateCartBadge;
+// Note: window.checkout already defined above as stub
 
 // === INIT ON LOAD ===
 // Initialize app immediately - DOM is ready (script at end of body)
