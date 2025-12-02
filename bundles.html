@@ -2577,7 +2577,7 @@ body.app-ready #outlet > * {
       <button class="btn btn-ghost" onclick="window.location.href='tel:864-528-1475'">
         Need Help?
       </button>
-      <button id="checkoutBtn" class="btn btn-primary" onclick="console.log('[HTML] Checkout button clicked'); checkout();">
+      <button id="checkoutBtn" class="btn btn-primary">
         Checkout
       </button>
     </div>
@@ -2900,6 +2900,20 @@ function buildAdvancedParams(){
 // === INIT ===
 async function init(){
   // Keep init minimal and fast
+  
+  // CRITICAL: Attach checkout button event listener
+  const checkoutBtn = byId('checkoutBtn');
+  if(checkoutBtn) {
+    checkoutBtn.addEventListener('click', function(e) {
+      console.log('[Checkout] Button clicked via event listener');
+      e.preventDefault();
+      e.stopPropagation();
+      checkout();
+    });
+    console.log('[Init] Checkout button event listener attached');
+  } else {
+    console.error('[Init] Checkout button not found!');
+  }
   
   try {
     // PHASE 1: INSTANT - Minimal critical setup
