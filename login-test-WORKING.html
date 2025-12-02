@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login Test - GUARANTEED TO WORK</title>
+  <style>
+    body { font-family: Arial; max-width: 400px; margin: 50px auto; padding: 20px; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
+    button { background: #0066cc; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0052a3; }
+    #result { margin-top: 20px; padding: 15px; background: #f5f5f5; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Portal Login Test</h1>
+  <input type="email" id="email" placeholder="Email" value="tabariroper14@icloud.com">
+  <input type="text" id="zip" placeholder="ZIP" value="29649">
+  <button onclick="doLogin()">LOGIN NOW</button>
+  <div id="result"></div>
+
+  <script>
+    const API = "https://h2s-backend.vercel.app/api";
+    
+    function log(msg, isError = false) {
+      const result = document.getElementById('result');
+      const className = isError ? 'error' : (msg.includes('✅') ? 'success' : '');
+      result.innerHTML += `<div class="${className}">${msg}</div>`;
+      console.log(msg);
+    }
+    
+    async function doLogin() {
+      const email = document.getElementById('email').value.trim();
+      const zip = document.getElementById('zip').value.trim();
+      
+      document.getElementById('result').innerHTML = '';
+      log('🔄 Starting login...');
+      log(`Email: ${email}`);
+      log(`ZIP: ${zip}`);
+      log('');
+      
+      if (!email || !zip) {
+        log('❌ Email and ZIP required', true);
+        return;
+      }
+      
+      try {
+        // Step 1: Login
+        log('📡 Calling portal_login...');
+        const loginRes = await fetch(`${API}/portal_login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, zip })
+        });
+        
+        const loginData = await loginRes.json();
+        log(`Response: ${JSON.stringify(loginData, null, 2)}`);
+        log('');
+        
+        if (!loginData.ok) {
+          log(`❌ LOGIN FAILED: ${loginData.error}`, true);
+          return;
+        }
+        
+        log('✅ LOGIN SUCCESS!');
+        log(`Token: ${loginData.token.substring(0, 30)}...`);
+        log(`Name: ${loginData.pro.name}`);
+        log('');
+        
+        // Step 2: Verify token
+        log('📡 Calling portal_me to verify...');
+        const meRes = await fetch(`${API}/portal_me`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${loginData.token}`
+          },
+          body: JSON.stringify({ token: loginData.token })
+        });
+        
+        const meData = await meRes.json();
+        log(`Response: ${JSON.stringify(meData, null, 2)}`);
+        log('');
+        
+        if (!meData.ok) {
+          log(`❌ VERIFICATION FAILED: ${meData.error}`, true);
+          return;
+        }
+        
+        log('✅✅ FULL LOGIN FLOW WORKS!');
+        log(`Account: ${meData.pro.name} (${meData.pro.email})`);
+        log('');
+        log('🎉 YOUR CREDENTIALS ARE CORRECT!');
+        log('🎉 THE BACKEND IS WORKING!');
+        log('');
+        log('Now you can log into portalv3.html with these credentials.');
+        
+      } catch (err) {
+        log(`❌ ERROR: ${err.message}`, true);
+        log(err.stack);
+      }
+    }
+  </script>
+</body>
+</html>

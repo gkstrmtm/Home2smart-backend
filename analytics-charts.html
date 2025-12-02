@@ -1,0 +1,357 @@
+<!-- Chart.js Integration for Historical Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+/**
+ * Historical Earnings Analytics
+ * Displays line graphs for 7-day, 30-day, and 90-day earning trends
+ */
+
+// Prepare earnings data for charting
+function prepareEarningsChartData(payouts, days = 7) {
+  const now = new Date();
+  const startDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+  
+  // Group payouts by date
+  const dailyEarnings = {};
+  
+  payouts
+    .filter(p => new Date(p.created_at) >= startDate)
+    .forEach(payout => {
+      const date = new Date(payout.created_at).toLocaleDateString('en-US');
+      if (!dailyEarnings[date]) {
+        dailyEarnings[date] = 0;
+      }
+      dailyEarnings[date] += parseFloat(payout.amount || 0);
+    });
+  
+  // Create sorted array of dates
+  const dates = [];
+  const earnings = [];
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+    const dateStr = d.toLocaleDateString('en-US');
+    dates.push(dateStr);
+    earnings.push(dailyEarnings[dateStr] || 0);
+  }
+  
+  return { dates, earnings };
+}
+
+// Render earnings trend chart
+function renderEarningsTrendChart(canvasId, payouts, days, label) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  const { dates, earnings } = prepareEarningsChartData(payouts, days);
+  
+  // Destroy existing chart if present
+  if (window[canvasId + 'Chart']) {
+    window[canvasId + 'Chart'].destroy();
+  }
+  
+  window[canvasId + 'Chart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: label,
+        data: earnings,
+        borderColor: 'rgba(139, 92, 246, 1)',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleColor: '#f1f5f9',
+          bodyColor: '#cbd5e1',
+          borderColor: 'rgba(139, 92, 246, 0.5)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: function(context) {
+              return '$' + context.parsed.y.toFixed(2);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            maxRotation: 45,
+            minRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            callback: function(value) {
+              return '$' + value;
+            }
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
+// Render job completion trend chart
+function renderJobsTrendChart(canvasId, jobs, days, label) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  const now = new Date();
+  const startDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+  
+  // Group completed jobs by date
+  const dailyJobs = {};
+  
+  jobs
+    .filter(j => j.status === 'completed' && new Date(j.completed_at || j.created_at) >= startDate)
+    .forEach(job => {
+      const date = new Date(job.completed_at || job.created_at).toLocaleDateString('en-US');
+      if (!dailyJobs[date]) {
+        dailyJobs[date] = 0;
+      }
+      dailyJobs[date]++;
+    });
+  
+  // Create arrays
+  const dates = [];
+  const jobCounts = [];
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+    const dateStr = d.toLocaleDateString('en-US');
+    dates.push(dateStr);
+    jobCounts.push(dailyJobs[dateStr] || 0);
+  }
+  
+  // Destroy existing chart if present
+  if (window[canvasId + 'Chart']) {
+    window[canvasId + 'Chart'].destroy();
+  }
+  
+  window[canvasId + 'Chart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: label,
+        data: jobCounts,
+        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+        borderColor: 'rgba(16, 185, 129, 1)',
+        borderWidth: 2,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleColor: '#f1f5f9',
+          bodyColor: '#cbd5e1',
+          borderColor: 'rgba(16, 185, 129, 0.5)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + ' job' + (context.parsed.y !== 1 ? 's' : '');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false,
+            drawBorder: false
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            maxRotation: 45,
+            minRotation: 0
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(255, 255, 255, 0.05)',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
+}
+
+// Initialize charts when payouts tab is opened
+function initializeAnalyticsCharts() {
+  if (!window.cachedPayouts) return;
+  
+  // Render earnings trends
+  renderEarningsTrendChart('chart7day', window.cachedPayouts, 7, 'Last 7 Days');
+  renderEarningsTrendChart('chart30day', window.cachedPayouts, 30, 'Last 30 Days');
+  renderEarningsTrendChart('chart90day', window.cachedPayouts, 90, 'Last 90 Days');
+  
+  // Render job completion trends (if jobs data available)
+  if (window.cachedJobs) {
+    renderJobsTrendChart('jobChart7day', window.cachedJobs, 7, 'Jobs Completed (7 Days)');
+    renderJobsTrendChart('jobChart30day', window.cachedJobs, 30, 'Jobs Completed (30 Days)');
+  }
+}
+
+// Export for use in main app
+window.initializeAnalyticsCharts = initializeAnalyticsCharts;
+</script>
+
+<!-- Analytics Chart Containers (add to payouts tab) -->
+<style>
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.chart-card {
+  background: linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.95) 100%);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.chart-card h3 {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e9d5ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-card canvas {
+  height: 220px !important;
+}
+
+@media (max-width: 768px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<!-- Example HTML structure to add to payouts tab -->
+<!-- 
+<div class="analytics-grid">
+  <div class="chart-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="20" x2="12" y2="10"></line>
+        <line x1="18" y1="20" x2="18" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="16"></line>
+      </svg>
+      7-Day Earnings Trend
+    </h3>
+    <canvas id="chart7day"></canvas>
+  </div>
+  
+  <div class="chart-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="20" x2="12" y2="10"></line>
+        <line x1="18" y1="20" x2="18" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="16"></line>
+      </svg>
+      30-Day Earnings Trend
+    </h3>
+    <canvas id="chart30day"></canvas>
+  </div>
+  
+  <div class="chart-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="20" x2="12" y2="10"></line>
+        <line x1="18" y1="20" x2="18" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="16"></line>
+      </svg>
+      90-Day Earnings Trend
+    </h3>
+    <canvas id="chart90day"></canvas>
+  </div>
+  
+  <div class="chart-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="9" y1="3" x2="9" y2="21"></line>
+        <line x1="15" y1="3" x2="15" y2="21"></line>
+      </svg>
+      7-Day Job Completions
+    </h3>
+    <canvas id="jobChart7day"></canvas>
+  </div>
+  
+  <div class="chart-card">
+    <h3>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="9" y1="3" x2="9" y2="21"></line>
+        <line x1="15" y1="3" x2="15" y2="21"></line>
+      </svg>
+      30-Day Job Completions
+    </h3>
+    <canvas id="jobChart30day"></canvas>
+  </div>
+</div>
+-->
+
+<!-- Call initializeAnalyticsCharts() after loading payouts data -->

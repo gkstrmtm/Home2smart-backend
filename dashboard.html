@@ -1,0 +1,2618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="color-scheme" content="light dark">
+    <title>H2S Analytics Dashboard</title>
+    
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical font -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/archivo/v18/k3kQo8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTY.woff2">
+    
+    <!-- App icons -->
+    <link rel="icon" type="image/png" sizes="180x180" href="https://cdn.jsdelivr.net/gh/gkstrmtm/home2smart-assets@main/logo-180.png">
+    <meta name="theme-color" content="#0a2a5a">
+    
+    <style>
+        /* Inline critical fonts for faster render */
+        @font-face{font-family:'Archivo';font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/archivo/v18/k3kQo8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTY.woff2) format('woff2');unicode-range:U+0000-00FF}
+        @font-face{font-family:'Archivo';font-style:normal;font-weight:600;font-display:swap;src:url(https://fonts.gstatic.com/s/archivo/v18/k3kQo8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTY.woff2) format('woff2');unicode-range:U+0000-00FF}
+        @font-face{font-family:'Archivo';font-style:normal;font-weight:900;font-display:swap;src:url(https://fonts.gstatic.com/s/archivo/v18/k3kQo8UDI-1M0wlSV9XAw6lQkqWY8Q82sJaRE-NWIDdgffTY.woff2) format('woff2');unicode-range:U+0000-00FF}
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cobalt: #0a2a5a;
+            --azure: #1493ff;
+            --white: #ffffff;
+            --success: #34A853;
+            --warning: #FBBC04;
+            --danger: #EA4335;
+            --dark: #0a2a5a;
+            --light: #F8F9FA;
+            --border: #e7eaf0;
+            --ease: cubic-bezier(.22,.8,.32,1);
+            --ease-smooth: cubic-bezier(.16,.84,.44,1);
+            --elev-1: 0 2px 6px rgba(0,0,0,.20), 0 6px 18px rgba(0,0,0,.14);
+            --elev-2: 0 6px 14px rgba(0,0,0,.24), 0 18px 28px rgba(0,0,0,.18);
+            --elev-card: 0 2px 10px rgba(0,0,0,.08);
+            --elev-card-lg: 0 16px 36px rgba(0,0,0,.22);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--cobalt);
+            min-height: 100vh;
+            color: var(--white);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* ===== HEADER ===== */
+        .h2s-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--white);
+            box-shadow: var(--elev-2);
+            border-bottom: 1px solid var(--border);
+            width: 100%;
+            contain: layout style paint;
+        }
+
+        .h2s-head-row {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 16px;
+            padding: 12px clamp(20px, 4vw, 40px);
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .h2s-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 64px;
+            min-height: 64px;
+        }
+
+        .h2s-logo img {
+            width: 64px;
+            height: 64px;
+            display: block;
+            object-fit: contain;
+        }
+
+        .h2s-logo-text {
+            font-weight: 900;
+            font-size: clamp(20px, 2.4vw, 28px);
+            color: var(--cobalt);
+            text-transform: lowercase;
+        }
+
+        .header-actions {
+            justify-self: end;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            appearance: none;
+            border: 2px solid var(--azure);
+            background: var(--azure);
+            color: var(--white);
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            min-height: 44px;
+            font-size: clamp(14px, 1.4vw, 16px);
+            transition: transform 0.2s var(--ease), box-shadow 0.22s var(--ease-smooth);
+            box-shadow: var(--elev-1);
+            will-change: transform, box-shadow;
+            transform: translateZ(0);
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--elev-2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+            box-shadow: var(--elev-1);
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--azure);
+            outline-offset: 2px;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--azure);
+            color: var(--azure);
+        }
+
+        .btn-secondary:hover {
+            background: var(--azure);
+            color: var(--white);
+        }
+
+        .btn-icon {
+            padding: 10px;
+            min-width: 44px;
+        }
+
+        /* ===== TRACKING REFERENCE MODAL ===== */
+        .tracking-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 42, 90, 0.95);
+            z-index: 10000;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(8px);
+        }
+
+        .tracking-modal.active {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .tracking-content {
+            background: var(--white);
+            max-width: 900px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: var(--elev-2);
+            margin: 40px auto;
+            position: relative;
+        }
+
+        .tracking-header {
+            background: linear-gradient(135deg, var(--cobalt), var(--azure));
+            color: var(--white);
+            padding: 24px 32px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tracking-header h2 {
+            margin: 0;
+            font-size: clamp(20px, 3vw, 28px);
+            font-weight: 900;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: var(--white);
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s var(--ease);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tracking-body {
+            padding: 32px;
+            color: var(--cobalt);
+            line-height: 1.8;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .tracking-body h3 {
+            color: var(--cobalt);
+            font-weight: 900;
+            margin: 24px 0 12px;
+            font-size: clamp(18px, 2vw, 22px);
+        }
+
+        .tracking-body h4 {
+            color: var(--azure);
+            font-weight: 700;
+            margin: 16px 0 8px;
+            font-size: clamp(15px, 1.6vw, 18px);
+        }
+
+        .tracking-body p {
+            margin: 12px 0;
+            color: #5f6368;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .tracking-body ul, .tracking-body ol {
+            margin: 12px 0;
+            padding-left: 24px;
+            max-width: 100%;
+        }
+
+        .tracking-body li {
+            margin: 8px 0;
+            color: #5f6368;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .tracking-body strong {
+            color: var(--cobalt);
+            font-weight: 700;
+        }
+
+        .tracking-body code {
+            background: var(--light);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--danger);
+            word-break: break-all;
+        }
+
+        .tracking-body a {
+            color: var(--azure);
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .tracking-body a:hover {
+            text-decoration: underline;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            color: #333;
+            padding: 60px 20px 20px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+            position: relative;
+            border: 1px solid #e0e0e0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--azure);
+            color: var(--white);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.2s var(--ease);
+            box-shadow: 0 2px 8px rgba(20, 147, 255, 0.3);
+            z-index: 10;
+        }
+
+        .copy-btn:hover {
+            background: #0d7de0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(20, 147, 255, 0.4);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid var(--azure);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .info-box code {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            word-break: break-all;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .dashboard-main {
+            padding: clamp(24px, 4vw, 48px) clamp(20px, 4vw, 40px);
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-weight: 900;
+            font-size: clamp(24px, 3vw, 36px);
+            color: var(--white);
+            margin-bottom: clamp(16px, 2vw, 24px);
+            letter-spacing: 0.2px;
+        }
+
+        /* ===== AI REPORT SECTION ===== */
+        .ai-report {
+            background: var(--white);
+            border-radius: 16px;
+            padding: clamp(20px, 3vw, 32px);
+            margin-bottom: clamp(20px, 3vw, 32px);
+            box-shadow: var(--elev-card);
+            border: 1px solid var(--border);
+            transition: box-shadow 0.3s var(--ease);
+        }
+
+        .ai-report:hover {
+            box-shadow: var(--elev-card-lg);
+        }
+
+        .ai-report h2 {
+            font-size: clamp(18px, 2vw, 24px);
+            color: var(--cobalt);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 900;
+        }
+
+        .ai-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--azure), var(--success));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 18px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+
+        .ai-content {
+            padding: 20px;
+            background: var(--light);
+            border-radius: 12px;
+            border-left: 4px solid var(--azure);
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--cobalt);
+        }
+
+        .ai-content.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--light);
+            border-top: 4px solid var(--azure);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== KPI CARDS GRID ===== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+            gap: clamp(16px, 2.5vw, 24px);
+            margin-bottom: clamp(24px, 3vw, 36px);
+        }
+
+        .kpi-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: clamp(18px, 2.5vw, 24px);
+            box-shadow: var(--elev-card);
+            border: 1px solid var(--border);
+            transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+            position: relative;
+            overflow: hidden;
+            contain: layout style paint;
+        }
+
+        .kpi-card::before {
+            content: "";
+            position: absolute;
+            inset: -10px;
+            border-radius: 18px;
+            box-shadow: var(--elev-card-lg);
+            opacity: 0;
+            transition: opacity 0.3s var(--ease);
+            pointer-events: none;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-6px);
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1;
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .kpi-title {
+            font-size: clamp(13px, 1.3vw, 15px);
+            color: #5f6368;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+
+        .kpi-value {
+            font-size: clamp(28px, 4vw, 36px);
+            font-weight: 900;
+            color: var(--cobalt);
+            margin-bottom: 10px;
+            line-height: 1.1;
+        }
+
+        .kpi-change {
+            font-size: clamp(12px, 1.2vw, 14px);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-change.positive {
+            color: var(--success);
+        }
+
+        .kpi-change.negative {
+            color: var(--danger);
+        }
+
+        /* ===== CHARTS SECTION ===== */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+            gap: clamp(16px, 2.5vw, 24px);
+            margin-bottom: clamp(24px, 3vw, 36px);
+        }
+
+        .chart-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: clamp(20px, 3vw, 28px);
+            box-shadow: var(--elev-card);
+            border: 1px solid var(--border);
+            transition: box-shadow 0.3s var(--ease);
+        }
+
+        .chart-card:hover {
+            box-shadow: var(--elev-card-lg);
+        }
+
+        .chart-card h3 {
+            font-size: clamp(16px, 1.8vw, 20px);
+            color: var(--cobalt);
+            margin-bottom: 20px;
+            font-weight: 900;
+        }
+
+        .chart-card canvas {
+            max-height: 300px;
+        }
+
+        /* ===== FUNNEL VISUALIZATION ===== */
+        .funnel-container {
+            background: var(--white);
+            border-radius: 16px;
+            padding: clamp(20px, 3vw, 28px);
+            box-shadow: var(--elev-card);
+            border: 1px solid var(--border);
+            margin-bottom: clamp(24px, 3vw, 36px);
+            transition: box-shadow 0.3s var(--ease);
+        }
+
+        .funnel-container:hover {
+            box-shadow: var(--elev-card-lg);
+        }
+
+        .funnel-container h3 {
+            font-size: clamp(18px, 2.2vw, 24px);
+            color: var(--cobalt);
+            margin-bottom: 20px;
+            font-weight: 900;
+        }
+
+        .funnel-stage {
+            margin-bottom: 18px;
+        }
+
+        .funnel-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: clamp(14px, 1.4vw, 16px);
+            font-weight: 700;
+            color: var(--cobalt);
+        }
+
+        .funnel-label .stage-name {
+            font-weight: 900;
+            letter-spacing: 0.3px;
+        }
+
+        .funnel-label .stage-count {
+            font-weight: 600;
+            color: #5f6368;
+        }
+
+        .funnel-bar {
+            height: 48px;
+            background: linear-gradient(90deg, var(--azure), var(--success));
+            border-radius: 12px;
+            position: relative;
+            transition: all 0.5s var(--ease);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: var(--white);
+            font-weight: 700;
+            font-size: clamp(14px, 1.4vw, 16px);
+            box-shadow: 0 2px 8px rgba(20, 147, 255, 0.3);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .funnel-bar:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(20, 147, 255, 0.4);
+        }
+
+        /* ===== TABLE ===== */
+        .table-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: clamp(20px, 3vw, 28px);
+            box-shadow: var(--elev-card);
+            border: 1px solid var(--border);
+            margin-bottom: clamp(24px, 3vw, 36px);
+            overflow-x: auto;
+            transition: box-shadow 0.3s var(--ease);
+        }
+
+        .table-card:hover {
+            box-shadow: var(--elev-card-lg);
+        }
+
+        .table-card h3 {
+            font-size: clamp(18px, 2.2vw, 24px);
+            color: var(--cobalt);
+            margin-bottom: 20px;
+            font-weight: 900;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th {
+            background: var(--light);
+            padding: 14px 12px;
+            text-align: left;
+            font-size: clamp(12px, 1.2vw, 14px);
+            color: var(--cobalt);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: clamp(13px, 1.3vw, 15px);
+            color: var(--cobalt);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s var(--ease);
+        }
+
+        tbody tr:hover {
+            background: var(--light);
+        }
+
+        /* ===== FOOTER ===== */
+        .dashboard-footer {
+            background: rgba(10, 42, 90, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 24px clamp(20px, 4vw, 40px);
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: auto;
+        }
+
+        .dashboard-footer a {
+            color: var(--azure);
+            text-decoration: none;
+            transition: color 0.2s var(--ease);
+        }
+
+        .dashboard-footer a:hover {
+            color: var(--white);
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .h2s-head-row {
+                grid-template-columns: auto 1fr;
+                gap: 12px;
+                padding: 10px 16px;
+            }
+
+            .h2s-logo {
+                min-width: 48px;
+                min-height: 48px;
+            }
+
+            .h2s-logo img {
+                width: 48px;
+                height: 48px;
+            }
+
+            .h2s-logo-text {
+                font-size: 18px;
+            }
+
+            .header-nav {
+                display: none;
+            }
+
+            .header-actions {
+                grid-column: 1 / -1;
+                justify-self: stretch;
+                flex-wrap: wrap;
+            }
+
+            .header-actions .btn {
+                flex: 1;
+                min-width: 0;
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+
+            .dashboard-main {
+                padding: 20px 16px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-card canvas {
+                max-height: 250px;
+            }
+
+            .table-card {
+                padding: 16px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .funnel-bar {
+                font-size: 13px;
+                padding: 0 14px;
+                height: 44px;
+            }
+
+            .funnel-label {
+                font-size: 13px;
+            }
+
+            .kpi-card {
+                padding: 16px;
+            }
+
+            .ai-report {
+                padding: 16px;
+            }
+        }
+
+        /* ===== LOADING & ERROR STATES ===== */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 42, 90, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--elev-2);
+        }
+
+        .error-message {
+            background: #fee;
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            border-left: 4px solid var(--danger);
+            font-weight: 600;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s var(--ease) both;
+        }
+
+        .fade-in-delay-1 { animation-delay: 0.1s; }
+        .fade-in-delay-2 { animation-delay: 0.2s; }
+        .fade-in-delay-3 { animation-delay: 0.3s; }
+
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .btn:hover,
+            .kpi-card:hover,
+            .funnel-bar:hover {
+                transform: none !important;
+            }
+        }
+
+        /* ===== ACCESSIBILITY ===== */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--azure);
+            outline-offset: 2px;
+        }
+    </style>
+    
+    <!-- Lazy load Chart.js after critical content -->
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+</head>
+<body>
+    <!-- Header -->
+    <header class="h2s-header">
+        <div class="h2s-head-row">
+            <a href="/" class="h2s-logo" aria-label="Home2Smart Home">
+                <img src="https://cdn.jsdelivr.net/gh/gkstrmtm/home2smart-assets@main/logo-180.png" 
+                     alt="Home2Smart Logo" 
+                     width="64" 
+                     height="64"
+                     loading="eager">
+                <span class="h2s-logo-text">dashboard</span>
+            </a>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openTrackingReference()" aria-label="View tracking documentation">
+                    <span>📖 Tracking Docs</span>
+                </button>
+                <button class="btn btn-secondary" onclick="refreshData()" aria-label="Refresh dashboard data">
+                    <span>Refresh</span>
+                </button>
+                <button class="btn" onclick="generateAIReport()" aria-label="Generate AI insights">
+                    <span>Generate Insights</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main class="dashboard-main">
+        <!-- AI Report Section -->
+        <section class="ai-report fade-in" id="aiReportSection" style="display: none;" aria-live="polite">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <h2 style="margin-bottom: 0;">
+                    <span class="ai-icon" aria-hidden="true">AI</span>
+                    AI-Powered Marketing Insights
+                </h2>
+                <button id="emailReportBtn" class="btn btn-secondary" onclick="emailAIReport()" style="display: none; font-size: 14px; padding: 8px 16px;">
+                    📧 Email Report
+                </button>
+            </div>
+            <div class="ai-content" id="aiReportContent">
+                <div class="loading">
+                    <div class="spinner" role="status" aria-label="Loading AI insights"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meta Pixel Tracking Section -->
+        <section class="meta-pixel-section fade-in" id="metaPixelSection" style="margin-bottom: 36px;" aria-label="Meta Pixel Tracking Analytics">
+            <h2 style="margin-bottom: 20px; color: var(--white); font-size: clamp(22px, 2.8vw, 30px); font-weight: 900;">
+                📍 Meta Pixel Performance
+            </h2>
+            
+            <div class="kpi-grid">
+                <!-- Total Pixel Events -->
+                <div class="kpi-card fade-in-delay-1">
+                    <div class="kpi-header">
+                        <div class="kpi-title">Total Pixel Events</div>
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">📊</div>
+                    </div>
+                    <div class="kpi-value" id="pixelTotalEvents">-</div>
+                    <div class="kpi-change" id="pixelEventsChange">Loading...</div>
+                </div>
+
+                <!-- Event Match Quality -->
+                <div class="kpi-card fade-in-delay-2">
+                    <div class="kpi-header">
+                        <div class="kpi-title">Unique Users</div>
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">👥</div>
+                    </div>
+                    <div class="kpi-value" id="pixelMatchQuality">-</div>
+                    <div class="kpi-change" id="pixelQualityChange">Tracked across sessions</div>
+                </div>
+
+                <!-- Top Performing Content -->
+                <div class="kpi-card fade-in-delay-3">
+                    <div class="kpi-header">
+                        <div class="kpi-title">Top Content by Engagement</div>
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">🏆</div>
+                    </div>
+                    <div class="kpi-value" id="pixelTopPage" style="font-size: clamp(16px, 2.5vw, 22px); line-height: 1.3;">-</div>
+                    <div class="kpi-change" id="pixelTopPageEvents">-</div>
+                </div>
+
+                <!-- Conversion Value -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <div class="kpi-title">Total Conversion Value</div>
+                        <div class="kpi-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">💰</div>
+                    </div>
+                    <div class="kpi-value" id="pixelTotalValue">$0.00</div>
+                    <div class="kpi-change" id="pixelConversions">0 conversions</div>
+                </div>
+            </div>
+
+            <!-- Event Type Breakdown -->
+            <div class="chart-card" style="margin-top: 24px;">
+                <h3>Event Type Distribution</h3>
+                <div id="pixelEventTypes" style="max-height: 300px; overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner" role="status" aria-label="Loading event types"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Performance Breakdown -->
+            <div class="chart-card" style="margin-top: 24px;">
+                <h3>Page Type Performance</h3>
+                <div id="pixelPagePerformance" style="max-height: 300px; overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner" role="status" aria-label="Loading page performance"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UTM Source Attribution -->
+            <div class="chart-card" style="margin-top: 24px;">
+                <h3>Traffic Source Attribution</h3>
+                <div id="pixelUTMSources" style="max-height: 300px; overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner" role="status" aria-label="Loading UTM sources"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <section aria-labelledby="kpi-heading">
+            <h2 id="kpi-heading" class="visually-hidden">Key Performance Indicators</h2>
+            <div class="kpi-grid" id="kpiGrid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Funnel Visualization -->
+        <section class="funnel-container fade-in fade-in-delay-1" aria-labelledby="funnel-heading">
+            <h3 id="funnel-heading">Conversion Funnel</h3>
+            <div id="funnelVisualization" role="img" aria-label="Conversion funnel visualization">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Charts -->
+        <section aria-labelledby="charts-heading">
+            <h2 id="charts-heading" class="visually-hidden">Analytics Charts</h2>
+            <div class="charts-grid">
+                <div class="chart-card fade-in fade-in-delay-2">
+                    <h3>Revenue Over Time</h3>
+                    <canvas id="revenueChart" role="img" aria-label="Revenue over time chart"></canvas>
+                </div>
+                <div class="chart-card fade-in fade-in-delay-3">
+                    <h3>Traffic by Device</h3>
+                    <canvas id="deviceChart" role="img" aria-label="Traffic by device chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Top Users Table -->
+        <section class="table-card fade-in fade-in-delay-3" aria-labelledby="top-users-heading">
+            <h3 id="top-users-heading">Top Customers by Lifetime Value</h3>
+            <div style="overflow-x: auto;">
+                <table id="topUsersTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Email</th>
+                            <th scope="col">Total Orders</th>
+                            <th scope="col">Lifetime Revenue</th>
+                            <th scope="col">Last Purchase</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <p>
+            <strong>Home2Smart Analytics</strong> · Service area: NC &amp; SC · 
+            <a href="mailto:h2sbackend@gmail.com">h2sbackend@gmail.com</a> · 
+            <a href="/privacy-policy" rel="nofollow">Privacy Policy</a>
+        </p>
+    </footer>
+
+    <!-- Tracking Reference Modal -->
+    <div class="tracking-modal" id="trackingModal">
+        <div class="tracking-content">
+            <div class="tracking-header">
+                <h2>📍 Home2Smart Tracking Reference</h2>
+                <button class="close-modal" onclick="closeTrackingReference()" aria-label="Close">×</button>
+            </div>
+            <div class="tracking-body">
+                
+                <h3>🎯 System Overview</h3>
+                <p>Home2Smart uses a comprehensive dual-tracking system combining <strong>Meta Pixel (Facebook)</strong> and a custom <strong>Google Apps Script backend</strong> to capture, analyze, and optimize every user interaction across our digital ecosystem.</p>
+
+                <div class="info-box">
+                    <strong>🔑 Meta Pixel ID:</strong> <code>2384221445259822</code><br>
+                    <strong>📊 Dashboard API:</strong> <code>https://script.google.com/macros/s/AKfycbxVsGP8EeAZmfRcW9LjY3fm1F9iWvXMO7RlT4VP7Tj1BV0BOkeBi6GAkASQhEZJ7h9Y/exec</code><br>
+                    <strong>📂 Tracking Sheet ID:</strong> <code>1E-HZWh1ZpNVLCv8wYK4F0B2GyI_rLPisbWL2-IzjTzo</code><br>
+                    <strong>🛒 Orders Sheet ID:</strong> <code>1VEtHRoZT-c1_Pm7-hJqjpLXhs3wQL0yMCQmeJxTJ_lE</code>
+                </div>
+
+                <h3>📊 Conversion Funnel Structure</h3>
+                <p>Our 5-stage funnel tracks users from initial awareness to loyal customers:</p>
+                <ol>
+                    <li><strong>Visitor</strong> → First interaction with any page (PageView event)</li>
+                    <li><strong>Browser</strong> → Engaged viewing (ViewContent event, 3+ seconds on page)</li>
+                    <li><strong>Engaged</strong> → Multiple pages visited or interaction events (CTA clicks, chat opens)</li>
+                    <li><strong>Lead</strong> → Contact form submission or phone click (Lead event)</li>
+                    <li><strong>Customer</strong> → Completed purchase (Purchase event with value)</li>
+                </ol>
+
+                <h3>🎨 Tracked Pages & Events</h3>
+                
+                <h4>Homepage (homev2.html)</h4>
+                <ul>
+                    <li><strong>Page Type:</strong> <code>home</code> or <code>landing_page</code></li>
+                    <li><strong>Events:</strong> PageView, ViewContent ("Home Landing Page"), Lead (form), Contact (phone click)</li>
+                    <li><strong>UTM Tracking:</strong> Yes (all parameters captured)</li>
+                    <li><strong>Advanced Matching:</strong> Email, phone, name (when form submitted)</li>
+                </ul>
+
+                <h4>Shop (shop.html)</h4>
+                <ul>
+                    <li><strong>Page Type:</strong> <code>shop</code> or <code>product</code></li>
+                    <li><strong>Events:</strong> PageView, ViewContent (per product), AddToCart, InitiateCheckout</li>
+                    <li><strong>Product Tracking:</strong> content_name, content_ids, value, currency</li>
+                    <li><strong>Advanced Matching:</strong> Full user data on checkout</li>
+                </ul>
+
+                <h4>Security (securityv3.html)</h4>
+                <ul>
+                    <li><strong>Page Type:</strong> <code>security</code> or <code>service</code></li>
+                    <li><strong>Events:</strong> PageView, ViewContent (delayed 3s), Lead, Contact</li>
+                    <li><strong>Service Tracking:</strong> content_name = "Security Installations"</li>
+                    <li><strong>CTA Tracking:</strong> All button clicks tracked</li>
+                </ul>
+
+                <h4>TV Mounting (tvmountingv3.html)</h4>
+                <ul>
+                    <li><strong>Page Type:</strong> <code>tvmounting</code> or <code>service</code></li>
+                    <li><strong>Events:</strong> PageView, ViewContent, wizard step tracking</li>
+                    <li><strong>Special:</strong> Multi-step funnel with step completion events</li>
+                </ul>
+
+                <h4>Smart Integrations (smart.html)</h4>
+                <ul>
+                    <li><strong>Page Type:</strong> <code>automations</code> or <code>smart</code></li>
+                    <li><strong>Events:</strong> PageView, ViewContent, service interest tracking</li>
+                    <li><strong>Focus:</strong> High-value automation packages</li>
+                </ul>
+
+                <h3>🔗 UTM Parameter Structure</h3>
+                <p>All campaigns must include these parameters for proper attribution:</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this, 'utm-structure')">Copy</button>
+                    <pre id="utm-structure">?utm_source=[source]
+&utm_medium=[medium]
+&utm_campaign=[campaign_name]
+&utm_content=[ad_creative_id]
+&utm_term=[keyword]</pre>
+                </div>
+
+                <h4>UTM Source Values:</h4>
+                <ul>
+                    <li><code>google</code> - Google Ads</li>
+                    <li><code>facebook</code> or <code>meta</code> - Facebook/Instagram Ads</li>
+                    <li><code>email</code> - Email campaigns</li>
+                    <li><code>direct</code> - Direct traffic (no UTM)</li>
+                    <li><code>organic</code> - Organic search</li>
+                </ul>
+
+                <h4>UTM Medium Values:</h4>
+                <ul>
+                    <li><code>cpc</code> - Cost-per-click ads</li>
+                    <li><code>social</code> - Social media organic/paid</li>
+                    <li><code>email</code> - Email marketing</li>
+                    <li><code>display</code> - Display advertising</li>
+                    <li><code>video</code> - Video ads (YouTube, etc.)</li>
+                </ul>
+
+                <h3>📈 Meta Pixel Event Catalog</h3>
+                
+                <h4>Standard Events We Track:</h4>
+                <ul>
+                    <li><strong>PageView</strong> - Every page load (automatic)</li>
+                    <li><strong>ViewContent</strong> - Product/service page views (3s engagement)</li>
+                    <li><strong>Lead</strong> - Form submissions, phone clicks</li>
+                    <li><strong>Contact</strong> - Direct contact interactions</li>
+                    <li><strong>AddToCart</strong> - Product added to cart (shop only)</li>
+                    <li><strong>InitiateCheckout</strong> - Checkout process started</li>
+                    <li><strong>Purchase</strong> - Completed transaction with value</li>
+                </ul>
+
+                <h4>Custom Events:</h4>
+                <ul>
+                    <li><strong>ChatWidget_Open</strong> - User opens chat</li>
+                    <li><strong>CTA_Click</strong> - Call-to-action button clicked</li>
+                    <li><strong>Step_[N]_Complete</strong> - Wizard step completion (TV mounting)</li>
+                </ul>
+
+                <h3>🎯 Campaign Setup Best Practices</h3>
+                
+                <div class="warning-box">
+                    <strong>⚠️ Critical:</strong> Always test tracking BEFORE launching campaigns. Use <code>seedAllTrackingData()</code> in Apps Script to verify dashboard displays correctly.
+                </div>
+
+                <h4>For Google Ads:</h4>
+                <ol>
+                    <li>Use <code>utm_source=google</code></li>
+                    <li>Set <code>utm_medium=cpc</code></li>
+                    <li>Campaign name should describe objective: <code>utm_campaign=smart_home_nc_search</code></li>
+                    <li>Use <code>utm_term={keyword}</code> for dynamic keyword insertion</li>
+                    <li>Track final URL in Ad Group settings</li>
+                </ol>
+
+                <h4>For Facebook/Instagram Ads:</h4>
+                <ol>
+                    <li>Use <code>utm_source=facebook</code> (or instagram for IG-specific)</li>
+                    <li>Set <code>utm_medium=social</code> or <code>utm_medium=cpc</code></li>
+                    <li>Campaign name: <code>utm_campaign=smart_lighting_promo_nc</code></li>
+                    <li>Use <code>utm_content={{ad.id}}</code> for ad-level tracking</li>
+                    <li>Meta Pixel will automatically capture with Advanced Matching</li>
+                </ol>
+
+                <h4>Landing Page Best Practices:</h4>
+                <ul>
+                    <li>Always direct to <code>homev2.html</code> for general awareness</li>
+                    <li>Use <code>shop.html</code> for product-specific campaigns</li>
+                    <li>Use service pages (security, tvmounting, smart) for targeted service campaigns</li>
+                    <li>Include UTM parameters in ALL ad links</li>
+                    <li>Test links with <code>?test=1</code> parameter to verify tracking fires</li>
+                </ul>
+
+                <h3>📋 AI Campaign Briefing Prompt</h3>
+                <p>Copy this prompt to use with ChatGPT/Claude when planning new campaigns:</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this, 'ai-prompt')">Copy Prompt</button>
+                    <pre id="ai-prompt">You are a performance marketing expert for Home2Smart, a smart home installation company serving North Carolina and South Carolina.
+
+BUSINESS CONTEXT:
+- Services: Smart home automation, security systems, TV mounting, lighting control
+- Target Market: NC & SC homeowners, 35-65 years old, household income $75k+
+- Unique Value: Professional installation, local expertise, 24/7 support
+- Service Area: Charlotte, Raleigh, Charleston, Columbia, Greensboro (+ surrounding areas)
+
+TRACKING INFRASTRUCTURE:
+- Meta Pixel ID: 2384221445259822
+- We track 5-stage funnel: Visitor → Browser → Engaged → Lead → Customer
+- All pages have Meta Pixel + Google Apps Script tracking
+- Dashboard auto-refreshes every 30 seconds with real-time data
+
+TRACKED PAGES:
+1. Homepage (homev2.html) - General awareness, page_type: "home"
+2. Shop (shop.html) - Product catalog, page_type: "shop"
+3. Security (securityv3.html) - Security services, page_type: "security"
+4. TV Mounting (tvmountingv3.html) - TV installation wizard, page_type: "tvmounting"
+5. Smart Integrations (smart.html) - Automation packages, page_type: "automations"
+
+UTM STRUCTURE REQUIRED:
+?utm_source=[google/facebook/email/direct]
+&utm_medium=[cpc/social/email/display]
+&utm_campaign=[descriptive_campaign_name]
+&utm_content=[ad_creative_id]
+&utm_term=[keyword_or_targeting]
+
+TRACKED EVENTS:
+- PageView (all pages, automatic)
+- ViewContent (3+ seconds engagement)
+- Lead (form submission, phone click)
+- Contact (direct interactions)
+- AddToCart (shop only)
+- Purchase (conversion with value)
+
+CAMPAIGN OBJECTIVES:
+[Specify your goal: Awareness / Lead Generation / Sales / Service Promotion]
+
+TARGET AUDIENCE:
+[Define demographics, interests, behaviors]
+
+BUDGET & TIMELINE:
+[Budget amount and campaign duration]
+
+CREATIVE REQUIREMENTS:
+[Ad formats needed: image/video/carousel, copy angles, CTAs]
+
+YOUR TASK:
+Create a comprehensive campaign strategy including:
+1. Campaign structure (campaigns > ad sets > ads)
+2. Audience targeting recommendations
+3. Ad copy variations (headlines, descriptions, CTAs)
+4. Landing page assignment per ad set
+5. Complete UTM tracking URLs for each ad
+6. Budget allocation recommendations
+7. Success metrics and KPIs to monitor in dashboard
+8. A/B testing plan
+
+Ensure all tracking URLs follow our UTM structure and align with our funnel stages.</pre>
+                </div>
+
+                <h3>🔍 Dashboard Metrics Explained</h3>
+                
+                <h4>Meta Pixel Performance Section:</h4>
+                <ul>
+                    <li><strong>Total Pixel Events:</strong> All events fired (PageView + ViewContent + Lead + etc.)</li>
+                    <li><strong>Unique Users:</strong> Distinct individuals tracked (via User_ID or External_ID)</li>
+                    <li><strong>Top Content by Engagement:</strong> Event type with most fires (usually PageView)</li>
+                    <li><strong>Total Conversion Value:</strong> Sum of all Purchase event values</li>
+                </ul>
+
+                <h4>Event Type Distribution:</h4>
+                <p>Shows breakdown of all Meta Pixel events by type. Healthy distribution:</p>
+                <ul>
+                    <li>PageView: 60-70% (highest - every page loads)</li>
+                    <li>ViewContent: 20-30% (engaged users)</li>
+                    <li>Lead: 5-10% (qualified prospects)</li>
+                    <li>Purchase: 1-3% (conversions)</li>
+                </ul>
+
+                <h4>Page Type Performance:</h4>
+                <p>Shows which pages drive most engagement. Use this to optimize ad targeting:</p>
+                <ul>
+                    <li>High <code>home</code> traffic = Good top-of-funnel awareness</li>
+                    <li>High <code>shop</code> traffic = Product interest, optimize checkout</li>
+                    <li>High <code>security</code>/<code>tvmounting</code> = Service-specific demand</li>
+                </ul>
+
+                <h4>Traffic Source Attribution:</h4>
+                <p>Tracks performance by utm_source. Use this to allocate budget:</p>
+                <ul>
+                    <li>Compare cost-per-lead across sources</li>
+                    <li>Identify highest-converting traffic sources</li>
+                    <li>Adjust budget allocation monthly</li>
+                </ul>
+
+                <h3>⚡ Quick Reference Links</h3>
+                <ul>
+                    <li><strong>Tracking Sheet:</strong> <a href="https://docs.google.com/spreadsheets/d/1E-HZWh1ZpNVLCv8wYK4F0B2GyI_rLPisbWL2-IzjTzo/edit" target="_blank">Open in Google Sheets</a></li>
+                    <li><strong>Orders Sheet:</strong> <a href="https://docs.google.com/spreadsheets/d/1VEtHRoZT-c1_Pm7-hJqjpLXhs3wQL0yMCQmeJxTJ_lE/edit" target="_blank">Open in Google Sheets</a></li>
+                    <li><strong>Meta Events Manager:</strong> <a href="https://business.facebook.com/events_manager2/list/pixel/2384221445259822" target="_blank">View in Facebook</a></li>
+                </ul>
+
+                <h3>🧪 Testing Commands</h3>
+                <p>Run these in Apps Script Console to test tracking:</p>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyToClipboard(this, 'test-commands')">Copy</button>
+                    <pre id="test-commands">// Seed test data (5 users, full journeys)
+seedAllTrackingData()
+
+// View Meta Pixel Events sheet structure
+probeMetaPixelEvents()
+
+// Initialize Meta Pixel Events sheet (if missing)
+initializeMetaPixelSheet()
+
+// Clean up all test data
+wipeSeedData()
+
+// Quick health check
+quickHealthCheck()
+
+// Simulate full user journey
+simulateUserJourney()</pre>
+                </div>
+
+                <div class="info-box">
+                    <strong>💡 Pro Tip:</strong> Run <code>seedAllTrackingData()</code> before presenting dashboard to clients or stakeholders. It populates realistic data so you can demonstrate functionality and insights.
+                </div>
+
+                <h3>📞 Support & Troubleshooting</h3>
+                <ul>
+                    <li><strong>Dashboard not updating?</strong> Check Auto-Refresh is enabled (30s default)</li>
+                    <li><strong>Page Type showing "No Data"?</strong> Ensure pages send <code>page_type</code> field in payload</li>
+                    <li><strong>UTM not tracking?</strong> Verify URLs include <code>?</code> before utm_source (not <code>&</code>)</li>
+                    <li><strong>Meta Pixel not firing?</strong> Check browser console (F12) for <code>fbq(...)</code> logs</li>
+                    <li><strong>Events not in sheet?</strong> Run <code>initializeMetaPixelSheet()</code> in Apps Script</li>
+                </ul>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://script.google.com/macros/s/AKfycbxVsGP8EeAZmfRcW9LjY3fm1F9iWvXMO7RlT4VP7Tj1BV0BOkeBi6GAkASQhEZJ7h9Y/exec';
+        
+        let dashboardData = {};
+        let autoRefreshInterval = null;
+        const AUTO_REFRESH_ENABLED = true; // Set to false to disable
+        const AUTO_REFRESH_SECONDS = 30; // Refresh every 30 seconds
+
+        // Lazy load Chart.js after critical content
+        function loadChartJS() {
+            return new Promise((resolve, reject) => {
+                if (window.Chart) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Initialize Dashboard
+        async function initDashboard() {
+            try {
+                showLoading();
+                
+                // Load critical data first
+                await Promise.all([
+                    loadKPIs(),
+                    loadFunnelData(),
+                    loadMetaPixelData()
+                ]);
+                
+                // Load Chart.js and render charts
+                await loadChartJS();
+                await Promise.all([
+                    loadCharts(),
+                    loadTopUsers()
+                ]);
+                
+                hideLoading();
+                
+                // Start auto-refresh if enabled
+                if (AUTO_REFRESH_ENABLED && !autoRefreshInterval) {
+                    autoRefreshInterval = setInterval(silentRefresh, AUTO_REFRESH_SECONDS * 1000);
+                    console.log(`✅ Auto-refresh enabled (every ${AUTO_REFRESH_SECONDS}s)`);
+                }
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                hideLoading();
+            }
+        }
+        
+        // Silent refresh - updates data without showing loading overlay
+        async function silentRefresh() {
+            try {
+                console.log('🔄 Silent refresh...');
+                
+                // Update all metrics in background
+                await Promise.all([
+                    loadKPIs(),
+                    loadFunnelData(),
+                    loadMetaPixelData(),
+                    loadTopUsers()
+                ]);
+                
+                console.log('✅ Metrics updated');
+            } catch (error) {
+                console.error('Silent refresh error:', error);
+                // Don't show error to user, just log it
+            }
+        }
+
+        // Load KPIs
+        async function loadKPIs() {
+            try {
+                console.log('🔍 Loading KPIs from:', API_BASE);
+                const [statsData, revenueData, cohortData] = await Promise.all([
+                    fetch(`${API_BASE}?fn=stats`).then(r => {
+                        console.log('Stats response:', r.status, r.statusText);
+                        if (!r.ok) throw new Error(`Stats fetch failed: ${r.status}`);
+                        return r.json();
+                    }),
+                    fetch(`${API_BASE}?fn=revenue`).then(r => {
+                        console.log('Revenue response:', r.status, r.statusText);
+                        if (!r.ok) throw new Error(`Revenue fetch failed: ${r.status}`);
+                        return r.json();
+                    }),
+                    fetch(`${API_BASE}?fn=cohorts`).then(r => {
+                        console.log('Cohorts response:', r.status, r.statusText);
+                        if (!r.ok) throw new Error(`Cohorts fetch failed: ${r.status}`);
+                        return r.json();
+                    })
+                ]);
+
+                console.log('✅ KPI Data loaded:', { statsData, revenueData, cohortData });
+                dashboardData.stats = statsData;
+                dashboardData.revenue = revenueData;
+                dashboardData.cohorts = cohortData;
+
+                const kpis = [
+                    {
+                        title: 'Total Sessions',
+                        value: (statsData.unique_sessions || statsData.total_events || 0).toLocaleString(),
+                        icon: '📊',
+                        label: 'S',
+                        color: '#1493ff'
+                    },
+                    {
+                        title: 'Total Revenue',
+                        value: typeof revenueData.total_revenue === 'number' 
+                            ? `$${revenueData.total_revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                            : (revenueData.total_revenue || '$0.00'),
+                        icon: '💰',
+                        label: '$',
+                        color: '#34A853'
+                    },
+                    {
+                        title: 'Total Orders',
+                        value: (revenueData.total_orders || 0).toLocaleString(),
+                        icon: '🛒',
+                        label: 'O',
+                        color: '#FBBC04'
+                    },
+                    {
+                        title: 'Avg Order Value',
+                        value: typeof revenueData.average_order_value === 'number'
+                            ? `$${revenueData.average_order_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+                            : (revenueData.average_order_value || '$0.00'),
+                        icon: '📈',
+                        label: 'A',
+                        color: '#EA4335'
+                    },
+                    {
+                        title: 'Total Users',
+                        value: (cohortData.total_users || 0).toLocaleString(),
+                        icon: '👤',
+                        label: 'U',
+                        color: '#9C27B0'
+                    },
+                    {
+                        title: 'Customers',
+                        value: (cohortData.user_cohorts?.customer || 0).toLocaleString(),
+                        icon: '⭐',
+                        label: 'C',
+                        color: '#FF9800'
+                    }
+                ];
+
+                renderKPIs(kpis);
+            } catch (error) {
+                console.error('❌ Error loading KPIs:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                // Render empty KPIs so UI doesn't break
+                renderKPIs([
+                    { title: 'Total Sessions', value: '0', label: 'S', color: '#1493ff' },
+                    { title: 'Total Revenue', value: '$0.00', label: '$', color: '#34A853' },
+                    { title: 'Total Orders', value: '0', label: 'O', color: '#FBBC04' },
+                    { title: 'Avg Order Value', value: '$0.00', label: 'A', color: '#EA4335' },
+                    { title: 'Total Users', value: '0', label: 'U', color: '#9C27B0' },
+                    { title: 'Customers', value: '0', label: 'C', color: '#FF9800' }
+                ]);
+            }
+        }
+
+        // Render KPIs
+        function renderKPIs(kpis) {
+            const grid = document.getElementById('kpiGrid');
+            grid.innerHTML = kpis.map((kpi, index) => `
+                <div class="kpi-card fade-in" style="animation-delay: ${index * 0.05}s">
+                    <div class="kpi-header">
+                        <div class="kpi-title">${kpi.title}</div>
+                        <div class="kpi-icon" style="background: ${kpi.color}20; color: ${kpi.color}">
+                            ${kpi.label}
+                        </div>
+                    </div>
+                    <div class="kpi-value">${kpi.value}</div>
+                </div>
+            `).join('');
+        }
+
+        // Load Meta Pixel Data
+        async function loadMetaPixelData() {
+            try {
+                console.log('🔍 Loading Meta Pixel data from:', API_BASE);
+                const response = await fetch(`${API_BASE}?fn=meta_pixel_events`).then(r => {
+                    console.log('Meta Pixel response:', r.status, r.statusText);
+                    if (!r.ok) throw new Error(`Meta Pixel fetch failed: ${r.status}`);
+                    return r.json();
+                });
+
+                console.log('✅ Meta Pixel Data loaded:', response);
+                
+                if (response && response.summary) {
+                    const summary = response.summary;
+                    const hasData = summary.total_events && summary.total_events > 0;
+                    
+                    // Update KPI values
+                    document.getElementById('pixelTotalEvents').textContent = 
+                        (summary.total_events || 0).toLocaleString();
+                    
+                    document.getElementById('pixelEventsChange').textContent = 
+                        hasData ? `${summary.unique_sessions || 0} sessions tracked` : 'No tracking data yet';
+                    document.getElementById('pixelEventsChange').className = hasData ? 'kpi-change positive' : 'kpi-change';
+                    
+                    document.getElementById('pixelMatchQuality').textContent = 
+                        summary.unique_users ? `${summary.unique_users.toLocaleString()}` : '0';
+                    
+                    // Find top content by name (from content_name field)
+                    var topContentName = 'No data';
+                    var topContentCount = 0;
+                    
+                    if (summary.by_event_type) {
+                        // Look through all event types to find highest count
+                        Object.entries(summary.by_event_type).forEach(function([eventName, eventData]) {
+                            if (eventData.count > topContentCount) {
+                                topContentCount = eventData.count;
+                                topContentName = eventName;
+                            }
+                        });
+                    }
+                    
+                    document.getElementById('pixelTopPage').textContent = topContentName;
+                    document.getElementById('pixelTopPageEvents').textContent = 
+                        topContentCount > 0 ? `${topContentCount.toLocaleString()} events` : (hasData ? 'N/A' : 'Waiting for events...');
+                    document.getElementById('pixelTopPageEvents').className = topContentCount > 0 ? 'kpi-change positive' : 'kpi-change';
+                    
+                    document.getElementById('pixelTotalValue').textContent = 
+                        summary.total_value ? `$${summary.total_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00';
+                    
+                    const totalConversions = summary.by_event_type?.Purchase?.count || 0;
+                    document.getElementById('pixelConversions').textContent = 
+                        `${totalConversions.toLocaleString()} conversion${totalConversions !== 1 ? 's' : ''}`;
+                    document.getElementById('pixelConversions').className = totalConversions > 0 ? 'kpi-change positive' : 'kpi-change';
+                    
+                    // Render charts
+                    renderMetaPixelCharts(summary, hasData);
+                } else {
+                    // No summary data - show empty state
+                    document.getElementById('pixelTotalEvents').textContent = '0';
+                    document.getElementById('pixelEventsChange').textContent = 'No tracking data yet';
+                    document.getElementById('pixelEventsChange').className = 'kpi-change';
+                    
+                    document.getElementById('pixelMatchQuality').textContent = '0';
+                    document.getElementById('pixelTopPage').textContent = 'No data';
+                    document.getElementById('pixelTopPageEvents').textContent = 'Waiting for events...';
+                    document.getElementById('pixelTopPageEvents').className = 'kpi-change';
+                    
+                    document.getElementById('pixelTotalValue').textContent = '$0.00';
+                    document.getElementById('pixelConversions').textContent = '0 conversions';
+                    document.getElementById('pixelConversions').className = 'kpi-change';
+                    
+                    renderMetaPixelCharts({}, false);
+                }
+            } catch (error) {
+                console.error('❌ Error loading Meta Pixel data:', error);
+                // Set error state
+                document.getElementById('pixelTotalEvents').textContent = '0';
+                document.getElementById('pixelEventsChange').textContent = 'Error loading data';
+                document.getElementById('pixelEventsChange').className = 'kpi-change negative';
+                
+                document.getElementById('pixelMatchQuality').textContent = '-';
+                document.getElementById('pixelTopPage').textContent = 'Error';
+                document.getElementById('pixelTopPageEvents').textContent = 'Check console';
+                document.getElementById('pixelTopPageEvents').className = 'kpi-change negative';
+                
+                document.getElementById('pixelTotalValue').textContent = '$0.00';
+                document.getElementById('pixelConversions').textContent = 'Error loading';
+                document.getElementById('pixelConversions').className = 'kpi-change negative';
+                
+                renderMetaPixelCharts({}, false);
+            }
+        }
+
+        // Render Meta Pixel Charts
+        function renderMetaPixelCharts(summary, hasData) {
+            // Event Type Distribution
+            const eventTypesContainer = document.getElementById('pixelEventTypes');
+            if (summary.by_event_type && Object.keys(summary.by_event_type).length > 0) {
+                const eventTypes = Object.entries(summary.by_event_type)
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .slice(0, 8);
+                
+                const maxCount = eventTypes[0][1].count;
+                eventTypesContainer.innerHTML = eventTypes.map(([name, data]) => `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-size: 13px; color: #333; font-weight: 600;">${name}</span>
+                            <span style="font-size: 13px; color: #1493ff; font-weight: 700;">${data.count.toLocaleString()}</span>
+                        </div>
+                        <div style="background: #f0f0f0; border-radius: 4px; height: 10px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #1493ff, #0d7de0); height: 100%; width: ${(data.count / maxCount * 100).toFixed(1)}%; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                eventTypesContainer.innerHTML = `
+                    <div style="color: #999; text-align: center; padding: 40px 20px; background: #f9f9f9; border-radius: 8px; border: 2px dashed #ddd;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📊</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #666; margin-bottom: 8px;">No Event Data Yet</div>
+                        <div style="font-size: 13px; color: #999;">Events like PageView, Purchase, and AddToCart will appear here once tracking begins.</div>
+                    </div>
+                `;
+            }
+
+            // Page Performance
+            const pagePerformanceContainer = document.getElementById('pixelPagePerformance');
+            if (summary.by_page_type && Object.keys(summary.by_page_type).length > 0) {
+                const pageTypes = Object.entries(summary.by_page_type)
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .slice(0, 8);
+                
+                const maxCount = pageTypes[0][1].count;
+                pagePerformanceContainer.innerHTML = pageTypes.map(([name, data]) => `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-size: 13px; color: #333; font-weight: 600;">${name}</span>
+                            <span style="font-size: 13px; color: #34A853; font-weight: 700;">${data.count.toLocaleString()}</span>
+                        </div>
+                        <div style="background: #f0f0f0; border-radius: 4px; height: 10px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #34A853, #2d8e47); height: 100%; width: ${(data.count / maxCount * 100).toFixed(1)}%; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                pagePerformanceContainer.innerHTML = `
+                    <div style="color: #999; text-align: center; padding: 40px 20px; background: #f9f9f9; border-radius: 8px; border: 2px dashed #ddd;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📄</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #666; margin-bottom: 8px;">No Page Data Yet</div>
+                        <div style="font-size: 13px; color: #999;">Performance metrics for Home, Shop, Automations, and other pages will appear here.</div>
+                    </div>
+                `;
+            }
+
+            // UTM Sources
+            const utmSourcesContainer = document.getElementById('pixelUTMSources');
+            if (summary.by_utm_source && Object.keys(summary.by_utm_source).length > 0) {
+                const utmSources = Object.entries(summary.by_utm_source)
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .slice(0, 8);
+                
+                const maxCount = utmSources[0][1].count;
+                utmSourcesContainer.innerHTML = utmSources.map(([name, data]) => `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-size: 13px; color: #333; font-weight: 600;">${name || 'Direct'}</span>
+                            <span style="font-size: 13px; color: #FBBC04; font-weight: 700;">${data.count.toLocaleString()}</span>
+                        </div>
+                        <div style="background: #f0f0f0; border-radius: 4px; height: 10px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #FBBC04, #e0a800); height: 100%; width: ${(data.count / maxCount * 100).toFixed(1)}%; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                utmSourcesContainer.innerHTML = `
+                    <div style="color: #999; text-align: center; padding: 40px 20px; background: #f9f9f9; border-radius: 8px; border: 2px dashed #ddd;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">🔗</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #666; margin-bottom: 8px;">No Attribution Data Yet</div>
+                        <div style="font-size: 13px; color: #999;">Traffic sources from Google, Facebook, Email campaigns, and Direct will appear here.</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load Funnel Data
+        async function loadFunnelData() {
+            try {
+                console.log('🔍 Loading funnel data from:', `${API_BASE}?fn=funnel`);
+                const funnelData = await fetch(`${API_BASE}?fn=funnel`).then(r => {
+                    console.log('Funnel response:', r.status, r.statusText);
+                    if (!r.ok) throw new Error(`Funnel fetch failed: ${r.status}`);
+                    return r.json();
+                });
+                console.log('✅ Funnel data loaded:', funnelData);
+                dashboardData.funnel = funnelData;
+
+                const stages = [
+                    { name: 'Visitors', count: funnelData.stage_distribution?.visitor || 0, rate: '100%' },
+                    { name: 'Browsers', count: funnelData.stage_distribution?.browser || 0, rate: funnelData.conversion_rates?.visitor_to_browser || '0%' },
+                    { name: 'Engaged', count: funnelData.stage_distribution?.engaged || 0, rate: funnelData.conversion_rates?.browser_to_engaged || '0%' },
+                    { name: 'Leads', count: funnelData.totals?.leads || 0, rate: funnelData.conversion_rates?.engaged_to_lead || '0%' },
+                    { name: 'Customers', count: funnelData.totals?.customers || 0, rate: funnelData.conversion_rates?.lead_to_customer || '0%' }
+                ];
+
+                renderFunnel(stages);
+            } catch (error) {
+                console.error('❌ Error loading funnel:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                // Render empty funnel
+                renderFunnel([
+                    { name: 'Visitors', count: 0, rate: '0%' },
+                    { name: 'Browsers', count: 0, rate: '0%' },
+                    { name: 'Engaged', count: 0, rate: '0%' },
+                    { name: 'Leads', count: 0, rate: '0%' },
+                    { name: 'Customers', count: 0, rate: '0%' }
+                ]);
+            }
+        }
+
+        // Render Funnel
+        function renderFunnel(stages) {
+            const container = document.getElementById('funnelVisualization');
+            const maxCount = Math.max(...stages.map(s => s.count), 1);
+
+            container.innerHTML = stages.map(stage => {
+                const width = Math.max((stage.count / maxCount) * 100, 5);
+                return `
+                    <div class="funnel-stage">
+                        <div class="funnel-label">
+                            <span class="stage-name">${stage.name}</span>
+                            <span class="stage-count">${stage.count.toLocaleString()} · ${stage.rate}</span>
+                        </div>
+                        <div class="funnel-bar" style="width: ${width}%">
+                            ${stage.count.toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load Charts
+        async function loadCharts() {
+            try {
+                const revenueData = dashboardData.revenue;
+                
+                // Revenue Chart
+                const revenueByDay = revenueData.revenue_by_day || {};
+                const dates = Object.keys(revenueByDay).sort();
+                const revenues = dates.map(d => revenueByDay[d]);
+
+                new Chart(document.getElementById('revenueChart'), {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                        datasets: [{
+                            label: 'Revenue',
+                            data: revenues,
+                            borderColor: '#34A853',
+                            backgroundColor: 'rgba(52, 168, 83, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#34A853',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 42, 90, 0.95)',
+                                padding: 12,
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 13 },
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => '$' + value.toLocaleString(),
+                                    font: { size: 12, weight: '600' },
+                                    color: '#5f6368'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: { size: 12, weight: '600' },
+                                    color: '#5f6368'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Device Chart
+                new Chart(document.getElementById('deviceChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Desktop', 'Mobile', 'Tablet'],
+                        datasets: [{
+                            data: [45, 40, 15],
+                            backgroundColor: ['#1493ff', '#34A853', '#FBBC04'],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    padding: 16,
+                                    font: { size: 13, weight: '600' },
+                                    color: '#0a2a5a',
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(10, 42, 90, 0.95)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: ${percentage}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading charts:', error);
+            }
+        }
+
+        // Load Top Users
+        async function loadTopUsers() {
+            try {
+                console.log('🔍 Loading users from:', `${API_BASE}?fn=users&limit=10`);
+                const usersData = await fetch(`${API_BASE}?fn=users&limit=10`).then(r => {
+                    console.log('Users response:', r.status, r.statusText);
+                    if (!r.ok) throw new Error(`Users fetch failed: ${r.status}`);
+                    return r.json();
+                });
+                console.log('✅ Users data loaded:', usersData);
+                const tbody = document.querySelector('#topUsersTable tbody');
+                
+                if (usersData.top_users && usersData.top_users.length > 0) {
+                    tbody.innerHTML = usersData.top_users.map(user => `
+                        <tr>
+                            <td><strong>${user.Email || 'N/A'}</strong></td>
+                            <td>${(user.Total_Orders || 0).toLocaleString()}</td>
+                            <td><strong style="color: var(--success)">$${((user.Lifetime_Revenue || 0).toFixed(2)).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong></td>
+                            <td>${user.Last_Purchase_Date ? new Date(user.Last_Purchase_Date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td>
+                            <td><span style="color: ${user.Current_Funnel_Stage === 'customer' ? 'var(--success)' : 'var(--warning)'}">●</span> ${(user.Current_Funnel_Stage || 'N/A').charAt(0).toUpperCase() + (user.Current_Funnel_Stage || 'N/A').slice(1)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 32px; color: #5f6368;">No customer data available yet. Run test data to populate.</td></tr>';
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading users:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    type: error.constructor.name
+                });
+                document.querySelector('#topUsersTable tbody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 32px; color: var(--danger);">Error loading customer data. Check console (F12) for details.</td></tr>';
+            }
+        }
+
+        // Generate AI Report
+        async function generateAIReport() {
+            const section = document.getElementById('aiReportSection');
+            const content = document.getElementById('aiReportContent');
+            
+            if (!section || !content) {
+                console.error('AI report elements not found');
+                return;
+            }
+            
+            // Show loading
+            section.style.display = 'block';
+            content.innerHTML = '<div class="loading"><div class="spinner" role="status" aria-label="Generating AI insights"></div><p style="margin-top: 16px; color: var(--cobalt); font-weight: 600;">Generating insights...</p></div>';
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            try {
+                console.log('📤 Sending AI report request...');
+                console.log('📍 API URL:', API_BASE);
+                
+                // FIXED: Just send action, backend will fetch data itself
+                const requestBody = {
+                    action: 'ai_report'
+                };
+                
+                console.log('� Request body:', requestBody);
+                
+                const response = await fetch(`${API_BASE}?fn=ai_report`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                console.log('📥 Response status:', response.status, response.statusText);
+                console.log('� Content-Type:', response.headers.get('content-type'));
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('✅ AI Report result:', result);
+                
+                if (result.status === 'success' && result.report) {
+                    content.innerHTML = result.report;
+                    console.log('✅ AI report rendered successfully');
+                    
+                    // Store report for email
+                    window.currentAIReport = result.report;
+                    window.currentAIReportTimestamp = result.timestamp;
+                    
+                    // Show email button
+                    document.getElementById('emailReportBtn').style.display = 'inline-flex';
+                } else {
+                    throw new Error(result.message || 'Failed to generate report');
+                }
+                
+            } catch (error) {
+                console.error('❌ AI Report Error:', error);
+                content.innerHTML = `
+                    <div style="padding: 20px; background: #fee; border-left: 4px solid #EA4335; border-radius: 8px;">
+                        <h3 style="margin: 0 0 12px 0; color: #c5221f;">⚠️ Failed to Generate AI Report</h3>
+                        <p style="margin: 8px 0; color: #666;"><strong>Error:</strong> ${error.message}</p>
+                        <details style="margin-top: 12px;">
+                            <summary style="cursor: pointer; color: #1a73e8; font-weight: 600;">Troubleshooting Steps</summary>
+                            <ol style="margin: 12px 0 0 20px; color: #666; line-height: 1.8;">
+                                <li>Check browser console (F12) for detailed errors</li>
+                                <li>Verify OpenAI API key in Apps Script Project Settings</li>
+                                <li>Ensure you have tracking data in sheets (run test functions)</li>
+                                <li>Check Apps Script Execution Log for backend errors</li>
+                                <li>Try refreshing the page and clicking "Generate Insights" again</li>
+                            </ol>
+                        </details>
+                    </div>
+                `;
+            }
+        }
+
+        // Email AI Report
+        async function emailAIReport() {
+            if (!window.currentAIReport) {
+                alert('No report to email. Please generate a report first.');
+                return;
+            }
+
+            const btn = document.getElementById('emailReportBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '📧 Sending...';
+
+            try {
+                const timestamp = new Date(window.currentAIReportTimestamp || new Date()).toLocaleDateString();
+                
+                // Create styled email HTML
+                const emailHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background: #0a2a5a; color: white; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 10px 0 0; font-size: 14px; opacity: 0.9; }
+        .content { padding: 30px 20px; line-height: 1.6; color: #333; }
+        .content h2, .content h3, .content h4 { color: #0a2a5a; margin-top: 20px; }
+        .content ul, .content ol { padding-left: 20px; }
+        .content strong { color: #0a2a5a; }
+        .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 2px solid #e0e0e0; }
+        .footer a { color: #1493ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Home2Smart AI Marketing Report</h1>
+            <p>Generated: ${timestamp}</p>
+        </div>
+        <div class="content">
+            ${window.currentAIReport}
+        </div>
+        <div class="footer">
+            <p><strong>Home2Smart</strong> | Smart Home Installation Services | NC & SC</p>
+            <p><a href="mailto:contact@home2smart.com">contact@home2smart.com</a></p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+                // Send via backend (POST without fn parameter)
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: emailHTML,
+                        timestamp: timestamp
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to send email: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    btn.innerHTML = '✅ Sent!';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error(result.message || 'Failed to send email');
+                }
+
+            } catch (error) {
+                console.error('❌ Email Error:', error);
+                btn.innerHTML = '❌ Failed';
+                alert('Failed to send email: ' + error.message);
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // Refresh Data (manual button click)
+        async function refreshData() {
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>⟳</span>';
+            
+            try {
+                // Use silent refresh (no loading overlay)
+                await silentRefresh();
+                
+                btn.innerHTML = '<span>✓</span>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 1500);
+            } catch (error) {
+                btn.innerHTML = '<span>✗</span>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Loading State
+        let loadingOverlay = null;
+        
+        function showLoading() {
+            if (!loadingOverlay) {
+                loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'loading-overlay';
+                loadingOverlay.innerHTML = `
+                    <div class="loading-card">
+                        <div class="spinner"></div>
+                        <p style="margin-top: 20px; color: var(--cobalt); font-weight: 700;">Loading dashboard...</p>
+                    </div>
+                `;
+                document.body.appendChild(loadingOverlay);
+            }
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Tracking Reference Modal Functions
+        function openTrackingReference() {
+            document.getElementById('trackingModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTrackingReference() {
+            document.getElementById('trackingModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function copyToClipboard(button, elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✓ Copied!';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+
+        // Close modal on outside click
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('trackingModal');
+            if (e.target === modal) {
+                closeTrackingReference();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeTrackingReference();
+            }
+        });
+
+        // Initialize on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDashboard);
+        } else {
+            initDashboard();
+        }
+
+        // Performance optimization: defer non-critical tasks
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+                // Preload Chart.js during idle time
+                loadChartJS().catch(() => {});
+            });
+        }
+    </script>
+
+    <!-- ============================================================================
+         TRACKING STATUS INDICATOR
+         ============================================================================
+         Shows real-time tracking health status in dashboard
+         Auto-checks backend connectivity and displays confirmation
+         ============================================================================ -->
+    
+    <style>
+    #tracking-status-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #0a2a5a 0%, #1a4a8a 100%);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        font-family: 'Archivo', -apple-system, sans-serif;
+        font-size: 13px;
+        z-index: 999999;
+        min-width: 300px;
+        max-width: 340px;
+        transition: all 0.3s ease;
+        border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    #tracking-status-widget.hidden {
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none;
+    }
+
+    #tracking-status-widget .status-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+
+    #tracking-status-widget .status-title {
+        font-weight: 700;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #tracking-status-widget .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #00ff88;
+        box-shadow: 0 0 8px #00ff88;
+        animation: pulse-indicator 2s infinite;
+    }
+
+    #tracking-status-widget .status-indicator.error {
+        background: #ff6464;
+        box-shadow: 0 0 8px #ff6464;
+    }
+
+    @keyframes pulse-indicator {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    #tracking-status-widget .status-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 12px;
+    }
+
+    #tracking-status-widget .status-label {
+        color: rgba(255,255,255,0.7);
+    }
+
+    #tracking-status-widget .status-value {
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        color: #00ff88;
+        font-size: 11px;
+    }
+
+    #tracking-status-widget .status-value.error {
+        color: #ff6464;
+    }
+
+    #tracking-status-widget .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 20px;
+        padding: 0;
+        line-height: 1;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #tracking-status-widget .close-btn:hover {
+        opacity: 1;
+    }
+
+    #tracking-status-widget .backend-status {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background: rgba(0,255,136,0.15);
+        border-radius: 6px;
+        font-size: 11px;
+        border-left: 3px solid #00ff88;
+        line-height: 1.4;
+    }
+
+    #tracking-status-widget .backend-status.error {
+        background: rgba(255,100,100,0.15);
+        border-left-color: #ff6464;
+        color: #ffcccc;
+    }
+
+    #tracking-status-widget .backend-status.checking {
+        background: rgba(255,200,100,0.15);
+        border-left-color: #ffc864;
+        color: #ffe4b3;
+    }
+
+    #tracking-status-widget .metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #tracking-status-widget .metric-box {
+        background: rgba(255,255,255,0.05);
+        padding: 6px 8px;
+        border-radius: 6px;
+        text-align: center;
+    }
+
+    #tracking-status-widget .metric-label {
+        font-size: 10px;
+        color: rgba(255,255,255,0.6);
+        margin-bottom: 2px;
+    }
+
+    #tracking-status-widget .metric-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: #00ff88;
+    }
+
+    @media (max-width: 768px) {
+        #tracking-status-widget {
+            bottom: 10px;
+            right: 10px;
+            left: 10px;
+            min-width: 0;
+            max-width: none;
+        }
+    }
+    </style>
+
+    <div id="tracking-status-widget">
+        <div class="status-header">
+            <div class="status-title">
+                <div class="status-indicator" id="status-indicator"></div>
+                <span id="status-title-text">Tracking Active</span>
+            </div>
+            <button class="close-btn" onclick="closeTrackingStatus()" aria-label="Close tracking status">×</button>
+        </div>
+        
+        <div class="status-row">
+            <span class="status-label">Backend:</span>
+            <span class="status-value" id="backend-status-text">Checking...</span>
+        </div>
+        
+        <div class="status-row">
+            <span class="status-label">Last Event:</span>
+            <span class="status-value" id="last-event-time">Loading...</span>
+        </div>
+        
+        <div class="backend-status checking" id="backend-message">
+            Verifying tracking system health...
+        </div>
+
+        <div class="metrics-grid" id="metrics-grid" style="display: none;">
+            <div class="metric-box">
+                <div class="metric-label">Events (24h)</div>
+                <div class="metric-value" id="events-24h">0</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Meta Pixel</div>
+                <div class="metric-value" id="meta-24h">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Tracking Status Widget Functionality
+    (function(){
+        var widget = document.getElementById('tracking-status-widget');
+        var indicator = document.getElementById('status-indicator');
+        var titleText = document.getElementById('status-title-text');
+        var backendStatusText = document.getElementById('backend-status-text');
+        var lastEventTime = document.getElementById('last-event-time');
+        var backendMessage = document.getElementById('backend-message');
+        var metricsGrid = document.getElementById('metrics-grid');
+        var events24h = document.getElementById('events-24h');
+        var meta24h = document.getElementById('meta-24h');
+        
+        // Check tracking health
+        function checkTrackingHealth(){
+            fetch(API_BASE + '?fn=tracking_health', { method: 'GET' })
+                .then(function(res){ return res.json(); })
+                .then(function(data){
+                    if (data.ok && data.healthy) {
+                        // HEALTHY - Tracking working
+                        indicator.classList.remove('error');
+                        titleText.textContent = 'Tracking Active ✓';
+                        backendStatusText.textContent = 'Connected';
+                        backendStatusText.classList.remove('error');
+                        
+                        var lastMins = data.last_event_mins || 0;
+                        if (lastMins === 0) {
+                            lastEventTime.textContent = 'Just now';
+                        } else if (lastMins === 1) {
+                            lastEventTime.textContent = '1 min ago';
+                        } else {
+                            lastEventTime.textContent = lastMins + ' mins ago';
+                        }
+                        lastEventTime.classList.remove('error');
+                        
+                        backendMessage.className = 'backend-status';
+                        backendMessage.textContent = '✓ All systems operational • ' + 
+                            (data.total_events_24h || 0) + ' events tracked today';
+                        
+                        // Show metrics
+                        metricsGrid.style.display = 'grid';
+                        events24h.textContent = data.total_events_24h || 0;
+                        meta24h.textContent = data.total_meta_24h || 0;
+                        
+                    } else if (data.ok && !data.healthy) {
+                        // DEGRADED - No recent events
+                        indicator.classList.add('error');
+                        titleText.textContent = 'Tracking Alert ⚠';
+                        backendStatusText.textContent = 'Degraded';
+                        backendStatusText.classList.add('error');
+                        
+                        var lastMins = data.last_event_mins || 999;
+                        lastEventTime.textContent = lastMins + ' mins ago';
+                        lastEventTime.classList.add('error');
+                        
+                        backendMessage.className = 'backend-status error';
+                        backendMessage.textContent = '⚠ No events in ' + lastMins + 
+                            ' minutes • Check tracking code on pages';
+                        
+                        metricsGrid.style.display = 'none';
+                        
+                    } else {
+                        // ERROR - Backend issue
+                        indicator.classList.add('error');
+                        titleText.textContent = 'Tracking Error ✗';
+                        backendStatusText.textContent = 'Error';
+                        backendStatusText.classList.add('error');
+                        lastEventTime.textContent = 'Unknown';
+                        lastEventTime.classList.add('error');
+                        
+                        backendMessage.className = 'backend-status error';
+                        backendMessage.textContent = '✗ ' + (data.error || 'Backend unreachable');
+                        
+                        metricsGrid.style.display = 'none';
+                    }
+                })
+                .catch(function(err){
+                    // NETWORK ERROR
+                    indicator.classList.add('error');
+                    titleText.textContent = 'Connection Error ✗';
+                    backendStatusText.textContent = 'Offline';
+                    backendStatusText.classList.add('error');
+                    lastEventTime.textContent = 'N/A';
+                    lastEventTime.classList.add('error');
+                    
+                    backendMessage.className = 'backend-status error';
+                    backendMessage.textContent = '✗ Cannot reach backend • Check internet connection';
+                    
+                    metricsGrid.style.display = 'none';
+                });
+        }
+        
+        // Close widget
+        window.closeTrackingStatus = function(){
+            widget.classList.add('hidden');
+            // Store preference
+            sessionStorage.setItem('tracking_status_closed', 'true');
+        };
+        
+        // Keyboard shortcut: Ctrl+Shift+T to toggle
+        document.addEventListener('keydown', function(e){
+            if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+                widget.classList.toggle('hidden');
+                if (!widget.classList.contains('hidden')) {
+                    sessionStorage.removeItem('tracking_status_closed');
+                    checkTrackingHealth();
+                }
+            }
+        });
+        
+        // Auto-hide after 10 seconds (only if healthy)
+        setTimeout(function(){
+            // Only auto-hide if user hasn't manually closed it
+            if (!sessionStorage.getItem('tracking_status_closed')) {
+                // Check if healthy before hiding
+                fetch(API_BASE + '?fn=tracking_health')
+                    .then(function(res){ return res.json(); })
+                    .then(function(data){
+                        if (data.ok && data.healthy) {
+                            widget.classList.add('hidden');
+                        }
+                        // If unhealthy, keep showing
+                    })
+                    .catch(function(){
+                        // If error, keep showing
+                    });
+            }
+        }, 10000);
+        
+        // Initial check after 1 second (let dashboard load first)
+        setTimeout(function(){
+            // Check if user closed it in this session
+            if (!sessionStorage.getItem('tracking_status_closed')) {
+                checkTrackingHealth();
+            } else {
+                widget.classList.add('hidden');
+            }
+        }, 1000);
+        
+        // Re-check every 2 minutes if widget is visible
+        setInterval(function(){
+            if (!widget.classList.contains('hidden')) {
+                checkTrackingHealth();
+            }
+        }, 120000);
+        
+    })();
+    </script>
+</body>
+</html>
