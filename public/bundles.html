@@ -2722,6 +2722,8 @@ body.app-ready #outlet > * {
 // (IIFE removed)
 'use strict';
 
+console.log('[BundlesJS] Script loaded and executing');
+
 function byId(id){ return document.getElementById(id); }
 
 // === UTILITY FUNCTIONS ===
@@ -3241,6 +3243,7 @@ function toggleMenu(){
 }
 
 function toggleCart(){
+  console.log('[Cart] toggleCart() called');
   const drawer = document.getElementById('cartDrawer');
   const backdrop = document.getElementById('backdrop');
   
@@ -4443,20 +4446,31 @@ function loadDeferred(){
 }
 
 // Stubs that load the real code on demand
+let _checkoutLoading = false;
 window.checkout = function(){ 
-  const originalCheckout = window.checkout;
+  if(_checkoutLoading) {
+    console.log('[Checkout] Already loading, please wait...');
+    return;
+  }
+  _checkoutLoading = true;
+  console.log('[Checkout] Loading checkout module...');
+  
   loadDeferred()
     .then(() => {
-      // If checkout function changed (deferred loaded), call the new one
-      if(window.checkout !== originalCheckout) {
+      console.log('[Checkout] Deferred loaded successfully');
+      _checkoutLoading = false;
+      // The deferred file has now replaced window.checkout
+      // Trigger it by calling it again
+      if(window.checkout && window.checkout !== arguments.callee) {
         window.checkout();
       } else {
-        console.error('[Checkout] Deferred loaded but checkout not replaced');
-        alert('Unable to load checkout. Please refresh the page and try again.');
+        console.error('[Checkout] Deferred loaded but checkout function not replaced');
+        alert('Error loading checkout. Please refresh and try again.');
       }
     })
     .catch(err => {
-      console.error('[Checkout] Failed to load deferred code:', err);
+      console.error('[Checkout] Failed to load deferred:', err);
+      _checkoutLoading = false;
       alert('Unable to load checkout. Please refresh the page and try again.');
     });
 };
