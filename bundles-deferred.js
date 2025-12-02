@@ -165,7 +165,7 @@ function showCheckoutForm(){
   }
   
   modal.innerHTML = `
-    <div style="padding: 28px; max-width: 520px;">
+    <div style="padding: 28px; max-width: 540px;">
       <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 26px; color: var(--cobalt);">Complete Your Order</h2>
       <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 14px;">Enter your details to finalize checkout and schedule installation.</p>
       
@@ -185,6 +185,17 @@ function showCheckoutForm(){
           <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Phone Number *</label>
           <input type="tel" id="checkoutPhone" class="inp" placeholder="(864) 123-4567" style="width: 100%;" required>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">For installation appointment coordination</div>
+        </div>
+        
+        <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Service Address *</label>
+          <input type="text" id="checkoutAddress" class="inp" placeholder="123 Main Street" style="width: 100%; margin-bottom: 12px;" required>
+          
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+            <input type="text" id="checkoutCity" class="inp" placeholder="City" style="width: 100%;" required>
+            <input type="text" id="checkoutZip" class="inp" placeholder="ZIP" style="width: 100%;" required>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Where we'll perform the installation</div>
         </div>
         
         <div style="background: #f5f9ff; border: 1px solid #d7eafc; border-radius: 8px; padding: 14px; margin-top: 8px;">
@@ -243,6 +254,9 @@ async function processCheckoutForm(){
   const name = document.getElementById('checkoutName')?.value.trim() || '';
   const email = document.getElementById('checkoutEmail')?.value.trim() || '';
   const phone = document.getElementById('checkoutPhone')?.value.trim() || '';
+  const address = document.getElementById('checkoutAddress')?.value.trim() || '';
+  const city = document.getElementById('checkoutCity')?.value.trim() || '';
+  const zip = document.getElementById('checkoutZip')?.value.trim() || '';
   const createAccount = document.getElementById('createAccount')?.checked || false;
   const msgEl = document.getElementById('checkoutFormMsg');
   const btn = document.getElementById('checkoutFormSubmit');
@@ -267,6 +281,30 @@ async function processCheckoutForm(){
   if(!phone || phone.length < 10){
     if(msgEl) {
       msgEl.textContent = 'Please enter a valid phone number';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!address){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter your service address';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!city){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter your city';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!zip || zip.length < 5){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter a valid ZIP code';
       msgEl.style.color = '#d32f2f';
     }
     return;
@@ -315,6 +353,9 @@ async function processCheckoutForm(){
         customer_name: name,
         customer_phone: phone,
         customer_email: email,
+        service_address: address,
+        service_city: city,
+        service_zip: zip,
         create_account: createAccount ? 'true' : 'false'
       }
     };
@@ -372,13 +413,15 @@ async function processCheckoutForm(){
     console.log('\n✅ CHECKOUT SESSION CREATED!');
     console.log('Session URL:', url);
     console.log('Customer:', name, email, phone);
+    console.log('Service Address:', `${address}, ${city}, ${zip}`);
     console.log('Auto-create account:', createAccount);
     
     // Track checkout before redirect
     h2sTrack('BeginCheckout', {
       cart_total: cartSubtotal(),
       session_url: url,
-      create_account: createAccount
+      create_account: createAccount,
+      has_address: true
     });
     
     // Store customer data temporarily for account creation after payment
@@ -387,6 +430,9 @@ async function processCheckoutForm(){
         name,
         email,
         phone,
+        address,
+        city,
+        zip,
         timestamp: Date.now()
       }));
     }
