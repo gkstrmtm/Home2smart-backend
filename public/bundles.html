@@ -4444,8 +4444,17 @@ function loadDeferred(){
 
 // Stubs that load the real code on demand
 window.checkout = function(){ 
+  const originalCheckout = window.checkout;
   loadDeferred()
-    .then(() => window.checkout())
+    .then(() => {
+      // If checkout function changed (deferred loaded), call the new one
+      if(window.checkout !== originalCheckout) {
+        window.checkout();
+      } else {
+        console.error('[Checkout] Deferred loaded but checkout not replaced');
+        alert('Unable to load checkout. Please refresh the page and try again.');
+      }
+    })
     .catch(err => {
       console.error('[Checkout] Failed to load deferred code:', err);
       alert('Unable to load checkout. Please refresh the page and try again.');
