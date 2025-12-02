@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- Security -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net https://js.stripe.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://connect.facebook.net https://www.facebook.com https://api.stripe.com https://h2s-backend.vercel.app; frame-src 'self' https://api.leadconnectorhq.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net https://js.stripe.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://connect.facebook.net https://www.facebook.com https://api.stripe.com https://h2s-backend.vercel.app;">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -30,11 +30,12 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 
 <!-- Performance: Critical Resource Hints -->
-<link rel="preconnect" href="https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app" crossorigin>
-<link rel="dns-prefetch" href="https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app">
+<link rel="preconnect" href="https://h2s-backend.vercel.app" crossorigin>
+<link rel="dns-prefetch" href="https://h2s-backend.vercel.app">
 <!-- Preload aggregated data to start fetch parallel to HTML parsing -->
 <link rel="preload" href="https://h2s-backend.vercel.app/api/bundles-data" as="fetch" crossorigin>
-<link rel="preload" href="https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app/api/get-availability" as="fetch" crossorigin>
+<!-- Preload logo for faster LCP -->
+<link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://js.stripe.com">
 
@@ -42,8 +43,8 @@
 <!-- Fonts loaded async to avoid render-blocking -->
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&display=swap" media="print" onload="this.media='all'" crossorigin>
-<noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&display=swap" rel="stylesheet" crossorigin></noscript>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" as="style" crossorigin onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet" crossorigin></noscript>
 
 <style>
 @font-face {
@@ -82,6 +83,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
   background: var(--cobalt); /* Prevent white flash / overscroll raw area */
   overscroll-behavior-y: none; /* Clamp bounce */
 }
@@ -334,8 +336,6 @@ body {
   margin-right: calc(50% - 50vw);
   box-sizing: border-box;
   transition: padding-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 420px;
-  contain: layout style paint;
 }
 
 .hero-inner {
@@ -516,39 +516,18 @@ body {
   padding: 14px 20px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   line-height: 1;
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.btn:hover::before {
-  opacity: 1;
 }
 
 .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(20,147,255,.3);
-}
-
-.btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(20,147,255,.2);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(20,147,255,.25);
 }
 
 .btn:active {
@@ -727,10 +706,9 @@ body {
 .review-carousel {
   position: relative;
   overflow: hidden;
-  padding: 96px 0 104px;
+  padding: 96px 0 104px; /* Increased vertical padding for breathability */
   background-color: #fafbfc;
   background-image: linear-gradient(180deg, #fafbfc 0%, #f5f7fa 50%, #ffffff 100%);
-  contain: layout style;
 }
 
 /* Track container to handle overflow properly */
@@ -996,20 +974,15 @@ body {
   gap: 16px;
   transition: all 0.2s ease;
   position: relative;
+  /* Performance: Defer rendering of off-screen packages */
   content-visibility: auto;
   contain-intrinsic-size: 0 450px;
-  contain: layout style paint;
 }
 
 .package:hover {
   border-color: var(--azure);
-  box-shadow: 0 12px 32px rgba(10,42,90,0.15);
-  transform: translateY(-4px);
-}
-
-.package:active {
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
-  transition-duration: 0.1s;
 }
 
 .package.featured {
@@ -1803,38 +1776,24 @@ body {
 }
 
 .modal-header {
-  padding: 28px 24px 20px;
-  border-bottom: 2px solid #f0f2f5;
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  position: relative;
-}
-
-.modal-header::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 24px;
-  width: 60px;
-  height: 2px;
-  background: var(--azure);
-  border-radius: 1px;
+  align-items: center;
 }
 
 .modal-header h3 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--cobalt);
-  margin-bottom: 8px;
-  letter-spacing: -0.02em;
+  margin-bottom: 6px;
 }
 
 .modal-header p {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--muted);
-  line-height: 1.6;
-  margin: 0;
+  line-height: 1.5;
 }
 
 .close-btn {
@@ -1863,16 +1822,11 @@ body {
 }
 
 .modal-footer {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 12px;
-  background: #fafbfc;
-  border-radius: 0 0 16px 16px;
-}
-
-.modal-footer .btn {
-  flex: 1;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* === UTILITIES === */
@@ -2220,17 +2174,6 @@ body.app-ready #outlet > * {
   100% { background-position: -200% 0; }
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes scaleIn {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
 .bundle-skeleton {
   height: 400px;
   border-radius: 12px;
@@ -2547,7 +2490,7 @@ body.app-ready #outlet > * {
 </div>
 
 <!-- MENU DRAWER -->
-<aside class="menu-drawer" id="menuDrawer">
+<aside class="menu-drawer" id="menuDrawer" style="content-visibility: auto;">
   <div class="menu-header">
     <h3>Menu</h3>
     <button class="btn-subtle" onclick="toggleMenu()" style="padding: 6px 10px; font-size: 13px;">Close</button>
@@ -2564,7 +2507,7 @@ body.app-ready #outlet > * {
 </aside>
 
 <!-- CART DRAWER -->
-<aside class="cart-drawer" id="cartDrawer" onclick="event.stopPropagation()">
+<aside class="cart-drawer" id="cartDrawer" onclick="event.stopPropagation()" style="content-visibility: auto;">
   <div class="cart-header">
     <h3 class="cart-title">Your Cart</h3>
     <button class="btn-subtle" onclick="toggleCart()" style="padding: 6px 10px; font-size: 13px;">Close</button>
@@ -2586,15 +2529,6 @@ body.app-ready #outlet > * {
     
     <!-- Rule-based Recommendations -->
     <div id="recsPanel" class="recs-panel" style="display:none;min-height:60px"></div>
-    
-    <!-- Sign-in banner -->
-    <div id="signinBanner" class="signin-banner" style="display:none;min-height:80px">
-      <div>
-        <strong>Save time at checkout.</strong>
-        <div>Sign in so we can prefill your info.</div>
-      </div>
-      <button class="btn btn-primary" id="bannerSignIn" style="padding:8px 16px;font-size:13px;">Sign in</button>
-    </div>
     
     <!-- Empty state -->
     <div id="cartEmpty" class="cart-empty" hidden>
@@ -2635,10 +2569,6 @@ body.app-ready #outlet > * {
         <span>Subtotal</span>
         <strong id="cartSubtotal">$0.00</strong>
       </div>
-      <div class="kv" id="promoLine" style="display:none; color:#0b6e0b">
-        <span id="promoLineLabel">Promo</span>
-        <strong id="promoAmount">-$0.00</strong>
-      </div>
       <div class="note">Final tax and fees shown at checkout.</div>
     </div>
     
@@ -2658,7 +2588,7 @@ body.app-ready #outlet > * {
 <div class="backdrop" id="backdrop" onclick="if(event.target === this) closeAll()"></div>
 
 <!-- QUOTE REQUEST MODAL -->
-<div class="modal" id="quoteModal">
+<div class="modal" id="quoteModal" style="content-visibility: hidden;">
   <div class="modal-content" style="max-width: 520px;">
     <div class="modal-header">
       <h3 id="quoteModalTitle">Request Custom Quote</h3>
@@ -2719,7 +2649,7 @@ body.app-ready #outlet > * {
 </div>
 
 <!-- MODAL -->
-<div class="modal" id="modal">
+<div class="modal" id="modal" style="content-visibility: hidden;">
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="modalTitle">Package Selected</h3>
@@ -2789,8 +2719,8 @@ body.app-ready #outlet > * {
 </script>
 
 <script>
+// (IIFE removed)
 'use strict';
-performance.mark('init-start');
 
 function byId(id){ return document.getElementById(id); }
 
@@ -2808,56 +2738,6 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
-// === CRITICAL UI FUNCTIONS (DEFINED FIRST FOR INLINE ONCLICK) ===
-function toggleMenu(){
-  const menu = document.getElementById('menuDrawer');
-  const backdrop = document.getElementById('backdrop');
-  if(!menu || !backdrop) return;
-  if(!menu.classList.contains('open')) menu.style.contentVisibility = 'visible';
-  const isOpen = menu.classList.contains('open');
-  if(isOpen){
-    menu.classList.remove('open');
-    backdrop.classList.remove('show');
-    setTimeout(()=>{ if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden'; }, 300);
-  }else{
-    if(window.closeAll) window.closeAll();
-    menu.classList.add('open');
-    backdrop.classList.add('show');
-  }
-}
-window.toggleMenu = toggleMenu;
-
-function toggleCart(){
-  const drawer = document.getElementById('cartDrawer');
-  const backdrop = document.getElementById('backdrop');
-  if(!drawer) {
-    console.error('[Cart] Cart drawer element not found!');
-    return;
-  }
-  
-  console.log('[Cart] Toggle called. Currently open:', drawer.classList.contains('open'));
-  
-  if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'visible';
-  const isOpen = drawer.classList.contains('open');
-  if(isOpen){
-    drawer.classList.remove('open');
-    backdrop.classList.remove('show');
-    setTimeout(()=>{ if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'hidden'; }, 300);
-  }else{
-    if(window.closeAll) window.closeAll();
-    drawer.classList.add('open');
-    backdrop.classList.add('show');
-    // Ensure paintCart is called to refresh display
-    console.log('[Cart] About to call paintCart');
-    if(window.paintCart) {
-      window.paintCart();
-    } else {
-      console.error('[Cart] paintCart function not found!');
-    }
-  }
-}
-window.toggleCart = toggleCart;
 
 // === API CONFIG ===
 // NEW: Single aggregated endpoint (eliminates waterfall loading)
@@ -3073,6 +2953,12 @@ async function init(){
             // Initialize hero reviews immediately for real names/words
             if(!isSpecialView){
               try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
+              // Defer renderReviews to idle to avoid blocking main thread
+              if('requestIdleCallback' in window){
+                requestIdleCallback(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, {timeout: 2000});
+              } else {
+                setTimeout(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, 1500);
+              }
             }
           }
         } else {
@@ -3139,15 +3025,17 @@ async function init(){
           };
           
           // Delay pixel load to ensure LCP is done
-          setTimeout(loadPixel, 4000);
+          setTimeout(loadPixel, 6000);
         } catch(e) { console.warn('Pixel init failed', e); }
-      }, { timeout: 5000 });
+      }, { timeout: 8000 });
     }
     
     // PHASE 7: ANALYTICS - Track page view (lowest priority)
-    requestAnimationFrame(() => {
-      h2sTrack('PageView');
-    });
+    if('requestIdleCallback' in window){
+      requestIdleCallback(() => h2sTrack('PageView'), {timeout: 4000});
+    } else {
+      setTimeout(() => h2sTrack('PageView'), 2500);
+    }
     
     performance.mark('init-end');
     performance.measure('Total Init Time', 'init-start', 'init-end');
@@ -3186,28 +3074,12 @@ function route(){
   // Close any open modals/drawers when navigating
   closeAll();
   
-  // Handle special views first to prevent flash of shop content
-  if(view === 'shopsuccess'){ 
-    // Show loading immediately
-    const outlet = byId('outlet');
-    if(outlet) {
-      outlet.innerHTML = `
-        <section class="form" style="max-width: 720px; margin: 60px auto; text-align: center;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; border: 4px solid #f3f4f6; border-top-color: var(--azure); animation: spin 1s linear infinite; margin: 0 auto 24px;"></div>
-          <h2 style="margin: 0 0 12px 0; font-weight: 700; color: var(--cobalt);">Loading your order...</h2>
-          <p style="margin: 0; color: var(--muted);">Please wait while we prepare your confirmation.</p>
-        </section>
-      `;
-    }
-    renderShopSuccess(); 
-    return; 
-  }
-  
   if(view === 'signin'){ renderSignIn(); return; }
   if(view === 'signup'){ renderSignUp(); return; }
   if(view === 'account'){ renderAccount(); return; }
   if(view === 'forgot'){ renderForgot(); return; }
   if(view === 'reset'){ renderReset(getParam('token')); return; }
+  if(view === 'shopsuccess'){ renderShopSuccess(); return; }
   if(view === 'calreturn' || view === 'apptreturn'){ handleCalReturn(); return; }
   
   // Default: show shop
@@ -3339,13 +3211,53 @@ function renderSigninState(){
   }
 }
 
-// === MENU / CART / MODAL TOGGLES ===
-// (toggleMenu and toggleCart defined at top of script)
-
 function scrollToSection(id){
   const el = document.getElementById(id);
   if(el){
     el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+}
+
+// === MENU / CART / MODAL TOGGLES ===
+function toggleMenu(){
+  const menu = document.getElementById('menuDrawer');
+  const backdrop = document.getElementById('backdrop');
+  if(!menu || !backdrop) return;
+  
+  // OPTIMIZATION: content-visibility
+  if(!menu.classList.contains('open')) menu.style.contentVisibility = 'visible';
+  
+  const isOpen = menu.classList.contains('open');
+  
+  if(isOpen){
+    menu.classList.remove('open');
+    backdrop.classList.remove('show');
+    setTimeout(()=>{ if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden'; }, 300);
+  }else{
+    closeAll();
+    menu.classList.add('open');
+    backdrop.classList.add('show');
+  }
+}
+
+function toggleCart(){
+  const drawer = document.getElementById('cartDrawer');
+  const backdrop = document.getElementById('backdrop');
+  
+  // OPTIMIZATION: content-visibility
+  if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'visible';
+
+  const isOpen = drawer.classList.contains('open');
+  
+  if(isOpen){
+    drawer.classList.remove('open');
+    backdrop.classList.remove('show');
+    setTimeout(()=>{ if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'hidden'; }, 300);
+  }else{
+    closeAll();
+    drawer.classList.add('open');
+    backdrop.classList.add('show');
+    paintCart();
   }
 }
 
@@ -3420,7 +3332,6 @@ function addPackageDirectToCart(id, name, price, metadata = {}){
   // OPTIMIZATION: Direct Add-to-Cart (Fast Path)
   // Ensure price is a number
   const numPrice = Number(price);
-  console.log('[Cart] Adding to cart:', {id, name, price: numPrice, metadata});
   
   const existing = cart.find(item => item.type === 'package' && item.id === id);
   if(existing){
@@ -3429,7 +3340,6 @@ function addPackageDirectToCart(id, name, price, metadata = {}){
     if (Object.keys(metadata).length > 0) {
       existing.metadata = { ...existing.metadata, ...metadata };
     }
-    console.log('[Cart] Updated existing item qty to:', existing.qty);
   }else{
     const newItem = { 
       type:'package', 
@@ -3440,9 +3350,7 @@ function addPackageDirectToCart(id, name, price, metadata = {}){
       metadata: metadata // Store TV size, team requirements, etc.
     };
     cart.push(newItem);
-    console.log('[Cart] Added new item. Cart now has', cart.length, 'items');
   }
-  console.log('[Cart] Current cart state:', cart);
   
   // Track add to cart
   h2sTrack('AddToCart', {
@@ -3479,7 +3387,7 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
       <div class="modal-content" style="max-width: 520px;">
         <div class="modal-header">
           <h3 style="margin:0;font-size:20px;font-weight:800;">Select TV Size</h3>
-          <button class="close-btn" onclick="closeTVSizeModal()" aria-label="Close">�&mdash;</button>
+          <button class="close-btn" onclick="closeTVSizeModal()" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body" style="padding: 32px 24px;">
           <p style="margin:0 0 20px 0;color:#4b5563;font-size:15px;line-height:1.5;">
@@ -4110,11 +4018,7 @@ function loadUser(){
 
 function updateCartBadge(){
   const count = cart.reduce((n,l)=> n + Number(l.qty||0), 0);
-  const badge = byId('cartCount');
-  if(badge) {
-    badge.textContent = count;
-    console.log('[Cart] Updated badge to:', count);
-  }
+  byId('cartCount').textContent = count;
 }
 
 function cartSubtotal(lines=cart){
@@ -4133,24 +4037,12 @@ function paintCart(){
   const emptyState = byId('cartEmpty');
   const subtotal = byId('cartSubtotal');
   const itemCount = byId('cartItemCount');
-  const signinBanner = byId('signinBanner');
   // (log stripped)
   
   if(!items || !emptyState || !subtotal) return;
   
   // SAFETY CHECK
   if(!cart || !Array.isArray(cart)) cart = [];
-  
-  // Show/hide sign-in banner
-  if(signinBanner){
-    if(!user || !user.email){
-      signinBanner.style.display = 'flex';
-      const btn = byId('bannerSignIn');
-      if(btn) btn.onclick = ()=> { closeAll(); navSet({view:'signin'}); };
-    }else{
-      signinBanner.style.display = 'none';
-    }
-  }
   
   if(!cart.length){
     console.log('[Cart] Cart is empty, showing empty state');
@@ -4559,7 +4451,9 @@ window.checkout = function(){
       alert('Unable to load checkout. Please refresh the page and try again.');
     });
 };
-window.renderShopSuccess = function(){ loadDeferred().then(() => window.renderShopSuccess()).catch(err => console.error('[ShopSuccess] Load error:', err)); };
+window.renderShopSuccess = function(){ 
+  loadDeferred().then(() => window.renderShopSuccess()).catch(err => console.error('[ShopSuccess] Load error:', err)); 
+};
 window.handleCalReturn = function(){ loadDeferred().then(() => window.handleCalReturn()).catch(err => console.error('[CalReturn] Load error:', err)); };
 window.renderSignIn = function(){ 
   loadDeferred()
@@ -4650,12 +4544,6 @@ window.updateCartBadge = updateCartBadge;
 // Initialize app immediately - DOM is ready (script at end of body)
 // OPTIMIZATION: Execute immediately, no setTimeout delay
 init();
-
-// Preload deferred script for faster checkout/success page
-if(window.location.href.includes('view=shopsuccess') || window.location.href.includes('session_id=')){
-  console.log('[Preload] Success page detected, preloading deferred script...');
-  loadDeferred();
-}
 
 document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape') closeAll();

@@ -25,48 +25,6 @@ window.checkout = async function(){
     return;
   }
   
-  // CRITICAL: Require customer contact info before checkout
-  if (!user || !user.email) {
-    const proceed = confirm('You need to sign in or provide contact information to checkout. Would you like to sign in now?');
-    if (proceed) {
-      navSet({view: 'signin'});
-    }
-    return;
-  }
-
-  // Ensure we have minimum contact info (name, email, phone)
-  if (!user.name || !user.phone) {
-    const name = user.name || prompt('Please enter your full name:');
-    const phone = user.phone || prompt('Please enter your phone number (for appointment scheduling):');
-    
-    if (!name || !phone) {
-      alert('Name and phone number are required for scheduling your installation.');
-      return;
-    }
-    
-    // Update user profile with missing info
-    user.name = name;
-    user.phone = phone;
-    saveUser();
-    
-    // Also save to backend
-    try {
-      await fetch(API, {
-        method: 'POST',
-        body: JSON.stringify({
-          __action: 'upsert_user',
-          user: {
-            email: user.email,
-            name: user.name,
-            phone: user.phone
-          }
-        })
-      });
-    } catch(err) {
-      console.warn('Failed to update user profile:', err);
-    }
-  }
-  
   // Validate cart items against catalog
   const invalidItems = cart.filter(item => {
     if(item.type !== 'package') return false; // Skip services for now
@@ -83,6 +41,12 @@ window.checkout = async function(){
     return;
   }
 
+  // CHECKOUT FORM: Collect customer details (auto-creates account after payment)
+  if(!user || !user.email){
+    showCheckoutForm();
+    return;
+  }
+
   if(btn) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Processing...';
@@ -95,10 +59,6 @@ window.checkout = async function(){
     const line_items = cart.map(item => {
       if(item.type === 'package'){
         const bundle = catalog.bundles.find(b => b.bundle_id === item.id);
-        if(!bundle || !bundle.stripe_price_id) {
-          console.warn('Package missing stripe_price_id:', item.id);
-          return null;
-        }
         return {
           price: bundle.stripe_price_id,
           quantity: item.qty || 1
@@ -117,23 +77,6 @@ window.checkout = async function(){
     // Get promo code if any
     const promoCode = localStorage.getItem('h2s_promo_code');
 
-    // Build metadata from cart items
-    const cartMetadata = {
-      session_id: SESSION_ID,
-      source: 'shop_v2',
-      customer_name: user?.name || '',
-      customer_phone: user?.phone || '',
-      customer_email: user?.email || '',
-      cart_items: JSON.stringify(cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        qty: item.qty,
-        price: item.price,
-        type: item.type,
-        metadata: item.metadata || {}
-      })))
-    };
-
     // Create Checkout Session
     const payload = {
       __action: 'create_checkout_session',
@@ -142,30 +85,17 @@ window.checkout = async function(){
       cancel_url: window.location.href,
       customer_email: user?.email,
       client_reference_id: user?.id || SESSION_ID,
-      metadata: cartMetadata
+      metadata: {
+        session_id: SESSION_ID,
+        source: 'shop_v2',
+        customer_name: user?.name || '',
+        customer_phone: user?.phone || ''
+      }
     };
     
     if(promoCode){
       payload.promotion_code = promoCode;
     }
-
-    // Create checkout snapshot for fallback on success page
-    const snapshot = {
-      cart: cart.map(item => ({
-        type: item.type,
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        qty: item.qty,
-        metadata: item.metadata || {}
-      })),
-      subtotal: cartSubtotal(),
-      currency: 'USD',
-      promo_code: promoCode || '',
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('h2s_checkout_snapshot', JSON.stringify(snapshot));
-    console.log('✓ Created checkout snapshot:', snapshot);
 
     console.log('Initiating checkout with:', payload);
 
@@ -207,19 +137,6 @@ window.checkout = async function(){
     console.error('❌ Network error during checkout:', err);
     showCheckoutError('Network error: ' + err.message);
     hideLoader();
-  } finally {
-    // Ensure button is re-enabled if we didn't redirect
-    if(btn && !btn.disabled) {
-      // Button was already re-enabled by showCheckoutError
-    } else if(btn) {
-      setTimeout(() => {
-        if(window.location.href.indexOf('stripe') === -1) {
-          // Still on our page, not redirected - re-enable
-          btn.disabled = false;
-          btn.textContent = 'Checkout';
-        }
-      }, 1000);
-    }
   }
 };
 
@@ -235,6 +152,309 @@ function showCheckoutError(msg){
     btn.textContent = 'Checkout';
   }
   alert(msg);
+}
+
+// Checkout form - collects customer details and auto-creates account after payment
+function showCheckoutForm(){
+  const modal = document.getElementById('modal');
+  const backdrop = document.getElementById('backdrop');
+  
+  if(!modal) {
+    console.error('Modal element not found');
+    return;
+  }
+  
+  modal.innerHTML = `
+    <div style="padding: 28px; max-width: 540px;">
+      <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 26px; color: var(--cobalt);">Complete Your Order</h2>
+      <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 14px;">Enter your details to finalize checkout and schedule installation.</p>
+      
+      <div style="display: grid; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Full Name *</label>
+          <input type="text" id="checkoutName" class="inp" placeholder="John Smith" style="width: 100%;" required>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Email Address *</label>
+          <input type="email" id="checkoutEmail" class="inp" placeholder="john@example.com" style="width: 100%;" required>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">We'll send your receipt and installation details here</div>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Phone Number *</label>
+          <input type="tel" id="checkoutPhone" class="inp" placeholder="(864) 123-4567" style="width: 100%;" required>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">For installation appointment coordination</div>
+        </div>
+        
+        <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Service Address *</label>
+          <input type="text" id="checkoutAddress" class="inp" placeholder="123 Main Street" style="width: 100%; margin-bottom: 12px;" required>
+          
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+            <input type="text" id="checkoutCity" class="inp" placeholder="City" style="width: 100%;" required>
+            <input type="text" id="checkoutZip" class="inp" placeholder="ZIP" style="width: 100%;" required>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Where we'll perform the installation</div>
+        </div>
+        
+        <div style="background: #f5f9ff; border: 1px solid #d7eafc; border-radius: 8px; padding: 14px; margin-top: 8px;">
+          <label style="display: flex; align-items: start; gap: 10px; cursor: pointer; font-size: 14px; line-height: 1.5;">
+            <input type="checkbox" id="createAccount" checked style="margin-top: 3px; width: 18px; height: 18px; cursor: pointer;">
+            <span style="color: var(--ink);">
+              <strong style="color: var(--cobalt);">Create account to track your order</strong><br>
+              <span style="font-size: 13px; color: var(--muted);">Get updates, manage appointments, and save time on future orders</span>
+            </span>
+          </label>
+        </div>
+      </div>
+      
+      <div id="checkoutFormMsg" style="margin: 16px 0 0 0; font-size: 14px;"></div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn btn-ghost" onclick="closeCheckoutForm()" style="flex: 1;">Cancel</button>
+        <button class="btn btn-primary" id="checkoutFormSubmit" style="flex: 2;">Continue to Payment</button>
+      </div>
+      
+      <p style="margin: 16px 0 0 0; font-size: 12px; color: var(--muted); text-align: center;">
+        Already have an account? <a href="#" onclick="closeCheckoutForm(); navSet({view:'signin'}); return false;" style="color: var(--azure); font-weight: 600;">Sign in</a>
+      </p>
+    </div>
+  `;
+  
+  modal.classList.add('show');
+  backdrop.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  
+  setTimeout(() => {
+    const nameInput = document.getElementById('checkoutName');
+    if(nameInput) nameInput.focus();
+  }, 100);
+  
+  document.getElementById('checkoutFormSubmit').onclick = processCheckoutForm;
+}
+
+window.closeCheckoutForm = function(){
+  const modal = document.getElementById('modal');
+  const backdrop = document.getElementById('backdrop');
+  
+  if(modal) modal.classList.remove('show');
+  if(backdrop) backdrop.classList.remove('show');
+  document.body.style.overflow = '';
+  
+  // Reset checkout button
+  const btn = document.getElementById('checkoutBtn');
+  if(btn) {
+    btn.disabled = false;
+    btn.textContent = 'Checkout';
+  }
+};
+
+async function processCheckoutForm(){
+  const name = document.getElementById('checkoutName')?.value.trim() || '';
+  const email = document.getElementById('checkoutEmail')?.value.trim() || '';
+  const phone = document.getElementById('checkoutPhone')?.value.trim() || '';
+  const address = document.getElementById('checkoutAddress')?.value.trim() || '';
+  const city = document.getElementById('checkoutCity')?.value.trim() || '';
+  const zip = document.getElementById('checkoutZip')?.value.trim() || '';
+  const createAccount = document.getElementById('createAccount')?.checked || false;
+  const msgEl = document.getElementById('checkoutFormMsg');
+  const btn = document.getElementById('checkoutFormSubmit');
+  
+  // Validation
+  if(!name){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter your full name';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!email || !email.includes('@')){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter a valid email address';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!phone || phone.length < 10){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter a valid phone number';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!address){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter your service address';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!city){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter your city';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(!zip || zip.length < 5){
+    if(msgEl) {
+      msgEl.textContent = 'Please enter a valid ZIP code';
+      msgEl.style.color = '#d32f2f';
+    }
+    return;
+  }
+  
+  if(btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Processing...';
+  }
+  
+  showLoader();
+  
+  try{
+    // Prepare line items for Stripe
+    const line_items = cart.map(item => {
+      if(item.type === 'package'){
+        const bundle = catalog.bundles.find(b => b.bundle_id === item.id);
+        return {
+          price: bundle.stripe_price_id,
+          quantity: item.qty || 1
+        };
+      } else {
+        return null; 
+      }
+    }).filter(Boolean);
+
+    if(line_items.length === 0){
+      throw new Error('No valid items to checkout');
+    }
+
+    // Get promo code if any
+    const promoCode = localStorage.getItem('h2s_promo_code');
+
+    // Create Checkout Session with customer data
+    // Include flag to auto-create account after successful payment
+    const payload = {
+      __action: 'create_checkout_session',
+      line_items,
+      success_url: `https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}&create_account=${createAccount}`,
+      cancel_url: window.location.href,
+      customer_email: email,
+      client_reference_id: SESSION_ID,
+      metadata: {
+        session_id: SESSION_ID,
+        source: 'shop_v2',
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        service_address: address,
+        service_city: city,
+        service_zip: zip,
+        create_account: createAccount ? 'true' : 'false'
+      }
+    };
+    
+    if(promoCode){
+      payload.promotion_code = promoCode;
+    }
+
+    console.log('Initiating checkout with customer data:', payload);
+
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    
+    if(!data.ok){
+      console.error('❌ Backend error:', data.error || 'Unknown');
+      console.error('Full error data:', data);
+      
+      if(msgEl) {
+        msgEl.textContent = data.error || 'Checkout failed. Please try again.';
+        msgEl.style.color = '#d32f2f';
+      }
+      
+      if(btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Continue to Payment';
+      }
+      
+      hideLoader();
+      return;
+    }
+    
+    const url = data?.pay?.session_url;
+    if(!url){
+      console.error('❌ No checkout URL in response');
+      
+      if(msgEl) {
+        msgEl.textContent = 'Could not create checkout session. Please try again.';
+        msgEl.style.color = '#d32f2f';
+      }
+      
+      if(btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Continue to Payment';
+      }
+      
+      hideLoader();
+      return;
+    }
+    
+    console.log('\n✅ CHECKOUT SESSION CREATED!');
+    console.log('Session URL:', url);
+    console.log('Customer:', name, email, phone);
+    console.log('Service Address:', `${address}, ${city}, ${zip}`);
+    console.log('Auto-create account:', createAccount);
+    
+    // Track checkout before redirect
+    h2sTrack('BeginCheckout', {
+      cart_total: cartSubtotal(),
+      session_url: url,
+      create_account: createAccount,
+      has_address: true
+    });
+    
+    // Store customer data temporarily for account creation after payment
+    if(createAccount){
+      sessionStorage.setItem('h2s_pending_account', JSON.stringify({
+        name,
+        email,
+        phone,
+        address,
+        city,
+        zip,
+        timestamp: Date.now()
+      }));
+    }
+    
+    // Redirect to Stripe Checkout
+    window.location.href = url;
+    
+  }catch(err){
+    console.error('❌ Network error during checkout:', err);
+    
+    if(msgEl) {
+      msgEl.textContent = 'Network error: ' + err.message;
+      msgEl.style.color = '#d32f2f';
+    }
+    
+    if(btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Continue to Payment';
+    }
+    
+    hideLoader();
+  }
 }
 
 window.renderShopSuccess = async function(){
@@ -286,26 +506,34 @@ window.renderShopSuccess = async function(){
   // PRIORITY 2: Fetch authoritative order data from backend
   if(sessionId){
     try{
-      const res = await fetch(`https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app/api/get-order-details?session_id=${sessionId}`);
+      const res = await fetch(`${API}?action=orderpack&session_id=${sessionId}`);
       const data = await res.json();
-      if(data.ok && data.order){
-        console.log('✓ Fetched order details from backend:', data.order.order_id);
-        order.order_id = data.order.order_id || sessionId;
-        order.order_total = data.order.amount_total || '';
-        order.order_currency = data.order.currency || 'USD';
-        order.order_item_count = String(data.order.item_count || 0);
-        order.order_created_at = data.order.created_at || order.order_created_at;
-        order.order_discount_code = data.order.discount_code || '';
-        order.order_summary = data.order.order_summary || '';
-        order.customer_name = data.order.customer_name || '';
-        order.customer_email = data.order.customer_email || '';
-        order.customer_phone = data.order.customer_phone || '';
+      if(data.ok && data.summary){
+        console.log('✓ Fetched order pack from backend:', data.summary.order_id);
+        order.order_id = data.summary.order_id || sessionId;
+        order.order_total = typeof data.summary.total === 'number' ? String(data.summary.total.toFixed(2)) : (data.summary.total || '');
+        order.order_subtotal = typeof data.summary.subtotal === 'number' ? String(data.summary.subtotal.toFixed(2)) : (data.summary.subtotal || '');
+        order.order_currency = data.summary.currency || 'USD';
+        order.order_item_count = String(data.lines?.length || 0);
+        order.order_created_at = data.summary.created_at || order.order_created_at;
+        order.order_discount_code = data.summary.discount_code || '';
+        order.order_discount_amount = data.summary.discount_amount || '';
         
-        // Store detailed items for display
-        order.items = data.order.items || [];
+        // Build summary from line items
+        const parts = [];
+        (data.lines||[]).forEach(l => {
+          if(String(l.line_type||'') === 'bundle'){
+            const bundleName = l.bundle_id || 'Bundle';
+            parts.push(`${Number(l.qty||1)}× ${bundleName}`);
+          }else{
+            const serviceName = l.service_id || 'Service';
+            parts.push(`${Number(l.qty||0)}× ${serviceName}`);
+          }
+        });
+        order.order_summary = parts.join(' | ');
       }
     }catch(err){
-      console.error('Failed to fetch order details:', err);
+      console.error('Failed to fetch order pack:', err);
     }
   }
 
@@ -344,12 +572,25 @@ window.renderShopSuccess = async function(){
     }
   }
 
-  // Prefill contact from local user or params
-  const name = (user?.name||params.get('name')||'').trim();
+  // Prefill contact from local user, URL params, or guest checkout data
+  let name = (user?.name || params.get('name') || '').trim();
+  let email = (user?.email || params.get('email') || '').trim();
+  let phone = (user?.phone || params.get('phone') || '').trim();
+  
+  // Fallback to guest checkout data from localStorage
+  if(!name || !email || !phone){
+    try{
+      const guestData = JSON.parse(localStorage.getItem('h2s_guest_checkout') || '{}');
+      if(!name && guestData.name) name = guestData.name;
+      if(!email && guestData.email) email = guestData.email;
+      if(!phone && guestData.phone) phone = guestData.phone;
+    }catch(e){
+      console.warn('Failed to parse guest checkout data:', e);
+    }
+  }
+  
   const [first_name, ...rest] = name.split(' ');
   const last_name = rest.join(' ');
-  const email = (user?.email||params.get('email')||'').trim();
-  const phone = (user?.phone||params.get('phone')||'').trim();
 
   // Hidden fields for calendar form
   const q = new URLSearchParams();
@@ -378,28 +619,13 @@ window.renderShopSuccess = async function(){
 
   const calSrc = CAL_FORM_URL + (CAL_FORM_URL.includes('?') ? '&' : '?') + q.toString();
 
-  const prettyTotal = order.order_total != null && order.order_total !== '' 
-    ? money(Number(order.order_total)) 
-    : (order.order_subtotal != null && order.order_subtotal !== '' 
-      ? money(Number(order.order_subtotal)) 
-      : '$0.00');
+  const prettyTotal = order.order_total ? money(Number(order.order_total)) : '$0.00';
   const displayOrderId = order.order_id || order.stripe_session_id || 'N/A';
   const shortOrderId = displayOrderId.length > 20 ? displayOrderId.substring(0, 20) + '...' : displayOrderId;
 
   cart = [];
   saveCart();
   localStorage.removeItem('h2s_checkout_snapshot');
-  localStorage.removeItem('h2s_promo_code');
-  
-  // Ensure cart badge is updated
-  if(typeof updateCartBadge === 'function') {
-    updateCartBadge();
-  }
-  
-  // Ensure cart drawer reflects empty state if it's open
-  if(typeof paintCart === 'function') {
-    paintCart();
-  }
 
   h2sTrack('Purchase', {
     order_id: displayOrderId,
@@ -431,24 +657,10 @@ window.renderShopSuccess = async function(){
             <span style="font-family: monospace; font-size: 13px; color: var(--cobalt); font-weight: 700; word-break: break-all; max-width: 60%; text-align: right;" title="${escapeHtml(displayOrderId)}">${escapeHtml(shortOrderId)}</span>
           </div>
           
-          ${order.items && order.items.length > 0 ? `
-          <div style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <div style="font-weight: 600; color: var(--muted); font-size: 14px; margin-bottom: 8px;">Items Purchased</div>
-            ${order.items.map(item => `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; padding-left: 12px;">
-                <span style="color: var(--ink); font-size: 14px;">
-                  <span style="font-weight: 700; color: var(--azure);">${item.qty}×</span> ${escapeHtml(item.name || item.id || 'Item')}
-                </span>
-                ${item.price ? `<span style="font-size: 13px; color: var(--muted); font-weight: 600;">$${(item.price / 100).toFixed(2)}</span>` : ''}
-              </div>
-            `).join('')}
-          </div>
-          ` : `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Items</span>
-            <span style="font-weight: 700; color: var(--ink); font-size: 14px;">${escapeHtml(order.order_summary || (order.order_item_count ? `${order.order_item_count} item${order.order_item_count === '1' ? '' : 's'}` : '—'))}</span>
+            <span style="font-weight: 700; color: var(--ink); font-size: 14px;">${escapeHtml(order.order_summary || (order.order_item_count ? `${order.order_item_count} item${order.order_item_count === '1' ? '' : 's'}` : 'Processing...'))}</span>
           </div>
-          `}
           
           ${order.order_discount_code ? `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
@@ -480,43 +692,9 @@ window.renderShopSuccess = async function(){
         <p style="margin: 0; color: #1e3a8a; font-size: 14px; line-height: 1.6;">Pick a convenient date and time below. We'll send you a confirmation email with all the details.</p>
       </div>
 
-      <!-- Custom Calendar Widget -->
-      <div id="calendar-widget" style="border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
-        <div id="calendar-loading" style="text-align: center; padding: 40px 20px;">
-          <div style="border: 4px solid #f3f4f6; border-top: 4px solid var(--azure); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-          <p style="color: var(--muted); margin: 0;">Loading available appointments...</p>
-        </div>
-        
-        <div id="calendar-view" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h3 id="calendar-month-year" style="margin: 0; font-size: 18px; font-weight: 700; color: var(--slate);"></h3>
-            <div style="display: flex; gap: 12px;">
-              <button id="calendar-prev-month" style="background: white; border: 2px solid var(--border); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; transition: all 0.2s;">‹</button>
-              <button id="calendar-next-month" style="background: white; border: 2px solid var(--border); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; transition: all 0.2s;">›</button>
-            </div>
-          </div>
-          
-          <div id="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 30px;"></div>
-          
-          <div id="calendar-time-slots-container" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border);">
-            <h3 id="calendar-selected-date-label" style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--slate);"></h3>
-            <div id="calendar-time-slots" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;"></div>
-          </div>
-          
-          <div id="calendar-confirm-section" style="display: none; margin-top: 30px; padding: 24px; background: #f8f9fb; border-radius: 12px; text-align: center;">
-            <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 12px; color: var(--slate);">Confirm Your Appointment</h3>
-            <div id="calendar-selected-time-display" style="font-size: 19px; font-weight: 700; color: var(--azure); margin-bottom: 20px;"></div>
-            <button id="calendar-confirm-btn" class="btn btn-primary" style="padding: 16px 32px; font-size: 16px; font-weight: 700;">Confirm Appointment</button>
-          </div>
-          
-          <div id="calendar-error" style="display: none; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 16px; margin: 20px 0; color: #dc2626; text-align: center;"></div>
-        </div>
-        
-        <div id="calendar-success" style="display: none; text-align: center; padding: 40px 20px;">
-          <div style="width: 64px; height: 64px; border-radius: 50%; background: #10b981; color: white; font-size: 40px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; animation: scaleIn 0.5s ease;">✓</div>
-          <h2 style="font-size: 24px; font-weight: 900; color: var(--slate); margin-bottom: 12px;">Appointment Confirmed!</h2>
-          <p style="color: var(--muted); line-height: 1.6; margin: 0;">We've sent you a confirmation via email and text message. You'll receive a reminder 24 hours before your appointment.</p>
-        </div>
+      <!-- Calendar Embed -->
+      <div class="cal-embed" style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 24px;">
+        <iframe src="${calSrc}" title="Schedule Installation" style="border: none;"></iframe>
       </div>
 
       <!-- Footer Actions -->
@@ -528,11 +706,6 @@ window.renderShopSuccess = async function(){
   `;
 
   byId('backToShop').onclick = ()=> navSet({view:null});
-  
-  // Initialize custom calendar (use requestAnimationFrame for faster rendering)
-  requestAnimationFrame(() => {
-    initializeCustomCalendar(stableOrderId);
-  });
 };
 
 window.handleCalReturn = async function(){
@@ -547,15 +720,30 @@ window.handleCalReturn = async function(){
   `;
 
   try{
-    if(!user || !user.email) throw new Error('You must be signed in.');
-    if(!startIso) throw new Error('Missing appointment time.');
+    // Get customer email from signed-in user, URL params, or guest checkout data
+    let email = user?.email || getParam('email') || '';
+    
+    if(!email){
+      try{
+        const guestData = JSON.parse(localStorage.getItem('h2s_guest_checkout') || '{}');
+        email = guestData.email || '';
+      }catch(e){}
+    }
+    
+    if(!email){
+      throw new Error('Missing customer email. Please sign in or complete checkout.');
+    }
+    
+    if(!startIso){
+      throw new Error('Missing appointment time.');
+    }
     
     const res = await fetch(APIV1, {
       method:'POST',
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        __action: 'record_install_slot',
-        email: user.email,
         order_id: order_id || '',
+        email: email,
         install_at: startIso || '',
         install_end_at: getParam('end') || '',
         timezone: getParam('tz') || ''
@@ -566,12 +754,35 @@ window.handleCalReturn = async function(){
     if(!data.ok) throw new Error(data.error || 'Failed to save appointment');
     
     console.log('✅ Appointment saved, job creation triggered');
+    console.log('Job ID:', data.job_id);
+    
+    // Clear guest checkout data after successful booking
+    localStorage.removeItem('h2s_guest_checkout');
+    
+    // Show success message
+    byId('outlet').innerHTML = `
+      <section class="form" style="text-align: center;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 style="margin:0 0 10px 0;font-weight:900; color: var(--cobalt);">All Set!</h2>
+        <p class="help" style="color: var(--muted);">Your appointment has been confirmed. We'll send you a reminder before your scheduled time.</p>
+        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+      </section>
+    `;
+    
   }catch(err){
     console.error('❌ Appointment save failed:', err);
-    alert(err.message);
+    byId('outlet').innerHTML = `
+      <section class="form" style="text-align: center;">
+        <h2 style="margin:0 0 10px 0;font-weight:900; color: #d32f2f;">Booking Failed</h2>
+        <p class="help" style="color: var(--muted);">${escapeHtml(err.message)}</p>
+        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+      </section>
+    `;
   }
-
-  navSet({view:'account'});
 };
 
 window.renderSignIn = function(){
@@ -1096,269 +1307,5 @@ window.submitQuoteRequest = async function(){
     btn.textContent = 'Send Request';
   }
 };
-
-// ========================================
-// CUSTOM CALENDAR WIDGET
-// ========================================
-
-function initializeCustomCalendar(orderId) {
-  let availabilityData = [];
-  let selectedDate = null;
-  let selectedSlot = null;
-  let currentMonthOffset = 0;
-  
-  // Immediately show calendar skeleton (no loading spinner delay)
-  byId('calendar-loading').style.display = 'none';
-  byId('calendar-view').style.display = 'block';
-  
-  // Show loading placeholder in calendar
-  const today = new Date();
-  byId('calendar-month-year').textContent = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  byId('calendar-grid').innerHTML = `
-    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--muted);">
-      <div style="width: 40px; height: 40px; border: 3px solid #f3f4f6; border-top-color: var(--azure); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-      <div style="font-size: 14px;">Loading availability...</div>
-    </div>
-  `;
-  
-  // Fetch availability
-  async function loadAvailability() {
-    try {
-      const response = await fetch('https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app/api/get-availability');
-      const data = await response.json();
-      
-      if (!data.ok) throw new Error(data.error || 'Failed to load availability');
-      
-      availabilityData = data.availability;
-      
-      renderCalendar();
-    } catch (err) {
-      console.error('Calendar load error:', err);
-      // Show error in calendar instead of loading state
-      byId('calendar-month-year').textContent = 'Error Loading Calendar';
-      byId('calendar-grid').innerHTML = `<div style="grid-column: 1 / -1; color: #ef4444; text-align: center; padding: 40px 20px;">${err.message || 'Unable to load availability. Please refresh the page.'}</div>`;
-    }
-  }
-  
-  function renderCalendar() {
-    const today = new Date();
-    today.setMonth(today.getMonth() + currentMonthOffset);
-    
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    byId('calendar-month-year').textContent = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
-    const grid = byId('calendar-grid');
-    
-    // Build HTML string (faster than multiple DOM operations)
-    let html = '';
-    
-    // Day labels
-    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-      html += `<div style="text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding: 8px; text-transform: uppercase;">${day}</div>`;
-    });
-    
-    // Empty cells before first day
-    for (let i = 0; i < firstDay; i++) {
-      html += '<div></div>';
-    }
-    
-    // Days of month
-    const cells = [];
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateObj = new Date(year, month, day);
-      const dateStr = dateObj.toISOString().split('T')[0];
-      const availability = availabilityData.find(a => a.date === dateStr);
-      
-      const isSelected = selectedDate === dateStr;
-      const isAvailable = availability && availability.available;
-      
-      const baseStyle = 'aspect-ratio: 1; border: 2px solid; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; transition: all 0.2s;';
-      
-      if (isSelected) {
-        html += `<div data-date="${dateStr}" data-available="${isAvailable}" style="${baseStyle} background: var(--azure); color: white; border-color: var(--azure); cursor: pointer;">${day}</div>`;
-      } else if (isAvailable) {
-        html += `<div data-date="${dateStr}" data-available="true" style="${baseStyle} background: white; border-color: var(--border); cursor: pointer;">${day}</div>`;
-      } else {
-        html += `<div style="${baseStyle} background: #f3f4f6; color: #9ca3af; border-color: var(--border); cursor: not-allowed; opacity: 0.5;">${day}</div>`;
-      }
-      
-      if (isAvailable) {
-        cells.push({ dateStr, availability });
-      }
-    }
-    
-    grid.innerHTML = html;
-    
-    // Attach event listeners only to available dates (faster than inline handlers)
-    cells.forEach(({ dateStr, availability }) => {
-      const cell = grid.querySelector(`[data-date="${dateStr}"]`);
-      if (cell) {
-        cell.onmouseover = () => { 
-          if (selectedDate !== dateStr) {
-            cell.style.borderColor = 'var(--azure)'; 
-            cell.style.background = '#f8f9fb'; 
-            cell.style.transform = 'scale(1.05)'; 
-          }
-        };
-        cell.onmouseout = () => { 
-          if (selectedDate !== dateStr) { 
-            cell.style.borderColor = 'var(--border)'; 
-            cell.style.background = 'white'; 
-            cell.style.transform = 'scale(1)'; 
-          } 
-        };
-        cell.onclick = () => selectDate(dateStr, availability);
-      }
-    });
-  }
-  
-  function selectDate(dateStr, availability) {
-    selectedDate = dateStr;
-    selectedSlot = null;
-    
-    renderCalendar();
-    renderTimeSlots(availability);
-    
-    byId('calendar-time-slots-container').style.display = 'block';
-    byId('calendar-confirm-section').style.display = 'none';
-    
-    const dateObj = new Date(dateStr + 'T00:00:00');
-    byId('calendar-selected-date-label').textContent = `Available times for ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
-  }
-  
-  function renderTimeSlots(availability) {
-    const container = byId('calendar-time-slots');
-    
-    // Build HTML string for better performance
-    let html = '';
-    const availableSlots = [];
-    
-    availability.slots.forEach((slot, idx) => {
-      const baseStyle = 'padding: 16px; border: 2px solid; border-radius: 12px; text-align: center; transition: all 0.2s; font-weight: 600;';
-      
-      if (slot.available) {
-        html += `<div data-slot-idx="${idx}" style="${baseStyle} border-color: var(--border); background: white; cursor: pointer;">
-          <div style="margin-bottom: 4px;">${slot.time}</div>
-          <div style="font-size: 12px; opacity: 0.8;">${slot.spots_remaining} spot${slot.spots_remaining !== 1 ? 's' : ''} left</div>
-        </div>`;
-        availableSlots.push({ slot, idx });
-      } else {
-        html += `<div style="${baseStyle} background: #f3f4f6; color: #9ca3af; border-color: var(--border); cursor: not-allowed; opacity: 0.5;">
-          <div>${slot.time}</div>
-          <div style="font-size: 12px; margin-top: 4px;">Fully booked</div>
-        </div>`;
-      }
-    });
-    
-    container.innerHTML = html;
-    
-    // Attach listeners only to available slots
-    availableSlots.forEach(({ slot, idx }) => {
-      const slotEl = container.querySelector(`[data-slot-idx="${idx}"]`);
-      if (slotEl) {
-        slotEl.onmouseover = () => { 
-          slotEl.style.borderColor = 'var(--azure)'; 
-          slotEl.style.background = '#f8f9fb'; 
-          slotEl.style.transform = 'translateY(-2px)'; 
-        };
-        slotEl.onmouseout = () => { 
-          if (!slotEl.classList.contains('selected')) { 
-            slotEl.style.borderColor = 'var(--border)'; 
-            slotEl.style.background = 'white'; 
-            slotEl.style.transform = 'translateY(0)'; 
-          } 
-        };
-        slotEl.onclick = () => selectTimeSlot(slot, slotEl);
-      }
-    });
-  }
-  
-  function selectTimeSlot(slot, element) {
-    selectedSlot = slot;
-    
-    // Update UI
-    byId('calendar-time-slots').querySelectorAll('div').forEach(el => {
-      el.style.background = 'white';
-      el.style.borderColor = 'var(--border)';
-      el.style.color = 'inherit';
-    });
-    element.style.background = 'var(--azure)';
-    element.style.color = 'white';
-    element.style.borderColor = 'var(--azure)';
-    
-    const dateObj = new Date(selectedDate + 'T00:00:00');
-    const dateDisplay = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    
-    byId('calendar-selected-time-display').textContent = `${dateDisplay} at ${slot.time}`;
-    byId('calendar-confirm-section').style.display = 'block';
-  }
-  
-  // Confirm appointment
-  byId('calendar-confirm-btn').onclick = async () => {
-    if (!selectedDate || !selectedSlot) return;
-    
-    const btn = byId('calendar-confirm-btn');
-    btn.disabled = true;
-    btn.textContent = 'Booking...';
-    
-    try {
-      const response = await fetch('https://h2s-backend-lvl1lgbhs-tabari-ropers-projects-6f2e090b.vercel.app/api/schedule-appointment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: orderId,
-          delivery_date: selectedDate,
-          delivery_time: selectedSlot.time,
-          start_iso: selectedSlot.start_iso,
-          end_iso: selectedSlot.end_iso,
-          timezone: 'America/New_York'
-        })
-      });
-      
-      const result = await response.json();
-      
-      if (!result.ok) throw new Error(result.error || 'Booking failed');
-      
-      // Show success
-      byId('calendar-view').style.display = 'none';
-      byId('calendar-success').style.display = 'block';
-      
-      h2sTrack('AppointmentScheduled', {
-        order_id: orderId,
-        delivery_date: selectedDate,
-        delivery_time: selectedSlot.time
-      });
-      
-    } catch (err) {
-      console.error('Booking error:', err);
-      byId('calendar-error').textContent = err.message;
-      byId('calendar-error').style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Confirm Appointment';
-    }
-  };
-  
-  // Month navigation
-  byId('calendar-prev-month').onclick = () => {
-    if (currentMonthOffset > 0) {
-      currentMonthOffset--;
-      renderCalendar();
-    }
-  };
-  
-  byId('calendar-next-month').onclick = () => {
-    if (currentMonthOffset < 2) {
-      currentMonthOffset++;
-      renderCalendar();
-    }
-  };
-  
-  // Start loading
-  loadAvailability();
-}
 
 console.log('✓ Deferred logic loaded');
