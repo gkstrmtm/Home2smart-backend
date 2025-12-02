@@ -2530,21 +2530,6 @@ body.app-ready #outlet > * {
     <!-- Rule-based Recommendations -->
     <div id="recsPanel" class="recs-panel" style="display:none;min-height:60px"></div>
     
-    <!-- Account Benefits Banner (shown when not signed in) -->
-    <div id="signinBanner" class="signin-banner" style="display:none;min-height:auto;background:linear-gradient(135deg,#f5f9ff 0%,#e8f3ff 100%);border:1px solid #d7eafc;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
-      <div style="display:flex;align-items:start;gap:12px;">
-        <div style="font-size:20px;line-height:1;margin-top:2px;">✨</div>
-        <div style="flex:1;">
-          <strong style="color:var(--cobalt);font-size:14px;display:block;margin-bottom:4px;">Make an account for faster checkout</strong>
-          <div style="font-size:13px;color:#6b778c;line-height:1.4;">Save your details, track orders, and skip the form next time</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button class="btn btn-ghost" onclick="navSet({view:'signin'}); toggleCart();" style="flex:1;padding:8px 12px;font-size:13px;white-space:nowrap;">Sign In</button>
-        <button class="btn btn-primary" onclick="navSet({view:'signup'}); toggleCart();" style="flex:1;padding:8px 12px;font-size:13px;white-space:nowrap;">Create Account</button>
-      </div>
-    </div>
-    
     <!-- Empty state -->
     <div id="cartEmpty" class="cart-empty" hidden>
       <p>Your cart is empty</p>
@@ -4052,24 +4037,12 @@ function paintCart(){
   const emptyState = byId('cartEmpty');
   const subtotal = byId('cartSubtotal');
   const itemCount = byId('cartItemCount');
-  const signinBanner = byId('signinBanner');
   // (log stripped)
   
   if(!items || !emptyState || !subtotal) return;
   
   // SAFETY CHECK
   if(!cart || !Array.isArray(cart)) cart = [];
-  
-  // Show/hide account benefits banner
-  if(signinBanner){
-    if(!user || !user.email){
-      // Show banner when not signed in AND cart has items
-      signinBanner.style.display = cart.length > 0 ? 'block' : 'none';
-    }else{
-      // Hide banner when signed in
-      signinBanner.style.display = 'none';
-    }
-  }
   
   if(!cart.length){
     console.log('[Cart] Cart is empty, showing empty state');

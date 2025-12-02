@@ -41,9 +41,9 @@ window.checkout = async function(){
     return;
   }
 
-  // ACCOUNT REQUIRED: Must be signed in to checkout
+  // CHECKOUT FORM: Collect customer details (auto-creates account after payment)
   if(!user || !user.email){
-    showAccountRequiredModal();
+    showCheckoutForm();
     return;
   }
 
@@ -154,8 +154,8 @@ function showCheckoutError(msg){
   alert(msg);
 }
 
-// Account required modal - blocks checkout until account created
-function showAccountRequiredModal(){
+// Checkout form - collects customer details and auto-creates account after payment
+function showCheckoutForm(){
   const modal = document.getElementById('modal');
   const backdrop = document.getElementById('backdrop');
   
@@ -165,41 +165,48 @@ function showAccountRequiredModal(){
   }
   
   modal.innerHTML = `
-    <div style="padding: 32px; max-width: 440px; text-align: center;">
-      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
+    <div style="padding: 28px; max-width: 520px;">
+      <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 26px; color: var(--cobalt);">Complete Your Order</h2>
+      <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 14px;">Enter your details to finalize checkout and schedule installation.</p>
+      
+      <div style="display: grid; gap: 16px;">
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Full Name *</label>
+          <input type="text" id="checkoutName" class="inp" placeholder="John Smith" style="width: 100%;" required>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Email Address *</label>
+          <input type="email" id="checkoutEmail" class="inp" placeholder="john@example.com" style="width: 100%;" required>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">We'll send your receipt and installation details here</div>
+        </div>
+        
+        <div>
+          <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Phone Number *</label>
+          <input type="tel" id="checkoutPhone" class="inp" placeholder="(864) 123-4567" style="width: 100%;" required>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">For installation appointment coordination</div>
+        </div>
+        
+        <div style="background: #f5f9ff; border: 1px solid #d7eafc; border-radius: 8px; padding: 14px; margin-top: 8px;">
+          <label style="display: flex; align-items: start; gap: 10px; cursor: pointer; font-size: 14px; line-height: 1.5;">
+            <input type="checkbox" id="createAccount" checked style="margin-top: 3px; width: 18px; height: 18px; cursor: pointer;">
+            <span style="color: var(--ink);">
+              <strong style="color: var(--cobalt);">Create account to track your order</strong><br>
+              <span style="font-size: 13px; color: var(--muted);">Get updates, manage appointments, and save time on future orders</span>
+            </span>
+          </label>
+        </div>
       </div>
       
-      <h2 style="margin: 0 0 12px 0; font-weight: 900; font-size: 26px; color: var(--cobalt);">Quick Account Setup</h2>
-      <p style="margin: 0 0 24px 0; color: var(--muted); font-size: 15px; line-height: 1.5;">Create a free account to complete your order. It takes less than 30 seconds.</p>
+      <div id="checkoutFormMsg" style="margin: 16px 0 0 0; font-size: 14px;"></div>
       
-      <div style="background: #f5f9ff; border: 1px solid #d7eafc; border-radius: 12px; padding: 16px; margin-bottom: 28px; text-align: left;">
-        <div style="font-weight: 600; color: var(--cobalt); margin-bottom: 10px; font-size: 14px;">✨ Why we need an account:</div>
-        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #6b778c; line-height: 1.7;">
-          <li>Track your installation appointment</li>
-          <li>Receive order updates and receipts</li>
-          <li>Manage your smart home services</li>
-          <li>Fast checkout on future orders</li>
-        </ul>
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button class="btn btn-ghost" onclick="closeCheckoutForm()" style="flex: 1;">Cancel</button>
+        <button class="btn btn-primary" id="checkoutFormSubmit" style="flex: 2;">Continue to Payment</button>
       </div>
       
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <button class="btn btn-primary" onclick="closeAccountRequiredModal(); navSet({view:'signup'});" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 700;">
-          Create Free Account
-        </button>
-        <button class="btn" onclick="closeAccountRequiredModal(); navSet({view:'signin'});" style="width: 100%; background: white; border: 2px solid var(--cobalt); color: var(--cobalt); font-weight: 600;">
-          Sign In to Existing Account
-        </button>
-        <button class="btn btn-ghost" onclick="closeAccountRequiredModal()" style="width: 100%; margin-top: 8px;">
-          Back to Cart
-        </button>
-      </div>
-      
-      <p style="margin: 24px 0 0 0; font-size: 12px; color: var(--muted);">
-        🔒 Your information is secure and never shared.
+      <p style="margin: 16px 0 0 0; font-size: 12px; color: var(--muted); text-align: center;">
+        Already have an account? <a href="#" onclick="closeCheckoutForm(); navSet({view:'signin'}); return false;" style="color: var(--azure); font-weight: 600;">Sign in</a>
       </p>
     </div>
   `;
@@ -207,9 +214,16 @@ function showAccountRequiredModal(){
   modal.classList.add('show');
   backdrop.classList.add('show');
   document.body.style.overflow = 'hidden';
+  
+  setTimeout(() => {
+    const nameInput = document.getElementById('checkoutName');
+    if(nameInput) nameInput.focus();
+  }, 100);
+  
+  document.getElementById('checkoutFormSubmit').onclick = processCheckoutForm;
 }
 
-window.closeAccountRequiredModal = function(){
+window.closeCheckoutForm = function(){
   const modal = document.getElementById('modal');
   const backdrop = document.getElementById('backdrop');
   
@@ -225,12 +239,13 @@ window.closeAccountRequiredModal = function(){
   }
 };
 
-async function processGuestCheckout(){
-  const name = document.getElementById('guestName')?.value.trim() || '';
-  const email = document.getElementById('guestEmail')?.value.trim() || '';
-  const phone = document.getElementById('guestPhone')?.value.trim() || '';
-  const msgEl = document.getElementById('guestCheckoutMsg');
-  const btn = document.getElementById('guestCheckoutSubmit');
+async function processCheckoutForm(){
+  const name = document.getElementById('checkoutName')?.value.trim() || '';
+  const email = document.getElementById('checkoutEmail')?.value.trim() || '';
+  const phone = document.getElementById('checkoutPhone')?.value.trim() || '';
+  const createAccount = document.getElementById('createAccount')?.checked || false;
+  const msgEl = document.getElementById('checkoutFormMsg');
+  const btn = document.getElementById('checkoutFormSubmit');
   
   // Validation
   if(!name){
@@ -285,11 +300,12 @@ async function processGuestCheckout(){
     // Get promo code if any
     const promoCode = localStorage.getItem('h2s_promo_code');
 
-    // Create Checkout Session with guest customer data
+    // Create Checkout Session with customer data
+    // Include flag to auto-create account after successful payment
     const payload = {
       __action: 'create_checkout_session',
       line_items,
-      success_url: `https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`,
+      success_url: `https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}&create_account=${createAccount}`,
       cancel_url: window.location.href,
       customer_email: email,
       client_reference_id: SESSION_ID,
@@ -298,7 +314,8 @@ async function processGuestCheckout(){
         source: 'shop_v2',
         customer_name: name,
         customer_phone: phone,
-        checkout_type: 'guest'
+        customer_email: email,
+        create_account: createAccount ? 'true' : 'false'
       }
     };
     
@@ -306,7 +323,7 @@ async function processGuestCheckout(){
       payload.promotion_code = promoCode;
     }
 
-    console.log('Initiating guest checkout with:', payload);
+    console.log('Initiating checkout with customer data:', payload);
 
     const res = await fetch(API, {
       method: 'POST',
@@ -319,14 +336,17 @@ async function processGuestCheckout(){
     if(!data.ok){
       console.error('❌ Backend error:', data.error || 'Unknown');
       console.error('Full error data:', data);
+      
       if(msgEl) {
         msgEl.textContent = data.error || 'Checkout failed. Please try again.';
         msgEl.style.color = '#d32f2f';
       }
+      
       if(btn) {
         btn.disabled = false;
         btn.innerHTML = 'Continue to Payment';
       }
+      
       hideLoader();
       return;
     }
@@ -334,45 +354,59 @@ async function processGuestCheckout(){
     const url = data?.pay?.session_url;
     if(!url){
       console.error('❌ No checkout URL in response');
+      
       if(msgEl) {
         msgEl.textContent = 'Could not create checkout session. Please try again.';
         msgEl.style.color = '#d32f2f';
       }
+      
       if(btn) {
         btn.disabled = false;
         btn.innerHTML = 'Continue to Payment';
       }
+      
       hideLoader();
       return;
     }
     
-    console.log('\n✅ GUEST CHECKOUT SESSION CREATED!');
-    console.log('Customer:', { name, email, phone });
+    console.log('\n✅ CHECKOUT SESSION CREATED!');
     console.log('Session URL:', url);
-    
-    // Save guest info to localStorage for success page
-    localStorage.setItem('h2s_guest_checkout', JSON.stringify({ name, email, phone }));
+    console.log('Customer:', name, email, phone);
+    console.log('Auto-create account:', createAccount);
     
     // Track checkout before redirect
     h2sTrack('BeginCheckout', {
       cart_total: cartSubtotal(),
       session_url: url,
-      checkout_type: 'guest'
+      create_account: createAccount
     });
     
-    // Redirect to Stripe
+    // Store customer data temporarily for account creation after payment
+    if(createAccount){
+      sessionStorage.setItem('h2s_pending_account', JSON.stringify({
+        name,
+        email,
+        phone,
+        timestamp: Date.now()
+      }));
+    }
+    
+    // Redirect to Stripe Checkout
     window.location.href = url;
     
   }catch(err){
-    console.error('❌ Network error during guest checkout:', err);
+    console.error('❌ Network error during checkout:', err);
+    
     if(msgEl) {
       msgEl.textContent = 'Network error: ' + err.message;
       msgEl.style.color = '#d32f2f';
     }
+    
     if(btn) {
       btn.disabled = false;
       btn.innerHTML = 'Continue to Payment';
     }
+    
     hideLoader();
   }
 }
