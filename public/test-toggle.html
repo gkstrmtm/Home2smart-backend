@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html>
+<head><title>Cart Test</title></head>
+<body>
+<button onclick="window.toggleCart()">Test Cart Toggle</button>
+<button onclick="window.toggleMenu()">Test Menu Toggle</button>
+<div id="result"></div>
+<script>
+console.log("typeof toggleCart:", typeof toggleCart);
+console.log("typeof toggleMenu:", typeof toggleMenu);
+console.log("typeof window.toggleCart:", typeof window.toggleCart);
+console.log("typeof window.toggleMenu:", typeof window.toggleMenu);
+
+function toggleCart(){ document.getElementById("result").innerHTML += "toggleCart called<br>"; }
+function toggleMenu(){ document.getElementById("result").innerHTML += "toggleMenu called<br>"; }
+
+window.toggleCart = toggleCart;
+window.toggleMenu = toggleMenu;
+
+console.log("AFTER assignment - typeof window.toggleCart:", typeof window.toggleCart);
+</script>
+</body>
+</html>

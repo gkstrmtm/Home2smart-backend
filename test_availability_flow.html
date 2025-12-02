@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Availability API Test Probe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+    .section h2 {
+      color: #334155;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #475569;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    .btn-danger:hover {
+      box-shadow: 0 8px 20px rgba(239,68,68,0.4);
+    }
+    .response {
+      background: #0f172a;
+      color: #10b981;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 15px;
+      border: 2px solid #1e293b;
+    }
+    .response::-webkit-scrollbar {
+      width: 10px;
+    }
+    .response::-webkit-scrollbar-track {
+      background: #1e293b;
+      border-radius: 8px;
+    }
+    .response::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+    }
+    .error { color: #ef4444 !important; }
+    .success { color: #10b981 !important; }
+    .warning { color: #f59e0b !important; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status-ready { background: #dcfce7; color: #166534; }
+    .status-waiting { background: #fef3c7; color: #92400e; }
+    code {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔬 Availability API Test Probe</h1>
+    <p class="subtitle">Test portal_availability.js endpoint → h2s_pro_availability table integration</p>
+
+    <!-- Step 1: Session Token -->
+    <div class="section">
+      <h2>Step 1: Session Token <span class="status-badge status-waiting" id="tokenStatus">Required</span></h2>
+      <div class="input-group">
+        <label>Session Token (from browser localStorage or login response)</label>
+        <input type="text" id="sessionToken" placeholder="Paste your session token here...">
+      </div>
+      <button onclick="validateToken()">Validate Token</button>
+      <div id="tokenResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Step 2: GET - Retrieve Availability -->
+    <div class="section">
+      <h2>Step 2: GET - Retrieve Availability Records</h2>
+      <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+        Fetches all time off records for the authenticated pro from <code>h2s_pro_availability</code>
+      </p>
+      <button onclick="getAvailability()">GET /api/portal_availability?action=get</button>
+      <div id="getResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Step 3: SET - Create Single Day -->
+    <div class="section">
+      <h2>Step 3: SET - Create Single Day Time Off</h2>
+      <div class="grid">
+        <div class="input-group">
+          <label>Date (YYYY-MM-DD)</label>
+          <input type="date" id="singleDate" value="2025-12-25">
+        </div>
+        <div class="input-group">
+          <label>Type</label>
+          <select id="singleType">
+            <option value="vacation">Vacation</option>
+            <option value="sick">Sick Day</option>
+            <option value="personal">Personal Day</option>
+            <option value="appointment">Appointment</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Reason (optional)</label>
+        <input type="text" id="singleReason" placeholder="e.g., Christmas Day">
+      </div>
+      <button onclick="createSingleDay()">POST - Create Single Day</button>
+      <div id="setSingleResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Step 4: SET - Create Date Range -->
+    <div class="section">
+      <h2>Step 4: SET - Create Date Range (Multi-Day)</h2>
+      <div class="grid">
+        <div class="input-group">
+          <label>Start Date (YYYY-MM-DD)</label>
+          <input type="date" id="rangeStart" value="2025-12-20">
+        </div>
+        <div class="input-group">
+          <label>End Date (YYYY-MM-DD)</label>
+          <input type="date" id="rangeEnd" value="2025-12-27">
+        </div>
+      </div>
+      <div class="grid">
+        <div class="input-group">
+          <label>Type</label>
+          <select id="rangeType">
+            <option value="vacation">Vacation</option>
+            <option value="sick">Sick Day</option>
+            <option value="personal">Personal Day</option>
+            <option value="appointment">Appointment</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Reason (optional)</label>
+          <input type="text" id="rangeReason" placeholder="e.g., Christmas vacation">
+        </div>
+      </div>
+      <button onclick="createRange()">POST - Create Date Range</button>
+      <div id="setRangeResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Step 5: DELETE - Remove Record -->
+    <div class="section">
+      <h2>Step 5: DELETE - Remove Availability Record</h2>
+      <div class="input-group">
+        <label>Availability ID (UUID from GET response)</label>
+        <input type="text" id="deleteId" placeholder="Copy availability_id from GET response above">
+      </div>
+      <button class="btn-danger" onclick="deleteRecord()">DELETE - Remove Record</button>
+      <div id="deleteResponse" class="response" style="display:none;"></div>
+    </div>
+
+    <!-- Step 6: Full Flow Test -->
+    <div class="section">
+      <h2>Step 6: Full Flow Test (Auto-Sequence)</h2>
+      <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">
+        Runs complete workflow: GET → CREATE → GET (verify) → DELETE → GET (verify cleanup)
+      </p>
+      <button onclick="runFullTest()">▶ Run Full Integration Test</button>
+      <div id="fullTestResponse" class="response" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://h2s-backend.vercel.app/api';
+    
+    function log(elementId, message, type = 'success') {
+      const el = document.getElementById(elementId);
+      el.style.display = 'block';
+      el.className = `response ${type}`;
+      el.textContent = message;
+    }
+
+    function getToken() {
+      const token = document.getElementById('sessionToken').value.trim();
+      if (!token) {
+        alert('⚠️ Please enter a session token in Step 1');
+        throw new Error('No token');
+      }
+      return token;
+    }
+
+    async function validateToken() {
+      const token = getToken();
+      try {
+        const response = await fetch(`${API_BASE}/portal_me?token=${token}`);
+        const data = await response.json();
+        
+        if (data.ok && data.pro) {
+          log('tokenResponse', JSON.stringify(data, null, 2), 'success');
+          document.getElementById('tokenStatus').textContent = 'Valid ✓';
+          document.getElementById('tokenStatus').className = 'status-badge status-ready';
+        } else {
+          log('tokenResponse', JSON.stringify(data, null, 2), 'error');
+          document.getElementById('tokenStatus').textContent = 'Invalid ✗';
+        }
+      } catch (err) {
+        log('tokenResponse', `ERROR: ${err.message}`, 'error');
+      }
+    }
+
+    async function getAvailability() {
+      const token = getToken();
+      try {
+        const response = await fetch(`${API_BASE}/portal_availability?action=get&token=${token}`);
+        const data = await response.json();
+        
+        const result = {
+          status: response.status,
+          ok: data.ok,
+          records: data.rows || [],
+          count: (data.rows || []).length,
+          raw: data
+        };
+        
+        log('getResponse', JSON.stringify(result, null, 2), data.ok ? 'success' : 'error');
+      } catch (err) {
+        log('getResponse', `ERROR: ${err.message}`, 'error');
+      }
+    }
+
+    async function createSingleDay() {
+      const token = getToken();
+      const date = document.getElementById('singleDate').value;
+      const type = document.getElementById('singleType').value;
+      const reason = document.getElementById('singleReason').value;
+      
+      try {
+        const response = await fetch(`${API_BASE}/portal_availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'set',
+            token,
+            date_local: date,
+            type,
+            reason: reason || undefined
+          })
+        });
+        
+        const data = await response.json();
+        log('setSingleResponse', JSON.stringify(data, null, 2), data.ok ? 'success' : 'error');
+      } catch (err) {
+        log('setSingleResponse', `ERROR: ${err.message}`, 'error');
+      }
+    }
+
+    async function createRange() {
+      const token = getToken();
+      const start = document.getElementById('rangeStart').value;
+      const end = document.getElementById('rangeEnd').value;
+      const type = document.getElementById('rangeType').value;
+      const reason = document.getElementById('rangeReason').value;
+      
+      try {
+        const response = await fetch(`${API_BASE}/portal_availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'set',
+            token,
+            date_local: start,
+            date_end: end,
+            type,
+            reason: reason || undefined
+          })
+        });
+        
+        const data = await response.json();
+        log('setRangeResponse', JSON.stringify(data, null, 2), data.ok ? 'success' : 'error');
+      } catch (err) {
+        log('setRangeResponse', `ERROR: ${err.message}`, 'error');
+      }
+    }
+
+    async function deleteRecord() {
+      const token = getToken();
+      const id = document.getElementById('deleteId').value.trim();
+      
+      if (!id) {
+        alert('⚠️ Please enter an availability_id to delete');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/portal_availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete',
+            token,
+            availability_id: id
+          })
+        });
+        
+        const data = await response.json();
+        log('deleteResponse', JSON.stringify(data, null, 2), data.ok ? 'success' : 'error');
+      } catch (err) {
+        log('deleteResponse', `ERROR: ${err.message}`, 'error');
+      }
+    }
+
+    async function runFullTest() {
+      const token = getToken();
+      let output = '';
+      
+      try {
+        // Step 1: Initial GET
+        output += '=== STEP 1: Initial GET ===\n';
+        let res = await fetch(`${API_BASE}/portal_availability?action=get&token=${token}`);
+        let data = await res.json();
+        output += `Records before test: ${(data.rows || []).length}\n\n`;
+        
+        // Step 2: Create test record
+        output += '=== STEP 2: Create Test Record ===\n';
+        const testDate = '2025-12-31';
+        res = await fetch(`${API_BASE}/portal_availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'set',
+            token,
+            date_local: testDate,
+            type: 'vacation',
+            reason: 'Test probe record'
+          })
+        });
+        data = await res.json();
+        
+        if (!data.ok) {
+          output += `❌ CREATE FAILED: ${JSON.stringify(data)}\n`;
+          log('fullTestResponse', output, 'error');
+          return;
+        }
+        
+        const createdId = data.availability?.availability_id;
+        output += `✓ Created record: ${createdId}\n\n`;
+        
+        // Step 3: Verify creation
+        output += '=== STEP 3: Verify Creation ===\n';
+        res = await fetch(`${API_BASE}/portal_availability?action=get&token=${token}`);
+        data = await res.json();
+        const found = (data.rows || []).find(r => r.availability_id === createdId);
+        
+        if (found) {
+          output += `✓ Record found in database:\n`;
+          output += JSON.stringify(found, null, 2) + '\n\n';
+        } else {
+          output += `❌ Record NOT found in GET response\n`;
+          log('fullTestResponse', output, 'error');
+          return;
+        }
+        
+        // Step 4: Delete test record
+        output += '=== STEP 4: Delete Test Record ===\n';
+        res = await fetch(`${API_BASE}/portal_availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete',
+            token,
+            availability_id: createdId
+          })
+        });
+        data = await res.json();
+        
+        if (!data.ok) {
+          output += `❌ DELETE FAILED: ${JSON.stringify(data)}\n`;
+          log('fullTestResponse', output, 'error');
+          return;
+        }
+        output += `✓ Record deleted\n\n`;
+        
+        // Step 5: Verify deletion
+        output += '=== STEP 5: Verify Deletion ===\n';
+        res = await fetch(`${API_BASE}/portal_availability?action=get&token=${token}`);
+        data = await res.json();
+        const stillExists = (data.rows || []).find(r => r.availability_id === createdId);
+        
+        if (stillExists) {
+          output += `❌ Record STILL EXISTS after delete\n`;
+          log('fullTestResponse', output, 'error');
+        } else {
+          output += `✓ Record successfully removed\n\n`;
+          output += '=== ✅ ALL TESTS PASSED ===\n';
+          output += 'Database integration working correctly!\n';
+          log('fullTestResponse', output, 'success');
+        }
+        
+      } catch (err) {
+        output += `\n❌ FATAL ERROR: ${err.message}`;
+        log('fullTestResponse', output, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

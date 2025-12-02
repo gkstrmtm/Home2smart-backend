@@ -1,0 +1,32 @@
+# Vercel & Environment
+.vercel
+.env
+.env.local
+.env*.local
+node_modules/
+
+# SQL files (run directly in Supabase, not needed in repo)
+*.sql
+
+# Test/debug files
+test-*.js
+check_*.js
+fix_*.js
+deploy_*.js
+cleanup.ps1
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Temp
+temp_*.js

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule Your Appointment - Home2Smart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    :root {
+      --cobalt: #1f3a93;
+      --azure: #1493ff;
+      --slate: #2d3748;
+      --gray-100: #f7fafc;
+      --gray-200: #edf2f7;
+      --gray-300: #e2e8f0;
+      --gray-600: #718096;
+      --success: #48bb78;
+      --danger: #f56565;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--slate);
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--cobalt) 0%, var(--azure) 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    
+    .order-summary {
+      background: var(--gray-100);
+      padding: 20px 30px;
+      border-bottom: 1px solid var(--gray-300);
+    }
+    
+    .order-summary h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gray-600);
+      margin-bottom: 12px;
+    }
+    
+    .order-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .order-details div {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .calendar-container {
+      padding: 30px;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .calendar-header h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--slate);
+    }
+    
+    .month-nav {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .month-nav button {
+      background: white;
+      border: 2px solid var(--gray-300);
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    
+    .month-nav button:hover {
+      border-color: var(--azure);
+      color: var(--azure);
+      transform: scale(1.1);
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .day-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gray-600);
+      padding: 8px;
+      text-transform: uppercase;
+    }
+    
+    .day-cell {
+      aspect-ratio: 1;
+      border: 2px solid var(--gray-200);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+    
+    .day-cell.empty {
+      border: none;
+      cursor: default;
+    }
+    
+    .day-cell.available:hover {
+      border-color: var(--azure);
+      background: var(--gray-100);
+      transform: scale(1.05);
+    }
+    
+    .day-cell.selected {
+      background: var(--azure);
+      color: white;
+      border-color: var(--azure);
+    }
+    
+    .day-cell.unavailable {
+      background: var(--gray-200);
+      color: var(--gray-600);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .time-slots-container {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid var(--gray-200);
+    }
+    
+    .time-slots-container h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--slate);
+    }
+    
+    .time-slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    
+    .time-slot {
+      padding: 16px;
+      border: 2px solid var(--gray-300);
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+      font-weight: 600;
+    }
+    
+    .time-slot:hover {
+      border-color: var(--azure);
+      background: var(--gray-100);
+      transform: translateY(-2px);
+    }
+    
+    .time-slot.selected {
+      background: var(--azure);
+      color: white;
+      border-color: var(--azure);
+    }
+    
+    .time-slot.unavailable {
+      background: var(--gray-200);
+      color: var(--gray-600);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .time-slot .spots {
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+    
+    .confirm-section {
+      margin-top: 30px;
+      padding: 24px;
+      background: var(--gray-100);
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .confirm-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--slate);
+    }
+    
+    .selected-time {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--azure);
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: var(--azure);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    
+    .btn:hover {
+      background: var(--cobalt);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(20,147,255,0.3);
+    }
+    
+    .btn:disabled {
+      background: var(--gray-300);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-600);
+    }
+    
+    .spinner {
+      border: 4px solid var(--gray-200);
+      border-top: 4px solid var(--azure);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .success-message {
+      text-align: center;
+      padding: 60px 30px;
+    }
+    
+    .success-message .checkmark {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--success);
+      color: white;
+      font-size: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      animation: scaleIn 0.5s ease;
+    }
+    
+    @keyframes scaleIn {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    .success-message h2 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--slate);
+      margin-bottom: 12px;
+    }
+    
+    .success-message p {
+      font-size: 16px;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+    
+    .error-message {
+      background: #fff5f5;
+      border: 2px solid var(--danger);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 20px 0;
+      color: var(--danger);
+      text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+      .calendar-grid {
+        gap: 4px;
+      }
+      
+      .day-cell {
+        font-size: 14px;
+      }
+      
+      .time-slots {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📅 Schedule Your Appointment</h1>
+      <p>Pick a date and time that works best for you</p>
+    </div>
+    
+    <div class="order-summary" id="orderSummary">
+      <h2>Order Details</h2>
+      <div class="order-details">
+        <div id="customerName">Loading...</div>
+        <div id="serviceName">Loading...</div>
+      </div>
+    </div>
+    
+    <div class="calendar-container">
+      <div id="loadingState" class="loading">
+        <div class="spinner"></div>
+        <p>Loading available appointments...</p>
+      </div>
+      
+      <div id="calendarView" style="display: none;">
+        <div class="calendar-header">
+          <h3 id="monthYear">December 2025</h3>
+          <div class="month-nav">
+            <button id="prevMonth" aria-label="Previous month">‹</button>
+            <button id="nextMonth" aria-label="Next month">›</button>
+          </div>
+        </div>
+        
+        <div class="calendar-grid" id="calendarGrid">
+          <!-- Calendar grid generated by JS -->
+        </div>
+        
+        <div id="timeSlotsContainer" style="display: none;" class="time-slots-container">
+          <h3 id="selectedDateLabel">Select a time</h3>
+          <div class="time-slots" id="timeSlots">
+            <!-- Time slots generated by JS -->
+          </div>
+        </div>
+        
+        <div id="confirmSection" style="display: none;" class="confirm-section">
+          <h3>Confirm Your Appointment</h3>
+          <div class="selected-time" id="selectedTimeDisplay"></div>
+          <button class="btn" id="confirmBtn">Confirm Appointment</button>
+        </div>
+        
+        <div id="errorMessage" style="display: none;" class="error-message"></div>
+      </div>
+      
+      <div id="successView" style="display: none;" class="success-message">
+        <div class="checkmark">✓</div>
+        <h2>Appointment Confirmed!</h2>
+        <p>We've sent you a confirmation via email and text message.<br>You'll receive a reminder 24 hours before your appointment.</p>
+        <p style="margin-top: 20px; font-weight: 600;">See you soon!</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get order_id from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('order_id') || urlParams.get('session_id');
+    
+    if (!orderId) {
+      document.getElementById('loadingState').innerHTML = '<div class="error-message">Missing order ID. Please contact support.</div>';
+    }
+    
+    let availabilityData = [];
+    let selectedDate = null;
+    let selectedSlot = null;
+    let currentMonthOffset = 0;
+    
+    // Fetch availability on load
+    async function init() {
+      try {
+        // Fetch order details
+        const orderResp = await fetch(`/api/get-order?order_id=${orderId}`);
+        const orderData = await orderResp.json();
+        
+        if (orderData.ok) {
+          document.getElementById('customerName').textContent = `👤 ${orderData.customer_name || 'Customer'}`;
+          document.getElementById('serviceName').textContent = `🔧 ${orderData.service_name || 'Service'}`;
+        }
+        
+        // Fetch availability
+        const availResp = await fetch('/api/get-availability');
+        const availData = await availResp.json();
+        
+        if (!availData.ok) throw new Error(availData.error || 'Failed to load availability');
+        
+        availabilityData = availData.availability;
+        
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('calendarView').style.display = 'block';
+        
+        renderCalendar();
+        
+      } catch (err) {
+        console.error('Init error:', err);
+        document.getElementById('loadingState').innerHTML = `<div class="error-message">${err.message}</div>`;
+      }
+    }
+    
+    function renderCalendar() {
+      const today = new Date();
+      today.setMonth(today.getMonth() + currentMonthOffset);
+      
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      document.getElementById('monthYear').textContent = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      // Day labels
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+        const label = document.createElement('div');
+        label.className = 'day-label';
+        label.textContent = day;
+        grid.appendChild(label);
+      });
+      
+      // Empty cells before first day
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell empty';
+        grid.appendChild(empty);
+      }
+      
+      // Days of month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        const dateStr = dateObj.toISOString().split('T')[0];
+        const availability = availabilityData.find(a => a.date === dateStr);
+        
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        cell.textContent = day;
+        
+        if (availability && availability.available) {
+          cell.classList.add('available');
+          cell.onclick = () => selectDate(dateStr, availability);
+        } else {
+          cell.classList.add('unavailable');
+        }
+        
+        if (selectedDate === dateStr) {
+          cell.classList.add('selected');
+        }
+        
+        grid.appendChild(cell);
+      }
+    }
+    
+    function selectDate(dateStr, availability) {
+      selectedDate = dateStr;
+      selectedSlot = null;
+      
+      renderCalendar();
+      renderTimeSlots(availability);
+      
+      document.getElementById('timeSlotsContainer').style.display = 'block';
+      document.getElementById('confirmSection').style.display = 'none';
+      
+      const dateObj = new Date(dateStr + 'T00:00:00');
+      document.getElementById('selectedDateLabel').textContent = `Available times for ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`;
+    }
+    
+    function renderTimeSlots(availability) {
+      const container = document.getElementById('timeSlots');
+      container.innerHTML = '';
+      
+      availability.slots.forEach(slot => {
+        const slotEl = document.createElement('div');
+        slotEl.className = 'time-slot';
+        
+        if (slot.available) {
+          slotEl.innerHTML = `
+            <div>${slot.time}</div>
+            <div class="spots">${slot.spots_remaining} spot${slot.spots_remaining !== 1 ? 's' : ''} left</div>
+          `;
+          slotEl.onclick = () => selectTimeSlot(slot);
+        } else {
+          slotEl.classList.add('unavailable');
+          slotEl.innerHTML = `<div>${slot.time}</div><div class="spots">Fully booked</div>`;
+        }
+        
+        container.appendChild(slotEl);
+      });
+    }
+    
+    function selectTimeSlot(slot) {
+      selectedSlot = slot;
+      
+      // Update UI
+      document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+      
+      const dateObj = new Date(selectedDate + 'T00:00:00');
+      const dateDisplay = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      
+      document.getElementById('selectedTimeDisplay').textContent = `${dateDisplay} at ${slot.time}`;
+      document.getElementById('confirmSection').style.display = 'block';
+    }
+    
+    // Confirm appointment
+    document.getElementById('confirmBtn').onclick = async () => {
+      if (!selectedDate || !selectedSlot) return;
+      
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = true;
+      btn.textContent = 'Booking...';
+      
+      try {
+        const response = await fetch('/api/schedule-appointment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: orderId,
+            delivery_date: selectedDate,
+            delivery_time: selectedSlot.time,
+            start_iso: selectedSlot.start_iso,
+            end_iso: selectedSlot.end_iso,
+            timezone: 'America/New_York'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.ok) throw new Error(result.error || 'Booking failed');
+        
+        // Show success
+        document.getElementById('calendarView').style.display = 'none';
+        document.getElementById('successView').style.display = 'block';
+        
+      } catch (err) {
+        console.error('Booking error:', err);
+        document.getElementById('errorMessage').textContent = err.message;
+        document.getElementById('errorMessage').style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Confirm Appointment';
+      }
+    };
+    
+    // Month navigation
+    document.getElementById('prevMonth').onclick = () => {
+      if (currentMonthOffset > 0) {
+        currentMonthOffset--;
+        renderCalendar();
+      }
+    };
+    
+    document.getElementById('nextMonth').onclick = () => {
+      if (currentMonthOffset < 2) {
+        currentMonthOffset++;
+        renderCalendar();
+      }
+    };
+    
+    // Initialize
+    init();
+  </script>
+</body>
+</html>
