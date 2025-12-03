@@ -47,28 +47,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Missing delivery_date or delivery_time' });
     }
 
-    console.log(`[Schedule] Scheduling appointment for Order ${order_id}: ${delivery_date} at ${delivery_time}`);
+    console.log('[Schedule] Incoming payload', {
+      order_id,
+      delivery_date,
+      delivery_time,
+      start_iso,
+      end_iso,
+      timezone
+    });
 
     // 1. Get existing order by order_id (UUID) OR session_id (Stripe session)
     let query = supabase.from('h2s_orders').select('*');
     
-    // Try to find by UUID first, then by session_id
+    // Try to find by UUID first, then by order_id string, else by session_id
     if (order_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.log('[Schedule] Looking up by UUID order_id:', order_id);
+      console.log('[Schedule] Lookup mode: UUID id', order_id);
       query = query.eq('id', order_id);
     } else if (order_id.startsWith('order_')) {
-      console.log('[Schedule] Looking up by order_id:', order_id);
+      console.log('[Schedule] Lookup mode: order_id', order_id);
       query = query.eq('order_id', order_id);
     } else {
-      console.log('[Schedule] Looking up by session_id:', order_id);
+      console.log('[Schedule] Lookup mode: session_id', order_id);
       query = query.eq('session_id', order_id);
     }
     
     const { data: order, error: orderError } = await query.single();
 
     if (orderError || !order) {
-      console.error('[Schedule] Order not found:', orderError?.message || 'No data');
-      console.error('[Schedule] Tried to find:', order_id);
+      console.error('[Schedule] Order not found');
+      console.error('[Schedule] Supabase error:', orderError?.message || 'none');
+      console.error('[Schedule] Lookup key:', order_id);
       return res.status(404).json({ ok: false, error: 'Order not found' });
     }
 
@@ -93,6 +101,8 @@ export default async function handler(req, res) {
 
     if (updateError) {
       console.error('[Schedule] Update failed:', updateError);
+      console.error('[Schedule] Update payload:', updatePayload);
+      console.error('[Schedule] Target row id:', order.id);
       return res.status(500).json({ ok: false, error: updateError.message });
     }
 
