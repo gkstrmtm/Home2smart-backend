@@ -398,32 +398,94 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       });
     }
 
-    // Save order to database - simplified to match actual schema
+    // Save order to database - match exact h2s_orders schema
     try {
       const now = new Date().toISOString();
       
-      // Build order summary from cart
-      const itemSummary = cart.map(item => {
-        if (item.type === 'bundle') {
-          return `${item.qty || 1}x ${item.bundle_id}`;
-        } else {
-          return `${item.qty || 1}x ${item.service_id}${item.option_id ? ' (' + item.option_id + ')' : ''}`;
-        }
-      }).join(', ');
+      // Calculate totals from cart
+      let subtotal = 0;
+      const orderItems = [];
       
-      // Single order record matching CREATE_SHOP_SCHEMA.sql columns
+      for (const item of cart) {
+        let unitPrice = 0;
+        
+        if (item.type === 'bundle') {
+          const { data: bundle } = await supabase
+            .from('h2s_bundles')
+            .select('price')
+            .eq('bundle_id', item.bundle_id)
+            .single();
+          unitPrice = Number(bundle?.price || 0);
+        } else {
+          // Get price from tier
+          const { data: tiers } = await supabase
+            .from('h2s_pricetiers')
+            .select('unit_price')
+            .eq('service_id', item.service_id)
+            .lte('min_qty', item.qty || 1);
+          unitPrice = Number(tiers?.[0]?.unit_price || 0);
+        }
+        
+        const qty = Number(item.qty || 1);
+        const lineTotal = unitPrice * qty;
+        subtotal += lineTotal;
+        
+        orderItems.push({
+          type: item.type || 'service',
+          service_id: item.service_id || null,
+          bundle_id: item.bundle_id || null,
+          service_name: item.service_name || item.service_id || item.bundle_id,
+          qty: qty,
+          unit_price: unitPrice,
+          line_total: lineTotal,
+          option_id: item.option_id || null
+        });
+      }
+      
+      const tax = subtotal * 0.08; // 8% tax
+      const total = subtotal + tax;
+      
+      // Single order record matching exact schema
       const orderRecord = {
         order_id: orderId,
-        stripe_session_id: session.id,
+        session_id: session.id, // NOTE: Column is session_id, not stripe_session_id
+        payment_intent_id: null, // Will be set by webhook
         customer_email: customer.email,
-        payment_intent_id: null, // Will be updated by webhook
-        total: null, // Will be updated by webhook
+        customer_name: customer.name || null,
+        customer_phone: customer.phone || null,
+        phone: customer.phone || null,
+        items: JSON.stringify(orderItems),
+        subtotal: subtotal.toFixed(2),
+        tax: tax.toFixed(2),
+        total: total.toFixed(2),
+        status: 'pending',
         currency: 'usd',
-        items: JSON.stringify(cart),
-        order_summary: itemSummary,
-        delivery_date: null, // Will be set during scheduling
-        service_date: null,
-        created_at: now
+        
+        // Address fields - will be populated from Stripe webhook
+        address: null,
+        city: null,
+        state: null,
+        zip: null,
+        
+        // Service details from first item
+        service_id: orderItems[0]?.service_id || null,
+        service_name: orderItems[0]?.service_name || null,
+        qty: orderItems[0]?.qty || 0,
+        unit_price: String(orderItems[0]?.unit_price || 0),
+        line_total: String(orderItems[0]?.line_total || 0),
+        
+        // Metadata
+        options_selected: '[]',
+        metadata_json: {},
+        
+        // Defaults
+        discount_applied: '0',
+        discount_amount: '0',
+        points_earned: Math.floor(total / 10),
+        points_redeemed: 0,
+        
+        created_at: now,
+        updated_at: now
       };
       
       const { error: insertError } = await supabase
@@ -432,7 +494,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       
       if (insertError) {
         console.error('[Checkout] DB save failed:', insertError.message);
-        console.error('[Checkout] Attempted to insert:', orderRecord);
+        console.error('[Checkout] Attempted columns:', Object.keys(orderRecord));
       } else {
         console.log('[Checkout] ✅ Order saved:', orderId, 'session:', session.id);
       }
@@ -810,17 +872,19 @@ async function handleOrderPack(req, res, supabase, sessionId) {
   }
 
   try {
-    // Fetch order by stripe_session_id
+    // Fetch order by session_id (not stripe_session_id - that column doesn't exist)
     const { data: order, error } = await supabase
       .from('h2s_orders')
       .select('*')
-      .eq('stripe_session_id', sessionId)
+      .eq('session_id', sessionId)
       .single();
 
     if (error || !order) {
-      console.error('[OrderPack] Order not found for session:', sessionId);
+      console.error('[OrderPack] Order not found for session:', sessionId, error?.message);
       return res.status(404).json({ ok: false, error: 'Order not found' });
     }
+
+    console.log('[OrderPack] ✅ Found order:', order.order_id);
 
     // Parse cart items from 'items' JSON column
     let cartItems = [];
@@ -835,21 +899,25 @@ async function handleOrderPack(req, res, supabase, sessionId) {
       ok: true,
       summary: {
         order_id: order.order_id,
-        stripe_session_id: order.stripe_session_id,
-        total: order.total || 0,
-        subtotal: order.total || 0, // Will be updated by webhook with actual amounts
+        session_id: order.session_id,
+        total: Number(order.total || 0),
+        subtotal: Number(order.subtotal || 0),
+        tax: Number(order.tax || 0),
         currency: order.currency || 'usd',
         created_at: order.created_at,
-        discount_code: '',
-        discount_amount: ''
+        discount_code: order.stripe_coupon_id || '',
+        discount_amount: order.discount_amount || '0'
       },
       lines: cartItems.map((item, idx) => ({
         line_index: idx,
         line_type: item.type || 'service',
         service_id: item.service_id || null,
         bundle_id: item.bundle_id || null,
+        service_name: item.service_name || null,
         option_id: item.option_id || null,
-        qty: item.qty || 1
+        qty: item.qty || 1,
+        unit_price: item.unit_price || 0,
+        line_total: item.line_total || 0
       }))
     };
 

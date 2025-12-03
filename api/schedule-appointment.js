@@ -49,48 +49,63 @@ export default async function handler(req, res) {
 
     console.log(`[Schedule] Scheduling appointment for Order ${order_id}: ${delivery_date} at ${delivery_time}`);
 
-    // 1. Get existing order by order_id (UUID) OR stripe_session_id
+    // 1. Get existing order by order_id (UUID) OR session_id (Stripe session)
     let query = supabase.from('h2s_orders').select('*');
     
     // Try to find by UUID first, then by session_id
     if (order_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.log('[Schedule] Looking up by UUID order_id:', order_id);
+      query = query.eq('id', order_id);
+    } else if (order_id.startsWith('order_')) {
+      console.log('[Schedule] Looking up by order_id:', order_id);
       query = query.eq('order_id', order_id);
     } else {
-      query = query.eq('stripe_session_id', order_id);
+      console.log('[Schedule] Looking up by session_id:', order_id);
+      query = query.eq('session_id', order_id);
     }
     
     const { data: order, error: orderError } = await query.single();
 
     if (orderError || !order) {
-      console.error('[Schedule] Order not found:', orderError);
+      console.error('[Schedule] Order not found:', orderError?.message || 'No data');
+      console.error('[Schedule] Tried to find:', order_id);
       return res.status(404).json({ ok: false, error: 'Order not found' });
     }
+
+    console.log('[Schedule] ✅ Found order:', order.order_id);
 
     // 2. Update order with appointment details
     const updatePayload = {
       delivery_date: delivery_date,
-      service_date: delivery_date  // Also set service_date for compatibility
+      delivery_time: delivery_time,
+      updated_at: new Date().toISOString()
     };
     
-    const updateQuery = order_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-      ? supabase.from('h2s_orders').update(updatePayload).eq('order_id', order_id)
-      : supabase.from('h2s_orders').update(updatePayload).eq('stripe_session_id', order_id);
+    const { error: updateError } = await supabase
+      .from('h2s_orders')
+      .update(updatePayload)
+      .eq('id', order.id);
     
-    const { error: updateError } = await updateQuery;
+    const { error: updateError } = await supabase
+      .from('h2s_orders')
+      .update(updatePayload)
+      .eq('id', order.id);
 
     if (updateError) {
       console.error('[Schedule] Update failed:', updateError);
       return res.status(500).json({ ok: false, error: updateError.message });
     }
 
-    console.log(`[Schedule] ✅ Order ${order_id} updated with appointment`);
+    console.log(`[Schedule] ✅ Order ${order.order_id} updated with appointment`);
 
     // 3. Send "appointment_scheduled" notifications (SMS + Email)
     const customerName = order.customer_name || order.name || '';
     const firstName = customerName.split(' ')[0] || 'Customer';
+    const serviceName = order.service_name || 'service';
+    
     const notificationData = {
       firstName: firstName,
-      service: order.order_summary || 'service',
+      service: serviceName,
       date: formatDate(delivery_date),
       time: delivery_time
     };
