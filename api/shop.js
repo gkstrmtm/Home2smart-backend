@@ -512,10 +512,17 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         .insert(orderRecord);
       
       if (insertError) {
-        console.error('[Checkout] DB save failed:', insertError.message);
+        console.error('[Checkout] ❌ DB SAVE FAILED');
+        console.error('[Checkout] Session ID:', session.id);
+        console.error('[Checkout] Error:', insertError.message);
+        console.error('[Checkout] Error details:', JSON.stringify(insertError, null, 2));
         console.error('[Checkout] Attempted columns:', Object.keys(orderRecord));
+        console.error('[Checkout] Order record:', JSON.stringify(orderRecord, null, 2));
       } else {
-        console.log('[Checkout] ✅ Order saved:', orderId, 'session:', session.id);
+        console.log('[Checkout] ✅ ORDER SAVED SUCCESSFULLY');
+        console.log('[Checkout] Order ID:', orderId);
+        console.log('[Checkout] Session ID:', session.id);
+        console.log('[Checkout] Customer:', customer.email);
       }
     } catch (dbErr) {
       console.error('[Checkout] DB save exception:', dbErr.message);
