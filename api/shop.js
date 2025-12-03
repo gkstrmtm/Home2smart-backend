@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('h2s_orders')
           .select('*')
-          .eq('session_id', sid)
+          .eq('stripe_session_id', sid)
           .limit(1)
           .maybeSingle();
         if(error){ return res.status(500).json({ ok:false, error:error.message }); }
@@ -904,11 +904,11 @@ async function handleOrderPack(req, res, supabase, sessionId) {
   }
 
   try {
-    // Fetch order by session_id (not stripe_session_id - that column doesn't exist)
+    // Fetch order by stripe_session_id
     const { data: order, error } = await supabase
       .from('h2s_orders')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('stripe_session_id', sessionId)
       .single();
 
     if (error || !order) {
