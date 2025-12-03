@@ -511,6 +511,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         .from('h2s_orders')
         .insert(orderRecord);
       
+      let dbErrorDetails = null;
       if (insertError) {
         console.error('[Checkout] ❌ DB SAVE FAILED');
         console.error('[Checkout] Session ID:', session.id);
@@ -518,6 +519,13 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         console.error('[Checkout] Error details:', JSON.stringify(insertError, null, 2));
         console.error('[Checkout] Attempted columns:', Object.keys(orderRecord));
         console.error('[Checkout] Order record:', JSON.stringify(orderRecord, null, 2));
+        dbErrorDetails = {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
+          columns_attempted: Object.keys(orderRecord)
+        };
       } else {
         console.log('[Checkout] ✅ ORDER SAVED SUCCESSFULLY');
         console.log('[Checkout] Order ID:', orderId);
@@ -538,7 +546,8 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         order_created: !insertError,
         order_id: orderId,
         session_id: session.id,
-        error: insertError ? insertError.message : null
+        error: insertError ? insertError.message : null,
+        db_error_details: dbErrorDetails
       }
     });
 
