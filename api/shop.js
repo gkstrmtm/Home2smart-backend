@@ -467,7 +467,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       // Single order record matching exact schema
       const orderRecord = {
         order_id: orderId,
-        session_id: session.id, // NOTE: Column is session_id, not stripe_session_id
+        stripe_session_id: session.id,
         payment_intent_id: null, // Will be set by webhook
         customer_email: customer.email,
         customer_name: customer.name || null,
