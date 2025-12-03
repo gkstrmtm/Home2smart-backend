@@ -398,7 +398,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       // Summary row
       orderRows.push({
         order_id: orderId,
-        session_id: session.id,
+        stripe_session_id: session.id,
         mode: 'payment',
         status: 'pending',
         created_at: now,
@@ -422,7 +422,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         
         orderRows.push({
           order_id: orderId,
-          session_id: session.id,
+          stripe_session_id: session.id,
           mode: 'payment',
           status: 'pending',
           created_at: now,
