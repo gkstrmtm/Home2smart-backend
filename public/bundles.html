@@ -5146,7 +5146,10 @@ window.renderShopSuccess = async function(){
       confirmBtn.disabled = true; const prev = confirmBtn.textContent; confirmBtn.textContent = 'Saving…';
       try{
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
-        const stableId = displayOrderId;
+        // Always use Stripe checkout session_id for backend lookup
+        const params = new URL(location.href).searchParams;
+        const sessionId = params.get('session_id') || params.get('stripe_session_id') || '';
+        const stableId = sessionId || displayOrderId;
         const [startLabel, endLabel] = selectedWindow.split(' - ');
         const toIso = (label)=>{
           const d = new Date(`${selectedDate} ${label}`);
@@ -5154,6 +5157,7 @@ window.renderShopSuccess = async function(){
         };
         const startIso = toIso(startLabel);
         const endIso   = toIso(endLabel);
+        console.log('[Schedule] Sending payload', { order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz });
         const resp = await fetch(APIV1, {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz })
@@ -5163,6 +5167,7 @@ window.renderShopSuccess = async function(){
         if(schedMsg){ schedMsg.style.color = '#0b6e0b'; schedMsg.textContent = '✓ Appointment scheduled. Check your email for confirmation.'; }
       }catch(err){
         if(schedMsg){ schedMsg.style.color = '#c33'; schedMsg.textContent = 'Failed to schedule: ' + err.message; }
+        console.error('[Schedule] Failed to schedule', err);
       }finally{
         confirmBtn.disabled = false; confirmBtn.textContent = prev;
       }
