@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Server configuration error: Missing Stripe key' });
   }
   
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[Shop API] Missing Supabase credentials');
     return res.status(500).json({ ok: false, error: 'Server configuration error: Missing Supabase credentials' });
   }
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
   // Parse body for POST requests
