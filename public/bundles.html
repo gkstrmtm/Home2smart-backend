@@ -4954,11 +4954,6 @@ window.renderShopSuccess = async function(){
         <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 28px; color: var(--cobalt);">Order Confirmed!</h2>
         <p style="margin: 0; color: var(--muted); font-size: 15px;">Thank you for choosing Home2Smart</p>
       </div>
-  `;
-  
-  // Show outlet now that content is rendered
-  outlet.style.opacity = '1';
-  outlet.style.visibility = 'visible';
 
       <!-- Order Details Card -->
       <div style="background: #f8f9fb; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -5030,6 +5025,10 @@ window.renderShopSuccess = async function(){
       </div>
     </section>
   `;
+  
+  // Show outlet now that content is rendered
+  outlet.style.opacity = '1';
+  outlet.style.visibility = 'visible';
 
   byId('backToShop').onclick = ()=> navSet({view:null});
   
