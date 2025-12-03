@@ -533,6 +533,12 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       pay: {
         session_url: session.url,
         session_id: session.id
+      },
+      debug: {
+        order_created: !insertError,
+        order_id: orderId,
+        session_id: session.id,
+        error: insertError ? insertError.message : null
       }
     });
 
