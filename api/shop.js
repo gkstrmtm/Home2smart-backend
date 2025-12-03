@@ -270,7 +270,7 @@ async function handleCatalog(req, res, supabase) {
 // ===== CHECKOUT HANDLER =====
 async function handleCheckout(req, res, stripe, supabase, body) {
   try {
-    const { customer, cart, source } = body;
+    const { customer, cart, source, success_url, cancel_url, metadata } = body;
 
     // Validate input
     if (!customer?.email) {
@@ -286,8 +286,43 @@ async function handleCheckout(req, res, stripe, supabase, body) {
 
     // Build line items from cart
     const lineItems = [];
+    const receiptItems = [];
 
     for (const item of cart) {
+
+      // HARDWARE / ADD-ONS (No DB lookup needed)
+      if (item.id === 'mount_hardware') {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'TV Wall Mount (Hardware)' },
+            unit_amount: 3900, // $39.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: 'TV Wall Mount (Hardware)',
+          qty: item.qty || 1,
+          price: 3900
+        });
+        continue;
+      }
+      if (item.id === 'tv_multi_4th') {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { name: '4th TV Add-on (Service)' },
+            unit_amount: 10000, // $100.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: '4th TV Add-on (Service)',
+          qty: item.qty || 1,
+          price: 10000
+        });
+        continue;
+      }
 
       if (item.type === 'bundle') {
         // Look up bundle in database
@@ -316,6 +351,12 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         lineItems.push({
           price: bundle.stripe_price_id,
           quantity: item.qty || 1
+        });
+        
+        receiptItems.push({
+          name: bundle.name || item.name || 'Bundle',
+          qty: item.qty || 1,
+          price: Math.round(Number(bundle.price||0)*100)
         });
 
       } else if (item.service_id) {
@@ -373,6 +414,12 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           price: tier.stripe_price_id,
           quantity: qty
         });
+        
+        receiptItems.push({
+          name: item.name || item.service_id || 'Service',
+          qty: qty,
+          price: Math.round(Number(tier.unit_price||0)*100)
+        });
 
       } else {
         return res.status(400).json({
@@ -392,16 +439,18 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       mode: 'payment',
       line_items: lineItems,
       customer_email: customer.email,
-      success_url: `https://home2smart.com/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/bundles`,
+      success_url: success_url || `https://home2smart.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancel_url || `${frontendUrl}/bundles`,
       shipping_address_collection: {
         allowed_countries: ['US']  // Collect service address
       },
       metadata: {
+        ...(metadata || {}),
         source: source || '/shop',
         order_id: orderId,
         customer_name: customer.name || '',
-        customer_phone: customer.phone || ''
+        customer_phone: customer.phone || '',
+        cart_items: JSON.stringify(receiptItems)
       },
       allow_promotion_codes: true
     };
@@ -418,6 +467,9 @@ async function handleCheckout(req, res, stripe, supabase, body) {
     }
 
     // Save order to database - match exact h2s_orders schema
+    let insertError = null;
+    let dbErrorDetails = null;
+    
     try {
       const now = new Date().toISOString();
       
@@ -428,7 +480,11 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       for (const item of cart) {
         let unitPrice = 0;
         
-        if (item.type === 'bundle') {
+        if (item.id === 'mount_hardware') {
+          unitPrice = 39;
+        } else if (item.id === 'tv_multi_4th') {
+          unitPrice = 100;
+        } else if (item.type === 'bundle') {
           const { data: bundle } = await supabase
             .from('h2s_bundles')
             .select('price')
@@ -457,7 +513,8 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           qty: qty,
           unit_price: unitPrice,
           line_total: lineTotal,
-          option_id: item.option_id || null
+          option_id: item.option_id || null,
+          metadata: item.metadata || {} // Capture item-specific metadata (e.g. mount_provider)
         });
       }
       
@@ -467,7 +524,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       // Single order record matching exact schema
       const orderRecord = {
         order_id: orderId,
-        stripe_session_id: session.id,
+        session_id: session.id,
         payment_intent_id: null, // Will be set by webhook
         customer_email: customer.email,
         customer_name: customer.name || null,
@@ -480,11 +537,11 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         status: 'pending',
         currency: 'usd',
         
-        // Address fields - will be populated from Stripe webhook
-        address: null,
-        city: null,
-        state: null,
-        zip: null,
+        // Address fields - populated from metadata if available
+        address: (metadata?.service_address) || null,
+        city: (metadata?.service_city) || null,
+        state: (metadata?.service_state) || null,
+        zip: (metadata?.service_zip) || null,
         
         // Service details from first item
         service_id: orderItems[0]?.service_id || null,
@@ -495,7 +552,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         
         // Metadata
         options_selected: '[]',
-        metadata_json: {},
+        metadata_json: metadata || {}, // Capture order-level metadata
         
         // Defaults
         discount_applied: '0',
@@ -507,11 +564,12 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         updated_at: now
       };
       
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from('h2s_orders')
         .insert(orderRecord);
       
-      let dbErrorDetails = null;
+      insertError = error;
+      
       if (insertError) {
         console.error('[Checkout] ❌ DB SAVE FAILED');
         console.error('[Checkout] Session ID:', session.id);
@@ -534,6 +592,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       }
     } catch (dbErr) {
       console.error('[Checkout] DB save exception:', dbErr.message);
+      dbErrorDetails = { message: dbErr.message, stack: dbErr.stack };
     }
     
     return res.status(200).json({
@@ -543,10 +602,10 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         session_id: session.id
       },
       debug: {
-        order_created: !insertError,
+        order_created: !insertError && !dbErrorDetails,
         order_id: orderId,
         session_id: session.id,
-        error: insertError ? insertError.message : null,
+        error: insertError ? insertError.message : (dbErrorDetails ? dbErrorDetails.message : null),
         db_error_details: dbErrorDetails
       }
     });

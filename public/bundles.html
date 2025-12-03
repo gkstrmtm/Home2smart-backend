@@ -2309,7 +2309,7 @@ body.app-ready #outlet > * {
       <div class="package-includes">
         <strong>What's Included</strong>
         <ul>
-          <li>TV securely mounted</li>
+          <li>TV mounting service</li>
           <li>All wires hidden</li>
           <li>Streaming setup</li>
           <li>Ready to go</li>
@@ -2330,7 +2330,7 @@ body.app-ready #outlet > * {
       <div class="package-includes">
         <strong>What's Included</strong>
         <ul>
-          <li>Both TVs mounted</li>
+          <li>Both TVs mounted (Service)</li>
           <li>All wiring concealed</li>
           <li>Streaming on both</li>
           <li>One appointment</li>
@@ -2345,19 +2345,19 @@ body.app-ready #outlet > * {
     <article class="package">
       <div class="package-header">
         <h3 class="package-name">Multi-Room (3-4 TVs)</h3>
-        <div class="package-price">$749-$899</div>
+        <div class="package-price">$699-$899</div>
       </div>
       <p class="package-promise">Whole-home entertainment in one visit.</p>
       <div class="package-includes">
         <strong>What's Included</strong>
         <ul>
-          <li>3-4 TVs mounted</li>
+          <li>3-4 TVs mounted (Service)</li>
           <li>All wiring concealed</li>
-          <li>Streaming + soundbar</li>
-          <li>Universal remote</li>
+          <li>Soundbar setup</li>
+          <li>Remote setup</li>
         </ul>
       </div>
-      <button class="btn btn-primary" onclick="selectPackage('tv_multi', 'Multi-Room Package', 749)">
+      <button class="btn btn-primary" onclick="selectPackage('tv_multi', 'Multi-Room Package', 699)">
         Add to Cart
       </button>
     </article>
@@ -3383,7 +3383,9 @@ function addPackageDirectToCart(id, name, price, metadata = {}){
   // Ensure price is a number
   const numPrice = Number(price);
   
-  const existing = cart.find(item => item.type === 'package' && item.id === id);
+  // Check for existing item (handle both id and bundle_id)
+  const existing = cart.find(item => (item.type === 'bundle' || item.type === 'package') && (item.id === id || item.bundle_id === id));
+  
   if(existing){
     existing.qty++;
     // Merge metadata if provided
@@ -3392,12 +3394,13 @@ function addPackageDirectToCart(id, name, price, metadata = {}){
     }
   }else{
     const newItem = { 
-      type:'package', 
-      id, 
+      type: 'bundle', // Correct type for backend
+      bundle_id: id,  // Correct ID field for backend
+      id,             // Keep for frontend compatibility
       name, 
       price: numPrice, 
-      qty:1,
-      metadata: metadata // Store TV size, team requirements, etc.
+      qty: 1,
+      metadata: metadata 
     };
     cart.push(newItem);
   }
@@ -3436,18 +3439,19 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 520px;">
         <div class="modal-header">
-          <h3 style="margin:0;font-size:20px;font-weight:800;">Select TV Size</h3>
+          <h3 style="margin:0;font-size:20px;font-weight:800;">Customize Your Setup</h3>
           <button class="close-btn" onclick="closeTVSizeModal()" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body" style="padding: 32px 24px;">
-          <p style="margin:0 0 20px 0;color:#4b5563;font-size:15px;line-height:1.5;">
-            If you have multiple TVs, select the size of your <strong>largest TV</strong> for an accurate quote.
-          </p>
           
+          <!-- TV Size Selection -->
           <div style="margin-bottom:24px;">
-            <label style="display:block;font-weight:700;margin-bottom:12px;color:var(--cobalt);font-size:15px;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
               TV Screen Size
             </label>
+            <p style="margin:0 0 12px 0;color:#6b778c;font-size:13px;">
+              Select the size of your largest TV for an accurate quote.
+            </p>
             <div class="custom-select-wrapper" style="position:relative;">
               <select id="tvSizeSelect" class="inp" style="
                 width:100%;
@@ -3478,6 +3482,61 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
             </div>
           </div>
 
+          <!-- Multi-Room Count Selection (Dynamic) -->
+          <div id="multiRoomCountSection" style="margin-bottom:24px; display:none;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
+              How many TVs?
+            </label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="multiRoomCount" value="3" style="margin-bottom:8px; accent-color:var(--azure);" checked>
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">3 TVs</span>
+              </label>
+              
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="multiRoomCount" value="4" style="margin-bottom:8px; accent-color:var(--azure);">
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">4 TVs</span>
+                <span style="font-size:12px; color:var(--muted);">+$100</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Mount Provider Selection -->
+          <div style="margin-bottom:24px;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
+              Do you have the TV mount?
+            </label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="mountProvider" value="customer" style="margin-bottom:8px; accent-color:var(--azure);" checked>
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">I have my own</span>
+                <span style="font-size:12px; color:var(--muted);">No extra cost</span>
+              </label>
+              
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="mountProvider" value="h2s" style="margin-bottom:8px; accent-color:var(--azure);">
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">Provide one for me</span>
+                <span style="font-size:12px; color:var(--muted);">+$39 - $89 / mount</span>
+              </label>
+            </div>
+          </div>
+
           <button class="btn btn-primary" id="confirmTVSizeBtn" onclick="confirmTVSize()" style="
             width:100%;
             font-size:16px;
@@ -3496,8 +3555,16 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
     `;
     document.body.appendChild(modal);
     
-    // Add focus styles
+    // Add focus styles and radio selection logic
     const style = document.createElement('style');
+    style.textContent = `
+      .mount-option:has(input:checked) {
+        border-color: var(--azure) !important;
+        background-color: #eff6ff !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     style.textContent = `
       #tvSizeSelect:hover {
         border-color: var(--cobalt) !important;
@@ -3538,6 +3605,12 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
   modal.classList.add('show');
   byId('backdrop').classList.add('show');
 
+  // Show/Hide Multi-Room Count
+  const countSection = byId('multiRoomCountSection');
+  if(countSection){
+    countSection.style.display = (packageId === 'tv_multi') ? 'block' : 'none';
+  }
+
   // Set up change listener for TV size
   const sizeSelect = byId('tvSizeSelect');
   sizeSelect.onchange = () => {
@@ -3571,6 +3644,9 @@ function closeTVSizeModal() {
 function confirmTVSize() {
   const modal = byId('tvSizeModal');
   const sizeSelect = byId('tvSizeSelect');
+  
+  // New: Get mount provider
+  const mountProvider = document.querySelector('input[name="mountProvider"]:checked')?.value || 'customer';
 
   const packageId = modal.dataset.packageId;
   const packageName = modal.dataset.packageName;
@@ -3597,6 +3673,17 @@ function confirmTVSize() {
     teamRecommended = true;
     teamReason = `Heavy TV (${tvSize}) - team recommended`;
   }
+  
+  // Determine mount quantity based on package ID
+  let mountsNeeded = 1;
+  if (packageId.includes('2pack') || packageId.includes('2-tv')) mountsNeeded = 2;
+  else if (packageId.includes('3pack') || packageId.includes('3-tv')) mountsNeeded = 3;
+  else if (packageId.includes('4pack') || packageId.includes('4-tv')) mountsNeeded = 4;
+  else if (packageId === 'tv_multi') {
+    // Read from dynamic selector
+    const countInput = document.querySelector('input[name="multiRoomCount"]:checked');
+    mountsNeeded = countInput ? parseInt(countInput.value) : 3;
+  }
 
   // Build metadata object
   const metadata = {
@@ -3604,7 +3691,10 @@ function confirmTVSize() {
     requires_team: requiresTeam,
     team_recommended: teamRecommended,
     team_reason: teamReason,
-    min_team_size: requiresTeam ? 2 : 1
+    min_team_size: requiresTeam ? 2 : 1,
+    mount_provider: mountProvider,
+    mounts_needed: mountsNeeded,
+    mount_source: mountProvider === 'h2s' ? 'H2S Provided (Billable)' : 'Customer Provided'
   };
   console.log('[TV Modal] Confirming size:', tvSize, 'with metadata:', metadata);
 
@@ -3614,6 +3704,45 @@ function confirmTVSize() {
   // Add to cart with metadata AFTER modal closes (slight delay to ensure clean state)
   setTimeout(() => {
     addPackageDirectToCart(packageId, packageName, packagePrice, metadata);
+
+    // Add mounts if requested (Hardware)
+    if (mountProvider === 'h2s') {
+      const mountPrice = 39; // Base hardware price
+      const existingMounts = cart.find(i => i.id === 'mount_hardware');
+      if(existingMounts){
+        existingMounts.qty += mountsNeeded;
+      } else {
+        cart.push({
+          type: 'product',
+          id: 'mount_hardware',
+          name: 'TV Wall Mount (Hardware)',
+          price: mountPrice,
+          qty: mountsNeeded,
+          metadata: { size: tvSize }
+        });
+      }
+    }
+
+    // LOGIC: 4th TV Service Upcharge (Margin Protection)
+    // Stacking 2x "2-TV Packages" ($428x2) = $856.
+    // If Multi-Room (4 TVs) is flat $699, we lose $157.
+    // Adding $100 upcharge makes it $799. Customer saves $57 vs stacking, we keep $100 margin.
+    if (packageId === 'tv_multi' && mountsNeeded === 4) {
+      const upchargeId = 'tv_multi_4th';
+      const existingUpcharge = cart.find(i => i.id === upchargeId);
+      if(!existingUpcharge){
+        cart.push({
+          type: 'service',
+          id: upchargeId,
+          name: '4th TV Add-on (Service)',
+          price: 100,
+          qty: 1,
+          metadata: { parent_package: packageId }
+        });
+      }
+    }
+
+    saveCart(); // Persist and update UI
   }, 100);
 }
 
@@ -3623,14 +3752,17 @@ function addPackageToCart(){
   const curKey = currentPackage.id || currentPackage.bundle_id;
   const existing = cart.find(item => {
     const itemKey = item.id || item.bundle_id;
-    return item.type === 'package' && itemKey === curKey;
+    return (item.type === 'package' || item.type === 'bundle') && itemKey === curKey;
   });
   if(existing){
     existing.qty++;
   }else{
     const normalized = { ...currentPackage };
     if(!normalized.id && normalized.bundle_id) normalized.id = normalized.bundle_id;
-    cart.push({ type:'package', ...normalized, qty:1 });
+    if(!normalized.bundle_id && normalized.id) normalized.bundle_id = normalized.id;
+    
+    // Use 'bundle' type for backend compatibility
+    cart.push({ type:'bundle', ...normalized, qty:1 });
   }
   
   // Track add to cart
@@ -3674,6 +3806,14 @@ function loadCart(){
       console.warn('[Cart] Cart data is not an array, returning empty');
       return [];
     }
+    
+    // Migration: Fix legacy 'package' types to 'bundle'
+    loaded.forEach(item => {
+      if(item.type === 'package'){
+        item.type = 'bundle';
+        if(!item.bundle_id && item.id) item.bundle_id = item.id;
+      }
+    });
     
     // Clean up any stale/invalid items on load
     // NOTE: Be tolerant of missing price values &mdash; price is authoritative from server catalog.
@@ -4617,6 +4757,11 @@ window.handleCheckoutSubmit = async function(e) {
   try {
     // Prepare Line Items
     const line_items = cart.map(item => {
+      // 3. Handle Special Items (Hardware/Upcharges) - Handled by backend directly
+      if (item.id === 'mount_hardware' || item.id === 'tv_multi_4th') {
+        return { price: 'special_item', quantity: item.qty || 1 };
+      }
+
       let priceId = item.stripe_price_id;
       
       // 1. Handle Bundles/Packages
@@ -4660,8 +4805,28 @@ window.handleCheckoutSubmit = async function(e) {
     // Payload
     const payload = {
       __action: 'create_checkout_session',
-      line_items: line_items,
-      customer_email: email,
+      cart: cart.map(item => {
+        // FIX: Handle items that exist as BOTH Bundle and Service Tier (e.g. starter-smart-home)
+        // If it has an option_id (like 'H2S' or 'BYO'), it MUST be treated as a service to get the right price.
+        if (item.option_id) {
+          return {
+            service_id: item.id || item.bundle_id || item.service_id,
+            option_id: item.option_id,
+            qty: item.qty || 1
+          };
+        }
+        
+        // Otherwise, treat as a standard bundle
+        if ((item.type === 'package' || item.type === 'bundle') && item.id && !item.bundle_id) {
+          return { ...item, bundle_id: item.id };
+        }
+        return item;
+      }),
+      customer: {
+        name: name,
+        email: email,
+        phone: phone
+      },
       success_url: 'https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}',
       cancel_url: window.location.href,
       metadata: {
@@ -4844,6 +5009,7 @@ window.renderShopSuccess = async function(){
     try{
       await fetch(API, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           __action: 'mark_session',
           session_id: sessionId,
@@ -4967,7 +5133,7 @@ window.renderShopSuccess = async function(){
           
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Items</span>
-            <span style="font-weight: 700; color: var(--ink); font-size: 14px;">${escapeHtml(order.order_summary || (order.order_item_count ? `${order.order_item_count} item${order.order_item_count === '1' ? '' : 's'}` : 'Processing...'))}</span>
+            <span style="font-weight: 700; color: var(--ink); font-size: 14px; text-align: right;">${escapeHtml(order.order_summary || (order.order_item_count ? `${order.order_item_count} item${order.order_item_count === '1' ? '' : 's'}` : 'Installation Service'))}</span>
           </div>
           
           ${order.order_discount_code ? `
@@ -5005,7 +5171,7 @@ window.renderShopSuccess = async function(){
         <!-- Time Window Selection (appears after date selected) -->
         <div id="timeWindowSection" style="display:none; margin-top:16px;">
           <label style="display:block; font-weight:600; font-size:14px; margin-bottom:8px; color:var(--ink);">Select Time Window</label>
-          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
             <button class="time-slot-btn" data-window="9:00 AM - 12:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">9AM - 12PM</button>
             <button class="time-slot-btn" data-window="12:00 PM - 3:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">12PM - 3PM</button>
             <button class="time-slot-btn" data-window="3:00 PM - 6:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">3PM - 6PM</button>
@@ -5022,6 +5188,14 @@ window.renderShopSuccess = async function(){
       <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
         <button class="btn btn-ghost" id="backToShop" style="min-width: 160px;">← Back to Shop</button>
         <a href="tel:864-528-1475" class="btn btn-secondary" style="min-width: 160px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📞 Call Support</a>
+      </div>
+      
+      <!-- Guidance / Next Steps -->
+      <div style="margin-top: 32px; text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0;">
+          We'll reach out shortly via email and SMS to confirm your details.<br>
+          If you have any questions, please check your email for next steps.
+        </p>
       </div>
     </section>
   `;
@@ -5158,11 +5332,25 @@ window.renderShopSuccess = async function(){
         const startIso = toIso(startLabel);
         const endIso   = toIso(endLabel);
         console.log('[Schedule] Sending payload', { order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz });
-        const resp = await fetch(APIV1, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz })
-        });
-        const data = await resp.json();
+        let resp;
+        try {
+          resp = await fetch(APIV1, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz })
+          });
+        } catch (netErr) {
+          console.error('[Schedule] Network error:', netErr);
+          throw new Error('Network error: ' + netErr.message + '. Please check your connection.');
+        }
+        
+        let data;
+        try {
+          data = await resp.json();
+        } catch (jsonErr) {
+          console.error('[Schedule] JSON parse error:', jsonErr);
+          throw new Error('Invalid server response');
+        }
+
         if(!resp.ok || !data.ok){ throw new Error(data.error||('HTTP '+resp.status)); }
         if(schedMsg){ schedMsg.style.color = '#0b6e0b'; schedMsg.textContent = '✓ Appointment scheduled. Check your email for confirmation.'; }
       }catch(err){
