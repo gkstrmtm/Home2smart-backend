@@ -111,6 +111,25 @@ export default async function handler(req, res) {
       return handleGetOrders(req, res, supabase, req.query.email||'');
     }
 
+    // ===== DEBUG: FIND ORDER BY SESSION_ID =====
+    if (action === 'find_order' && req.method === 'GET') {
+      const sid = String(req.query.session_id||'').trim();
+      if(!sid){ return res.status(400).json({ ok:false, error:'Missing session_id' }); }
+      try{
+        const { data, error } = await supabase
+          .from('h2s_orders')
+          .select('*')
+          .eq('session_id', sid)
+          .limit(1)
+          .maybeSingle();
+        if(error){ return res.status(500).json({ ok:false, error:error.message }); }
+        if(!data){ return res.status(404).json({ ok:false, error:'Order not found for session_id' }); }
+        return res.status(200).json({ ok:true, order:data });
+      }catch(e){
+        return res.status(500).json({ ok:false, error: e.message||'debug error' });
+      }
+    }
+
     // ===== ORDER RETRIEVAL =====
     if (action === 'orderpack' && req.method === 'GET') {
       return handleOrderPack(req, res, supabase, req.query.session_id||'');
