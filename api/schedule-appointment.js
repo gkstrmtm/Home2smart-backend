@@ -67,19 +67,14 @@ export default async function handler(req, res) {
     }
 
     // 2. Update order with appointment details
+    const updatePayload = {
+      delivery_date: delivery_date,
+      service_date: delivery_date  // Also set service_date for compatibility
+    };
+    
     const updateQuery = order_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
-      ? supabase.from('h2s_orders').update({
-          delivery_date: delivery_date,
-          delivery_time: delivery_time,
-          appointment_confirmed: false,
-          updated_at: new Date().toISOString()
-        }).eq('order_id', order_id)
-      : supabase.from('h2s_orders').update({
-          delivery_date: delivery_date,
-          delivery_time: delivery_time,
-          appointment_confirmed: false,
-          updated_at: new Date().toISOString()
-        }).eq('stripe_session_id', order_id);
+      ? supabase.from('h2s_orders').update(updatePayload).eq('order_id', order_id)
+      : supabase.from('h2s_orders').update(updatePayload).eq('stripe_session_id', order_id);
     
     const { error: updateError } = await updateQuery;
 
@@ -91,10 +86,11 @@ export default async function handler(req, res) {
     console.log(`[Schedule] ✅ Order ${order_id} updated with appointment`);
 
     // 3. Send "appointment_scheduled" notifications (SMS + Email)
-    const firstName = (order.customer_name || '').split(' ')[0] || 'Customer';
+    const customerName = order.customer_name || order.name || '';
+    const firstName = customerName.split(' ')[0] || 'Customer';
     const notificationData = {
       firstName: firstName,
-      service: order.service_name || 'service',
+      service: order.order_summary || 'service',
       date: formatDate(delivery_date),
       time: delivery_time
     };

@@ -111,6 +111,16 @@ export default async function handler(req, res) {
       return handleGetOrders(req, res, supabase, req.query.email||'');
     }
 
+    // ===== ORDER RETRIEVAL =====
+    if (action === 'orderpack' && req.method === 'GET') {
+      return handleOrderPack(req, res, supabase, req.query.session_id||'');
+    }
+    if (action === 'mark_session' && req.method === 'POST') {
+      // Just log that success page was reached - no action needed
+      console.log('[MarkSession]', body.session_id, body.status, body.note);
+      return res.status(200).json({ ok: true });
+    }
+
     // ===== PROMO CHECK AGAINST CART =====
     if (action === 'promo_check_cart' && req.method === 'POST') {
       return handlePromoCheckCart(req, res, stripe, body);
@@ -388,74 +398,43 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       });
     }
 
-    // Save order to database with detailed line items
+    // Save order to database - simplified to match actual schema
     try {
       const now = new Date().toISOString();
       
-      // Build detailed order rows (one per line item + summary row)
-      const orderRows = [];
+      // Build order summary from cart
+      const itemSummary = cart.map(item => {
+        if (item.type === 'bundle') {
+          return `${item.qty || 1}x ${item.bundle_id}`;
+        } else {
+          return `${item.qty || 1}x ${item.service_id}${item.option_id ? ' (' + item.option_id + ')' : ''}`;
+        }
+      }).join(', ');
       
-      // Summary row
-      orderRows.push({
+      // Single order record matching CREATE_SHOP_SCHEMA.sql columns
+      const orderRecord = {
         order_id: orderId,
         stripe_session_id: session.id,
-        mode: 'payment',
-        status: 'pending',
-        created_at: now,
         customer_email: customer.email,
-        name: customer.name || '',
-        phone: customer.phone || '',
-        source: source || '/shop',
+        payment_intent_id: null, // Will be updated by webhook
+        total: null, // Will be updated by webhook
         currency: 'usd',
-        cart_json: JSON.stringify(cart),
-        line_type: 'summary',
-        line_index: null,
-        service_id: null,
-        option_id: null,
-        bundle_id: null,
-        qty: null
-      });
+        items: JSON.stringify(cart),
+        order_summary: itemSummary,
+        delivery_date: null, // Will be set during scheduling
+        service_date: null,
+        created_at: now
+      };
       
-      // Line item rows with complete details
-      cart.forEach((item, idx) => {
-        const metadata = item.metadata || {};
-        
-        orderRows.push({
-          order_id: orderId,
-          stripe_session_id: session.id,
-          mode: 'payment',
-          status: 'pending',
-          created_at: now,
-          customer_email: customer.email,
-          name: customer.name || '',
-          phone: customer.phone || '',
-          source: source || '/shop',
-          currency: 'usd',
-          cart_json: '', // Empty for line items
-          line_type: item.type || 'service',
-          line_index: idx,
-          service_id: item.service_id || null,
-          option_id: item.option_id || null,
-          bundle_id: item.bundle_id || null,
-          qty: item.qty || 1,
-          // Store metadata fields (TV size, team requirements, etc.)
-          metadata_json: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
-          tv_size: metadata.tv_size || null,
-          requires_team: metadata.requires_team || false,
-          min_team_size: metadata.min_team_size || 1,
-          team_reason: metadata.team_reason || null
-        });
-      });
-      
-      // Insert all rows
       const { error: insertError } = await supabase
         .from('h2s_orders')
-        .insert(orderRows);
+        .insert(orderRecord);
       
       if (insertError) {
         console.error('[Checkout] DB save failed:', insertError.message);
+        console.error('[Checkout] Attempted to insert:', orderRecord);
       } else {
-        console.log('[Checkout] Order saved with', orderRows.length, 'rows');
+        console.log('[Checkout] ✅ Order saved:', orderId, 'session:', session.id);
       }
     } catch (dbErr) {
       console.error('[Checkout] DB save exception:', dbErr.message);
@@ -823,4 +802,60 @@ function generateOrderId() {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 7);
   return `order_${timestamp}_${random}`;
+}
+
+async function handleOrderPack(req, res, supabase, sessionId) {
+  if (!sessionId) {
+    return res.status(400).json({ ok: false, error: 'Missing session_id' });
+  }
+
+  try {
+    // Fetch order by stripe_session_id
+    const { data: order, error } = await supabase
+      .from('h2s_orders')
+      .select('*')
+      .eq('stripe_session_id', sessionId)
+      .single();
+
+    if (error || !order) {
+      console.error('[OrderPack] Order not found for session:', sessionId);
+      return res.status(404).json({ ok: false, error: 'Order not found' });
+    }
+
+    // Parse cart items from 'items' JSON column
+    let cartItems = [];
+    try {
+      cartItems = JSON.parse(order.items || '[]');
+    } catch (e) {
+      console.error('[OrderPack] Failed to parse items JSON:', e);
+    }
+
+    // Build response matching what success page expects
+    const response = {
+      ok: true,
+      summary: {
+        order_id: order.order_id,
+        stripe_session_id: order.stripe_session_id,
+        total: order.total || 0,
+        subtotal: order.total || 0, // Will be updated by webhook with actual amounts
+        currency: order.currency || 'usd',
+        created_at: order.created_at,
+        discount_code: '',
+        discount_amount: ''
+      },
+      lines: cartItems.map((item, idx) => ({
+        line_index: idx,
+        line_type: item.type || 'service',
+        service_id: item.service_id || null,
+        bundle_id: item.bundle_id || null,
+        option_id: item.option_id || null,
+        qty: item.qty || 1
+      }))
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error('[OrderPack] Error:', error);
+    return res.status(500).json({ ok: false, error: error.message });
+  }
 }
