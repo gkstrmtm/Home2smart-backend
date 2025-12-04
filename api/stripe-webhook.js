@@ -234,6 +234,33 @@ export default async function handler(req, res) {
         console.error('[Rewards] Failed to process rewards:', rewardErr);
         // Don't fail the webhook
       }
+      
+      // 🔄 AUTO-TRIGGER JOB CREATION after successful checkout
+      // This creates dispatch jobs automatically without waiting for appointment scheduling
+      try {
+        const baseUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
+        console.log('[Webhook] Triggering job creation for order:', order?.order_id);
+        
+        const jobResponse = await fetch(`${baseUrl}/api/create_jobs_from_orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            order_id: order?.order_id,
+            auto_trigger: true,
+            test_mode: false
+          })
+        });
+        
+        const jobResult = await jobResponse.json();
+        if (jobResult.jobs_created > 0) {
+          console.log(`[Webhook] ✅ Created ${jobResult.jobs_created} dispatch job(s)`);
+        } else {
+          console.warn('[Webhook] ⚠️ Job creation returned 0 jobs:', jobResult);
+        }
+      } catch (jobErr) {
+        console.error('[Webhook] Job creation failed (non-critical):', jobErr.message);
+        // Don't fail webhook - jobs can be created manually later
+      }
     }
 
     // Handle payment_intent.succeeded

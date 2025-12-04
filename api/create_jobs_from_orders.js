@@ -100,12 +100,12 @@ export default async function handler(req, res) {
       body = JSON.parse(body);
     }
 
-    const { token, order_id, auto_migrate = false, test_mode = false } = body;
+    const { token, order_id, auto_migrate = false, test_mode = false, auto_trigger = false } = body;
 
-    console.log('[create_jobs_from_orders] Request:', { order_id, auto_migrate, test_mode });
+    console.log('[create_jobs_from_orders] Request:', { order_id, auto_migrate, test_mode, auto_trigger });
 
-    // Validate admin session (skip if test_mode)
-    if (!test_mode) {
+    // Validate admin session (skip if test_mode or auto_trigger from webhook)
+    if (!test_mode && !auto_trigger) {
       const isValid = await validateAdminSession(token);
       if (!isValid) {
         console.log('[create_jobs_from_orders] Invalid or expired token');
@@ -116,6 +116,8 @@ export default async function handler(req, res) {
         });
       }
       console.log('[create_jobs_from_orders] ✅ Admin session valid');
+    } else if (auto_trigger) {
+      console.log('[create_jobs_from_orders] ✅ Auto-triggered from webhook - skipping auth');
     } else {
       console.log('[create_jobs_from_orders] ⚠️ Running in TEST MODE - skipping auth');
     }
