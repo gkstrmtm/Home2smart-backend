@@ -387,9 +387,14 @@ export default async function handler(req, res) {
           created_at: order.created_at,
           start_iso: null,
           end_iso: null,
-          geo_lat: lat,   // ✅ REAL COORDINATES from Google Maps
-          geo_lng: lng,    // ✅ REAL COORDINATES from Google Maps
-          metadata: jobMetadata // Store rich data
+          geo_lat: lat ? lat.toString() : null,   // Convert to TEXT for database
+          geo_lng: lng ? lng.toString() : null,    // Convert to TEXT for database
+          metadata: {
+            ...jobMetadata,
+            service_address: address,  // Add to metadata for portal queries
+            geo_lat: lat,              // Keep numeric in metadata
+            geo_lng: lng               // Keep numeric in metadata
+          }
         };
 
         const { data: newJob, error: jobError } = await supabase
