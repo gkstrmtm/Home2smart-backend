@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <!-- Security -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net https://js.stripe.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://connect.facebook.net https://www.facebook.com https://api.stripe.com https://h2s-backend.vercel.app; frame-src https://api.leadconnectorhq.com https://js.stripe.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net https://js.stripe.com https://www.googletagmanager.com https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://connect.facebook.net https://www.facebook.com https://api.stripe.com https://h2s-backend.vercel.app https://maps.googleapis.com; frame-src https://api.leadconnectorhq.com https://js.stripe.com;">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -32,6 +32,8 @@
 <!-- Performance: Critical Resource Hints -->
 <link rel="preconnect" href="https://h2s-backend.vercel.app" crossorigin>
 <link rel="dns-prefetch" href="https://h2s-backend.vercel.app">
+<link rel="preconnect" href="https://maps.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://maps.googleapis.com">
 <!-- Preload aggregated data to start fetch parallel to HTML parsing -->
 <link rel="preload" href="https://h2s-backend.vercel.app/api/bundles-data" as="fetch" crossorigin>
 <!-- Preload logo for faster LCP -->
@@ -1954,13 +1956,7 @@ body {
 
 /* Initial page load - hide content until ready */
 /* OPTIMIZATION: Removed opacity:0 to allow immediate LCP paint of static content */
-body:not(.app-ready) #outlet > * {
-  /* opacity: 0; REMOVED */
-}
-
-body.app-ready #outlet > * {
-  /* animation: initial-reveal 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; REMOVED */
-}
+/* Removed empty rulesets for cleaner CSS */
 
 @keyframes initial-reveal {
   from {
@@ -2823,22 +2819,24 @@ let cart = loadCart();
 let user = loadUser();
 let lastSearch = '';
 let lastCat = '';
+let allReviews = [];
+let reviewsLoadedFromAPI = false;
 
 // === EXTRA DEFERRED LOADER (Recommendations) ===
 // Defers rule-based recommendations parsing & rendering to shrink initial JS parse.
 let _extraDeferredPromise = null;
 function loadExtraDeferred(){
   if(_extraDeferredPromise) return _extraDeferredPromise;
-  _extraDeferredPromise = new Promise((resolve, reject)=>{
+  _extraDeferredPromise = new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'bundles-extra-deferred.js'; // local deferred module
+    s.src = 'bundles-extra-deferred.js';
+    s.async = true;
     s.onload = resolve;
     s.onerror = reject;
     document.body.appendChild(s);
   });
   return _extraDeferredPromise;
 }
-
 // === BUNDLES DEFERRED LOADER (Checkout, Success, Auth) ===
 let _bundlesDeferredPromise = null;
 function loadBundlesDeferred(){
@@ -3334,11 +3332,13 @@ function toggleMenu(){
   if(isOpen){
     menu.classList.remove('open');
     backdrop.classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
     setTimeout(()=>{ if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden'; }, 300);
   }else{
     closeAll();
     menu.classList.add('open');
     backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Lock scroll
   }
 }
 
@@ -3355,11 +3355,13 @@ function toggleCart(){
   if(isOpen){
     drawer.classList.remove('open');
     backdrop.classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
     setTimeout(()=>{ if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'hidden'; }, 300);
   }else{
     closeAll();
     drawer.classList.add('open');
     backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Lock scroll
     paintCart();
   }
 }
@@ -3371,6 +3373,7 @@ function closeAll(){
   menu.classList.remove('open');
   cart.classList.remove('open');
   document.getElementById('backdrop').classList.remove('show');
+  document.body.style.overflow = ''; // Unlock scroll
   
   setTimeout(()=>{ 
     if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden';
@@ -3388,6 +3391,7 @@ function showModal(){
   m.style.contentVisibility = 'visible';
   m.classList.add('show');
   byId('backdrop').classList.add('show');
+  document.body.style.overflow = 'hidden'; // Lock scroll
 }
 
 function closeModal(){
@@ -3397,6 +3401,7 @@ function closeModal(){
 
   if(!byId('menuDrawer').classList.contains('open') && !byId('cartDrawer').classList.contains('open')){
     byId('backdrop').classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
   }
 }
 
@@ -4582,61 +4587,69 @@ async function updatePromoEstimate(){
     const code = localStorage.getItem('h2s_promo_code') || '';
     if(!code){ promoLine.style.display = 'none'; return; }
 
-    // Build line_items from current cart (packages only for now)
+    // Build line_items from current cart (ALL items including hardware/addons)
     const line_items = (cart||[]).map(item => {
-      // FIX: Accept both 'package' and 'bundle' types
-      if(item.type !== 'package' && item.type !== 'bundle') return null;
+      // Include ALL cart items (packages, bundles, hardware, addons, etc.)
+      // Skip only if we can't determine a price
       
-      const bundle = (catalog?.bundles||[]).find(b => b.bundle_id === (item.bundle_id || item.id));
+      // Try to find bundle info if it's a package/bundle type
+      const bundle = (item.type === 'package' || item.type === 'bundle') 
+        ? (catalog?.bundles||[]).find(b => b.bundle_id === (item.bundle_id || item.id))
+        : null;
       
-      // FIX: Allow items without stripe_price_id if they have a price (for custom/legacy items)
-      const priceId = bundle?.stripe_price_id || 'custom';
+      // Get stripe price ID (if available)
+      const priceId = bundle?.stripe_price_id || item.stripe_price_id || 'custom';
       
       // Calculate unit amount (cents)
       let unitAmount = 0;
       
-      // FIX: Check for dynamic pricing override (use cart price instead of catalog price)
+      // For packages: check for dynamic pricing override
       const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id || item.bundle_id);
       
-      if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null) {
+      if(bundle && !isDynamic && bundle.bundle_price !== undefined && bundle.bundle_price !== null) {
         unitAmount = Math.round(Number(bundle.bundle_price) * 100);
       } else {
+        // Use item price for hardware, addons, or dynamic bundles
         unitAmount = Math.round(Number(item.price || 0) * 100);
       }
       
-      if(!priceId && !unitAmount) return null;
+      // Skip items with no price
+      if(!unitAmount || unitAmount <= 0) return null;
       
       return { price: priceId, unit_amount: unitAmount, quantity: item.qty || 1 };
     }).filter(Boolean);
+    
+    console.log('[Promo] Built line_items for promo check:', line_items);
+    console.log('[Promo] Total items in cart:', cart.length, 'Line items built:', line_items.length);
+    
     if(!line_items.length){ promoLine.style.display = 'none'; return; }
 
     const resp = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __action:'promo_check_cart', promotion_code: code, line_items })});
     const data = await resp.json();
+    
+    console.log('[Promo] Backend response:', data);
+    
     if(data && data.ok && data.applicable && data.estimate){
       const savingsCents = Number(data.estimate.savings_cents||0);
       const totalCents = Number(data.estimate.total_cents||0);
+      const subtotalCents = Number(data.estimate.subtotal_cents||0);
+      
+      console.log('[Promo] Discount calculation:');
+      console.log('  - Subtotal (before discount):', money(subtotalCents/100));
+      console.log('  - Savings:', money(savingsCents/100));
+      console.log('  - Total (after discount):', money(totalCents/100));
+      console.log('  - Summary:', data.estimate.summary);
       
       promoAmount.textContent = '-' + money(savingsCents/100);
       const label = byId('promoLineLabel');
       if(label) label.textContent = `Promo (${(data.promotion_code||code).toUpperCase()})`;
       promoLine.style.display = '';
       
-      // Show Raw Subtotal
+      // Show Raw Subtotal - USE BACKEND'S SUBTOTAL for consistency
       if(rawLine && rawAmount){
-        // Calculate raw subtotal again to be safe
-        let rawTotal = 0;
-        (cart||[]).forEach(item => {
-          let itemPrice = Number(item.price||0);
-          if(item.type === 'package'){
-            const bundle = catalog.bundles?.find(b => b.bundle_id === item.id);
-            const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id);
-            if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null){
-              itemPrice = Number(bundle.bundle_price || itemPrice || 0);
-            }
-          }
-          rawTotal += itemPrice * Number(item.qty||1);
-        });
-        rawAmount.textContent = money(rawTotal);
+        // Use the subtotal that the backend calculated (from line_items we sent)
+        // This ensures displayed subtotal matches what discount is calculated from
+        rawAmount.textContent = money(subtotalCents/100);
         rawLine.style.display = 'flex';
       }
       
@@ -4874,7 +4887,7 @@ function showCheckoutModal() {
 
   // Ensure visibility
   modal.style.contentVisibility = 'visible';
-  modal.style.display = 'flex'; // Force flex display
+  modal.style.display = 'flex';
   
   // Pre-fill data
   const preName = user?.name || '';
@@ -4890,48 +4903,168 @@ function showCheckoutModal() {
   } catch(e){}
 
   const html = `
-    <div style="padding: 24px; max-width: 500px; margin: 0 auto;">
-      <h2 style="margin-top:0; color:var(--cobalt); font-weight:900; font-size:24px;">Complete Your Order</h2>
-      <p style="color:var(--muted); margin-bottom:20px; font-size:14px;">Enter your details to finalize checkout and schedule installation.</p>
+    <div style="padding:32px;max-width:580px;margin:0 auto;background:white;border-radius:12px;">
+      <h2 style="margin:0 0 8px 0;color:#1e293b;font-weight:800;font-size:28px;letter-spacing:-0.02em;">Complete Your Order</h2>
+      <p style="color:#64748b;margin:0 0 28px 0;font-size:15px;line-height:1.5;">Enter your details to finalize checkout and schedule installation.</p>
       
-      <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
-        <div style="margin-bottom:12px;">
-          <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Full Name</label>
-          <input type="text" id="coName" class="inp" required value="${escapeAttr(preName)}" placeholder="Jane Doe" style="width:100%">
+      <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)" style="display:flex;flex-direction:column;gap:20px;">
+        
+        <!-- Full Name -->
+        <div>
+          <label for="coName" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Full Name</label>
+          <input 
+            type="text" 
+            id="coName" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preName)}" 
+            placeholder="Enter your full name"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
         </div>
         
-        <div style="margin-bottom:12px;">
-          <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Email Address</label>
-          <input type="email" id="coEmail" class="inp" required value="${escapeAttr(preEmail)}" placeholder="jane@example.com" style="width:100%">
+        <!-- Email -->
+        <div>
+          <label for="coEmail" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Email Address</label>
+          <input 
+            type="email" 
+            id="coEmail" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preEmail)}" 
+            placeholder="you@example.com"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
         </div>
         
-        <div style="margin-bottom:12px;">
-          <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Phone Number</label>
-          <input type="tel" id="coPhone" class="inp" required value="${escapeAttr(prePhone)}" placeholder="(864) 528-1475" style="width:100%">
-          <div style="font-size: 10px; color: #9ca3af; margin-top: 6px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
+        <!-- Phone -->
+        <div>
+          <label for="coPhone" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Phone Number</label>
+          <input 
+            type="tel" 
+            id="coPhone" 
+            class="inp" 
+            required 
+            value="${escapeAttr(prePhone)}" 
+            placeholder="(864) 528-1475"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
+          <p style="font-size:11px;color:#64748b;margin:6px 0 0 0;line-height:1.4;">
+            By entering your mobile number, you agree to receive text messages from Home2Smart about your bookings, appointment reminders, service updates, and occasional offers for Home2Smart services. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.
+          </p>
         </div>
         
-        <div style="margin-bottom:12px;">
-          <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Service Address</label>
-          <input type="text" id="coAddress" class="inp" required value="${escapeAttr(preAddress)}" placeholder="123 Main St" style="width:100%">
+        <!-- Service Address with Autocomplete -->
+        <div style="position:relative;z-index:10;">
+          <label for="coAddress" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">
+            Service Address
+            <span style="font-weight:400;color:#64748b;font-size:13px;margin-left:6px;">(Start typing for suggestions...)</span>
+          </label>
+          <input 
+            type="text" 
+            id="coAddress" 
+            name="address" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preAddress)}" 
+            placeholder="Start typing your address..."
+            autocomplete="off" 
+            autocorrect="off" 
+            autocapitalize="off" 
+            spellcheck="false"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#1493ff';this.style.boxShadow='0 0 0 3px rgba(20,147,255,0.1)'"
+            onblur="setTimeout(() => { this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'; }, 200)"
+          >
+          <div id="addressDropdown"></div>
         </div>
         
-        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:20px;">
+        <!-- City, State, and Zip -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;">
           <div>
-            <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">City</label>
-            <input type="text" id="coCity" class="inp" required value="${escapeAttr(preCity)}" placeholder="Greenville" style="width:100%">
+            <label for="coCity" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">City</label>
+            <input 
+              type="text" 
+              id="coCity" 
+              name="city" 
+              class="inp" 
+              required 
+              value="${escapeAttr(preCity)}" 
+              placeholder="Greenville"
+              autocomplete="off"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
           </div>
           <div>
-            <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Zip</label>
-            <input type="text" id="coZip" class="inp" required value="${escapeAttr(preZip)}" placeholder="29601" style="width:100%">
+            <label for="coState" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">State</label>
+            <input 
+              type="text" 
+              id="coState" 
+              name="state" 
+              class="inp" 
+              required 
+              value="${escapeAttr(user?.state || '')}" 
+              placeholder="SC"
+              autocomplete="off"
+              maxlength="2"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;text-transform:uppercase;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
+          </div>
+          <div>
+            <label for="coZip" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Zip</label>
+            <input 
+              type="text" 
+              id="coZip" 
+              name="zip" 
+              class="inp" 
+              required 
+              value="${escapeAttr(preZip)}" 
+              placeholder="29601"
+              autocomplete="off"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
           </div>
         </div>
 
-        <div id="coError" style="color:#d32f2f; font-size:14px; margin-bottom:12px; display:none; background:#fee; padding:8px; border-radius:4px;"></div>
+        <!-- Error Display -->
+        <div id="coError" style="color:#dc2626;font-size:14px;display:none;background:#fef2f2;padding:12px 16px;border-radius:8px;border-left:4px solid #dc2626;"></div>
 
-        <div style="display:flex; gap:10px;">
-          <button type="button" class="btn btn-ghost" onclick="closeModal()" style="flex:1;">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="coSubmitBtn" style="flex:2;">Proceed to Payment</button>
+        <!-- Action Buttons -->
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button 
+            type="button" 
+            class="btn btn-ghost" 
+            onclick="closeModal()" 
+            style="flex:1;padding:14px;font-size:15px;font-weight:600;border-radius:8px;background:#f1f5f9;color:#475569;border:none;cursor:pointer;transition:all 0.2s;"
+            onmouseover="this.style.background='#e2e8f0'"
+            onmouseout="this.style.background='#f1f5f9'"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            id="coSubmitBtn" 
+            style="flex:2;padding:14px;font-size:15px;font-weight:600;border-radius:8px;background:#1493ff;color:white;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
+            onmouseover="this.style.background='#0c7fd9';this.style.boxShadow='0 4px 12px rgba(20,147,255,0.4)'"
+            onmouseout="this.style.background='#1493ff';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)'"
+          >
+            Proceed to Payment →
+          </button>
         </div>
       </form>
     </div>
@@ -4947,12 +5080,215 @@ function showCheckoutModal() {
 
   modal.classList.add('show');
   backdrop.classList.add('show');
+  document.body.style.overflow = 'hidden'; // Lock scroll
   
-  // Focus first empty field
+  // Initialize address autocomplete after modal renders
   setTimeout(() => {
-    if(!document.getElementById('coName').value) document.getElementById('coName').focus();
-    else if(!document.getElementById('coAddress').value) document.getElementById('coAddress').focus();
+    setupAddressAutocomplete();
+    
+    // Focus first empty field
+    if(!document.getElementById('coName').value) {
+      document.getElementById('coName').focus();
+    } else if(!document.getElementById('coAddress').value) {
+      document.getElementById('coAddress').focus();
+    }
   }, 100);
+}
+
+// BRAND NEW ADDRESS AUTOCOMPLETE SYSTEM
+function setupAddressAutocomplete() {
+  const addressInput = document.getElementById('coAddress');
+  const dropdown = document.getElementById('addressDropdown');
+  const cityInput = document.getElementById('coCity');
+  const zipInput = document.getElementById('coZip');
+  
+  if (!addressInput || !dropdown) {
+    console.error('[Autocomplete] Required elements not found');
+    return;
+  }
+  
+  // Style the dropdown with better visibility
+  const isMobile = window.innerWidth < 768;
+  dropdown.style.cssText = `
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px -10px rgba(0,0,0,0.15), 0 0 10px -5px rgba(0,0,0,0.05);
+    max-height: ${isMobile ? '260px' : '320px'};
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 99999;
+    display: none;
+    padding: 6px 0;
+  `;
+  
+  // Prevent scroll propagation from dropdown to modal/body
+  dropdown.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+  });
+  dropdown.addEventListener('touchmove', (e) => {
+    e.stopPropagation();
+  });
+  dropdown.addEventListener('wheel', (e) => {
+    e.stopPropagation();
+  });
+  
+  console.log('[Autocomplete] Dropdown styled and ready');
+  
+  let debounceTimer;
+  let suggestions = [];
+  
+  // Handle typing
+  addressInput.addEventListener('input', function() {
+    const query = this.value.trim();
+    
+    console.log('[Autocomplete] Input changed:', query);
+    
+    clearTimeout(debounceTimer);
+    
+    if (query.length < 3) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      console.log('[Autocomplete] Query too short, hiding dropdown');
+      return;
+    }
+    
+    console.log('[Autocomplete] Waiting 300ms before searching...');
+    
+    debounceTimer = setTimeout(async () => {
+      console.log('[Autocomplete] Fetching suggestions for:', query);
+      try {
+        const apiUrl = `https://h2s-backend.vercel.app/api/address_autocomplete?input=${encodeURIComponent(query)}`;
+        console.log('[Autocomplete] Calling:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+        console.log('[Autocomplete] Response status:', response.status, response.statusText);
+        
+        const contentType = response.headers.get('content-type');
+        console.log('[Autocomplete] Content-Type:', contentType);
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('[Autocomplete] Expected JSON but got:', text.substring(0, 200));
+          dropdown.style.display = 'none';
+          return;
+        }
+        
+        const data = await response.json();
+        
+        console.log('[Autocomplete] API Response:', data);
+        
+        if (data.ok && data.predictions && data.predictions.length > 0) {
+          suggestions = data.predictions;
+          
+          console.log('[Autocomplete] Found', suggestions.length, 'suggestions');
+          
+          dropdown.innerHTML = suggestions.map((pred, idx) => `
+            <div 
+              class="address-option" 
+              data-idx="${idx}"
+              style="
+                padding: 14px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 14px;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.15s;
+              "
+              onmouseover="this.style.background='#f8fafc'"
+              onmouseout="this.style.background='white'"
+            >
+              <span style="font-size:16px;">📍</span>
+              <span>${escapeHtml(pred.description)}</span>
+            </div>
+          `).join('');
+          
+          dropdown.style.display = 'block';
+          console.log('[Autocomplete] Dropdown displayed with', suggestions.length, 'items');
+          
+          // Click handlers
+          dropdown.querySelectorAll('.address-option').forEach(el => {
+            el.addEventListener('click', function() {
+              const idx = parseInt(this.dataset.idx);
+              selectAddress(suggestions[idx]);
+            });
+          });
+          
+        } else {
+          dropdown.style.display = 'none';
+          console.log('[Autocomplete] No suggestions found');
+        }
+      } catch (error) {
+        console.error('[Autocomplete] Error:', error);
+        dropdown.style.display = 'none';
+      }
+    }, 300);
+  });
+  
+  // Select address
+  function selectAddress(prediction) {
+    const comp = prediction.components || {};
+    
+    // Set street address
+    if (comp.street_number && comp.street) {
+      addressInput.value = `${comp.street_number} ${comp.street}`;
+    } else {
+      const parts = prediction.description.split(',');
+      addressInput.value = parts[0]?.trim() || prediction.description;
+    }
+    
+    // Auto-fill city
+    if (comp.city && cityInput) {
+      cityInput.value = comp.city;
+    }
+    
+    // Auto-fill state
+    const stateInput = document.getElementById('coState');
+    if (comp.state && stateInput) {
+      stateInput.value = comp.state.toUpperCase();
+    }
+    
+    // Auto-fill zip
+    if (comp.zip && zipInput) {
+      zipInput.value = comp.zip;
+    }
+    
+    dropdown.style.display = 'none';
+    
+    console.log('[Autocomplete] Selected:', {
+      address: addressInput.value,
+      city: cityInput.value,
+      state: stateInput?.value,
+      zip: zipInput.value
+    });
+  }
+  
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  // Keyboard navigation
+  addressInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  console.log('[Autocomplete] ✓ Initialized');
 }
 
 window.handleCheckoutSubmit = async function(e) {
@@ -4967,9 +5303,10 @@ window.handleCheckoutSubmit = async function(e) {
   const phone = document.getElementById('coPhone').value.trim();
   const address = document.getElementById('coAddress').value.trim();
   const city = document.getElementById('coCity').value.trim();
+  const state = document.getElementById('coState').value.trim().toUpperCase();
   const zip = document.getElementById('coZip').value.trim();
 
-  if(!name || !email || !phone || !address || !city || !zip) {
+  if(!name || !email || !phone || !address || !city || !state || !zip) {
     if(errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; }
     return;
   }
@@ -5059,6 +5396,7 @@ window.handleCheckoutSubmit = async function(e) {
         customer_email: email,
         service_address: address,
         service_city: city,
+        service_state: state,
         service_zip: zip,
         source: 'shop_rebuilt'
       }
@@ -5083,7 +5421,7 @@ window.handleCheckoutSubmit = async function(e) {
     if(data.pay && data.pay.session_url) {
       // Save user data for next time
       try {
-        localStorage.setItem('h2s_guest_checkout', JSON.stringify({ name, email, phone, address, city, zip }));
+        localStorage.setItem('h2s_guest_checkout', JSON.stringify({ name, email, phone, address, city, state, zip }));
         if(!user.email) {
           // Update local user object if guest
           user = { name, email, phone };
@@ -5444,6 +5782,7 @@ window.renderShopSuccess = async function(){
     const firstDay = new Date(currentYear, currentMonth, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const today = now.getDate();
+    const currentHour = now.getHours(); // Track current time for slot validation
     
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     
@@ -5451,14 +5790,14 @@ window.renderShopSuccess = async function(){
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <h4 style="margin:0; font-size:16px; font-weight:800; color:var(--cobalt);">${monthNames[currentMonth]} ${currentYear}</h4>
       </div>
-      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; text-align:center;">
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Sun</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Mon</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Tue</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Wed</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Thu</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Fri</div>
-        <div style="font-size:12px; font-weight:700; color:var(--muted); padding:8px 0;">Sat</div>
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; text-align:center;">
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Sun</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Mon</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Tue</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Wed</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Thu</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Fri</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Sat</div>
     `;
     
     // Empty cells before first day
@@ -5466,19 +5805,20 @@ window.renderShopSuccess = async function(){
       html += `<div></div>`;
     }
     
-    // Days of month
+    // Days of month - mobile optimized sizing
+    const isMobile = window.innerWidth < 768;
     for(let day = 1; day <= daysInMonth; day++) {
-      const isPast = day < today;
+      const isPast = day <= today; // Block today AND past days (only allow tomorrow+)
       const isToday = day === today;
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
       if(isPast) {
-        html += `<div style="padding:12px; color:#ccc; font-size:14px;">${day}</div>`;
+        html += `<div style="padding:${isMobile ? '8px 4px' : '12px'}; color:#ccc; font-size:${isMobile ? '13px' : '14px'};">${day}</div>`;
       } else {
         const style = isToday 
-          ? 'padding:12px; border:2px solid var(--cobalt); border-radius:8px; cursor:pointer; font-weight:700; font-size:14px; color:var(--cobalt); transition: all 0.2s;'
-          : 'padding:12px; border:2px solid transparent; border-radius:8px; cursor:pointer; font-size:14px; transition: all 0.2s; hover:border-color:var(--azure);';
-        html += `<div class="cal-day" data-date="${dateStr}" style="${style}" onmouseover="this.style.borderColor='var(--azure)'; this.style.background='#f0f9ff';" onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='transparent'; this.style.background='white'; }">${day}</div>`;
+          ? `padding:${isMobile ? '8px 4px' : '12px'}; border:2px solid var(--cobalt); border-radius:8px; cursor:pointer; font-weight:700; font-size:${isMobile ? '13px' : '14px'}; color:var(--cobalt); transition: all 0.2s; min-height:${isMobile ? '36px' : '44px'}; display:flex; align-items:center; justify-content:center;`
+          : `padding:${isMobile ? '8px 4px' : '12px'}; border:2px solid transparent; border-radius:8px; cursor:pointer; font-size:${isMobile ? '13px' : '14px'}; transition: all 0.2s; min-height:${isMobile ? '36px' : '44px'}; display:flex; align-items:center; justify-content:center;`;
+        html += `<div class="cal-day" data-date="${dateStr}" style="${style}" ontouchstart="" onmouseover="this.style.borderColor='var(--azure)'; this.style.background='#f0f9ff';" onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='transparent'; this.style.background='white'; }">${day}</div>`;
       }
     }
     
@@ -5502,11 +5842,44 @@ window.renderShopSuccess = async function(){
         
         byId('timeWindowSection').style.display = 'block';
         selectedWindow = null;
+        
+        // Reset all slots and check if any should be disabled based on current time
+        const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const isTomorrow = selectedDateObj.getTime() === tomorrow.getTime();
+        const currentHour = new Date().getHours();
+        
         document.querySelectorAll('.time-slot-btn').forEach(b => {
-          b.style.borderColor = 'var(--border)';
-          b.style.background = 'white';
-          b.style.color = 'inherit';
+          const window = b.getAttribute('data-window');
+          let isDisabled = false;
+          
+          // Disable time slots that have already passed if booking for tomorrow
+          if (isTomorrow) {
+            if (window === '9:00 AM - 12:00 PM' && currentHour >= 12) isDisabled = true;
+            if (window === '12:00 PM - 3:00 PM' && currentHour >= 15) isDisabled = true;
+            if (window === '3:00 PM - 6:00 PM' && currentHour >= 18) isDisabled = true;
+          }
+          
+          if (isDisabled) {
+            b.style.borderColor = '#e5e7eb';
+            b.style.background = '#f9fafb';
+            b.style.color = '#9ca3af';
+            b.style.cursor = 'not-allowed';
+            b.style.opacity = '0.5';
+            b.disabled = true;
+          } else {
+            b.style.borderColor = 'var(--border)';
+            b.style.background = 'white';
+            b.style.color = 'inherit';
+            b.style.cursor = 'pointer';
+            b.style.opacity = '1';
+            b.disabled = false;
+          }
         });
+        
         byId('confirmApptBtn').style.opacity = '0.5';
         byId('confirmApptBtn').style.pointerEvents = 'none';
       };
@@ -5518,11 +5891,16 @@ window.renderShopSuccess = async function(){
   // Time slot selection
   document.querySelectorAll('.time-slot-btn').forEach(btn => {
     btn.onclick = () => {
+      // Prevent clicking disabled slots
+      if (btn.disabled) return;
+      
       selectedWindow = btn.getAttribute('data-window');
       document.querySelectorAll('.time-slot-btn').forEach(b => {
-        b.style.borderColor = 'var(--border)';
-        b.style.background = 'white';
-        b.style.color = 'inherit';
+        if (!b.disabled) {
+          b.style.borderColor = 'var(--border)';
+          b.style.background = 'white';
+          b.style.color = 'inherit';
+        }
       });
       btn.style.borderColor = 'var(--azure)';
       btn.style.background = 'var(--azure)';
@@ -6323,6 +6701,167 @@ ${details}
 };
 
 console.log('✓ Deferred logic loaded');
+</script>
+
+<!-- Intelligent Address Autocomplete (Backend-proxied for security) -->
+<script>
+// Address autocomplete using backend proxy to Google Places API
+window.initAddressAutocomplete = function() {
+  console.log('[Address Autocomplete] Initializing...');
+  
+  const addressInput = document.getElementById('coAddress');
+  if (!addressInput) {
+    console.warn('[Address Autocomplete] Address input not found');
+    return;
+  }
+  
+  // Prevent double initialization
+  if (addressInput.dataset.autocompleteInitialized === 'true') {
+    console.log('[Address Autocomplete] Already initialized');
+    return;
+  }
+  
+  addressInput.dataset.autocompleteInitialized = 'true';
+  addressInput.placeholder = 'Start typing your address...';
+  
+  // Create dropdown for suggestions
+  const dropdown = document.createElement('div');
+  dropdown.id = 'addressDropdown';
+  dropdown.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:300px;overflow-y:auto;z-index:1000;display:none;width:100%;margin-top:4px;';
+  addressInput.parentNode.style.position = 'relative';
+  addressInput.parentNode.appendChild(dropdown);
+  
+  let debounceTimer;
+  let currentSuggestions = [];
+  
+  // Handle input with debouncing
+  addressInput.addEventListener('input', function() {
+    const query = addressInput.value.trim();
+    
+    clearTimeout(debounceTimer);
+    
+    if (query.length < 3) {
+      dropdown.style.display = 'none';
+      return;
+    }
+    
+    debounceTimer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/address_autocomplete?input=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        if (data.ok && data.predictions && data.predictions.length > 0) {
+          currentSuggestions = data.predictions;
+          
+          dropdown.innerHTML = data.predictions.map((pred, idx) => `
+            <div 
+              class="address-suggestion" 
+              data-index="${idx}"
+              style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333;"
+              onmouseover="this.style.background='#f5f5f5'"
+              onmouseout="this.style.background='white'"
+            >
+              📍 ${escapeHtml(pred.description)}
+            </div>
+          `).join('');
+          
+          dropdown.style.display = 'block';
+          
+          // Add click handlers
+          dropdown.querySelectorAll('.address-suggestion').forEach(el => {
+            el.addEventListener('click', function() {
+              const idx = parseInt(this.dataset.index);
+              selectAddress(currentSuggestions[idx]);
+            });
+          });
+          
+          console.log(`[Address Autocomplete] Found ${data.predictions.length} suggestions`);
+        } else {
+          dropdown.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('[Address Autocomplete] Fetch error:', error);
+        dropdown.style.display = 'none';
+      }
+    }, 300); // Wait 300ms after user stops typing
+  });
+  
+  // Select address and parse it
+  function selectAddress(prediction) {
+    const fullAddress = prediction.description;
+    addressInput.value = fullAddress;
+    dropdown.style.display = 'none';
+    
+    // Use components from backend if available (Photon provides these)
+    if (prediction.components) {
+      const cityInput = document.getElementById('coCity');
+      const zipInput = document.getElementById('coZip');
+      
+      // Extract street address (number + street name)
+      if (prediction.components.street_number && prediction.components.street) {
+        addressInput.value = `${prediction.components.street_number} ${prediction.components.street}`;
+      }
+      
+      // Auto-fill city
+      if (cityInput && prediction.components.city) {
+        cityInput.value = prediction.components.city;
+      }
+      
+      // Auto-fill zip
+      if (zipInput && prediction.components.zip) {
+        zipInput.value = prediction.components.zip;
+      }
+      
+      console.log('[Address Autocomplete] ✓ Address selected:', {
+        address: addressInput.value,
+        city: prediction.components.city,
+        zip: prediction.components.zip
+      });
+    } else {
+      // Fallback: Parse from description string
+      const parts = fullAddress.split(',').map(p => p.trim());
+      
+      if (parts.length >= 2) {
+        // First part is usually the street address
+        addressInput.value = parts[0];
+        
+        const cityInput = document.getElementById('coCity');
+        const zipInput = document.getElementById('coZip');
+        
+        // Second part is usually city
+        if (cityInput && parts[1]) {
+          cityInput.value = parts[1];
+        }
+        
+        // Last part usually has state and ZIP
+        if (zipInput && parts[parts.length - 1]) {
+          const zipMatch = parts[parts.length - 1].match(/\b\d{5}\b/);
+          if (zipMatch) {
+            zipInput.value = zipMatch[0];
+          }
+        }
+        
+        console.log('[Address Autocomplete] ✓ Address parsed from description');
+      }
+    }
+  }
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  // Handle keyboard navigation
+  addressInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
+};
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
