@@ -5236,6 +5236,24 @@ function setupAddressAutocomplete() {
     }, 300);
   });
   
+  // Hide dropdown when clicking outside or losing focus
+  addressInput.addEventListener('blur', function() {
+    // Delay to allow click events to fire on dropdown items
+    setTimeout(() => {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    }, 200);
+  });
+  
+  // Clear dropdown when form is submitted
+  const checkoutForm = document.getElementById('checkoutForm');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function() {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    });
+  }
+  
   // Select address
   function selectAddress(prediction) {
     const comp = prediction.components || {};
@@ -5264,7 +5282,9 @@ function setupAddressAutocomplete() {
       zipInput.value = comp.zip;
     }
     
+    // Clear and hide dropdown
     dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
     
     console.log('[Autocomplete] Selected:', {
       address: addressInput.value,
