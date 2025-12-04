@@ -334,9 +334,10 @@ export default async function handler(req, res) {
           effectiveQty = parsedItems[0].qty || effectiveQty;
         }
         
-        // HEURISTIC: 60% of Customer Subtotal (pre-discount amount for fairness)
-        // This ensures pros get a fair share even when promotions are applied
-        let basePayout = Math.floor(orderSubtotal * 0.60);
+        // PAYOUT LOGIC: 35% of Customer Subtotal (industry standard for service marketplaces)
+        // This ensures healthy business margins (65%) to cover overhead, marketing, insurance, platform costs
+        // Uses pre-discount subtotal so promos don't reduce pro earnings
+        let basePayout = Math.floor(orderSubtotal * 0.35);
         
         // Adjust for specific known high-labor items if order total is low/missing
         const serviceLower = (effectiveServiceId || '').toLowerCase();
@@ -346,10 +347,10 @@ export default async function handler(req, res) {
         
         // Apply Floor and Cap
         const MIN_PAYOUT = 35; // Minimum to roll a truck
-        const MAX_PAYOUT_PCT = 0.80; // Max 80% to ensure business margin
+        const MAX_PAYOUT_PCT = 0.45; // Cap at 45% to maintain business margin
         
         estimatedPayout = Math.max(MIN_PAYOUT, basePayout);
-        // Cap at 80% of subtotal (not total) to maintain margin even with promos
+        // Cap at 45% of subtotal to ensure minimum 55% business margin
         if (orderSubtotal > 0) {
             estimatedPayout = Math.min(estimatedPayout, orderSubtotal * MAX_PAYOUT_PCT);
         }

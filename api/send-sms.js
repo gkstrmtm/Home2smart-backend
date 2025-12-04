@@ -17,10 +17,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { to, message, template = 'default', job_id = null } = req.body;
+    const { to, template, template_key, data, job_id = null } = req.body;
+    let { message } = req.body;
+
+    // TEMPLATE SYSTEM (Hardcoded for reliability)
+    const TEMPLATES = {
+      'payment_confirmed': "Hi {firstName}, thanks for your order! We've received your payment of ${amount}. Schedule your installation here: {scheduleUrl}",
+      'appointment_scheduled': "Hi {firstName}, your {service} appointment is confirmed for {date} at {time}. See you then! - Home2Smart",
+      'booking_confirmation': "Hi {firstName}, your {service} appointment is confirmed for {date} at {time}. See you then! - Home2Smart",
+      'pro_assigned': "Hi {proName}, you have a new job! {service} for {customerName} on {date} at {time}. Address: {address}.",
+      'default': "{message}"
+    };
+
+    // Resolve message from template if not provided
+    const key = template_key || template;
+    if (!message && key && TEMPLATES[key] && data) {
+      let text = TEMPLATES[key];
+      Object.keys(data).forEach(k => {
+        text = text.replace(new RegExp(`{${k}}`, 'g'), data[k] || '');
+      });
+      message = text;
+    }
 
     if (!to || !message) {
-      return res.status(400).json({ ok: false, error: 'Missing required fields: to, message' });
+      return res.status(400).json({ ok: false, error: 'Missing required fields: to, message (or valid template)' });
     }
 
     // Initialize Supabase

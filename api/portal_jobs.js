@@ -2,7 +2,7 @@
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -100,12 +100,12 @@ export default async function handler(req, res) {
 
     console.log('[portal_jobs] Tech location:', { lat: techLat, lng: techLng, radius: serviceRadius });
 
-    // Get ALL available jobs within radius (pending_assign status)
-    console.log('[portal_jobs] Fetching available jobs with status pending_assign');
+    // Get ALL available jobs within radius (pending_assign or pending status)
+    console.log('[portal_jobs] Fetching available jobs with status pending_assign or pending');
     const { data: availableJobs, error: availableError } = await supabase
       .from('h2s_dispatch_jobs')
       .select('*')
-      .eq('status', 'pending_assign')
+      .in('status', ['pending_assign', 'pending'])
       .not('geo_lat', 'is', null)
       .not('geo_lng', 'is', null);
     
@@ -138,7 +138,9 @@ export default async function handler(req, res) {
       const distance = calculateDistance(techLat, techLng, jobLat, jobLng);
       return {
         ...job,
-        distance_miles: Math.round(distance * 10) / 10
+        distance_miles: Math.round(distance * 10) / 10,
+        payout_estimated: job.metadata?.estimated_payout || 0,
+        referral_code: job.metadata?.referral_code || null
       };
     });
 
@@ -231,7 +233,10 @@ export default async function handler(req, res) {
         ...job,
         distance_miles: assignment?.distance_miles,
         is_primary: assignment?.is_primary,
-        responded_at: assignment?.responded_at
+        responded_at: assignment?.responded_at,
+        // Expose payout info
+        payout_estimated: job.metadata?.estimated_payout || 0,
+        referral_code: job.metadata?.referral_code || null
       };
       
       if (state === 'offered') {

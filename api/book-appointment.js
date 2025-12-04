@@ -155,12 +155,60 @@ export default async function handler(req, res) {
     }
 
     // ============================================================
-    // TODO: NOTIFICATIONS (Twilio / SendGrid) - COMING SOON
+    // NOTIFICATIONS (Twilio / SendGrid)
     // ============================================================
-    // 1. Send SMS to Customer (Twilio): "Your appointment is confirmed..."
-    // 2. Send Email to Admin (SendGrid): "New booking: [order_id]"
-    // 3. Send Email to Customer (SendGrid): "Booking Confirmation"
-    // ============================================================
+    
+    const installDate = new Date(install_at);
+    const dateStr = installDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const timeStr = installDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const firstName = customerName.split(' ')[0];
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://h2s-backend.vercel.app';
+
+    // 1. Send SMS to Customer
+    if (process.env.TWILIO_ENABLED === 'true') {
+      try {
+        const smsMessage = `Hi ${firstName}, your ${serviceName} appointment is confirmed for ${dateStr} at ${timeStr}. See you then! - Home2Smart`;
+        
+        // Use internal API to handle logging and fallback
+        await fetch(`${baseUrl}/api/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: order?.customer_phone || order?.phone, // Use phone from order if available
+            message: smsMessage,
+            template: 'booking_confirmation',
+            job_id: newJob.job_id
+          })
+        });
+        console.log('[Book] SMS notification sent');
+      } catch (smsError) {
+        console.error('[Book] Failed to send SMS:', smsError.message);
+      }
+    }
+
+    // 2. Send Email to Customer
+    if (process.env.SENDGRID_ENABLED !== 'false' && email) {
+      try {
+        await fetch(`${baseUrl}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_email: email,
+            template_key: 'booking_confirmation',
+            order_id: order_id,
+            data: {
+              firstName: firstName,
+              service: serviceName,
+              date: dateStr,
+              time: timeStr
+            }
+          })
+        });
+        console.log('[Book] Email notification sent');
+      } catch (emailError) {
+        console.error('[Book] Failed to send Email:', emailError.message);
+      }
+    }
 
     return res.json({ ok: true, job_id: newJob.job_id });
 

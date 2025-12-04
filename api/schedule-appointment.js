@@ -67,8 +67,8 @@ export default async function handler(req, res) {
       console.log('[Schedule] Lookup mode: order_id', order_id);
       query = query.eq('order_id', order_id);
     } else {
-      console.log('[Schedule] Lookup mode: stripe_session_id', order_id);
-      query = query.eq('stripe_session_id', order_id);
+      console.log('[Schedule] Lookup mode: session_id', order_id);
+      query = query.eq('session_id', order_id);
     }
     
     const { data: order, error: orderError } = await query.single();
@@ -88,11 +88,6 @@ export default async function handler(req, res) {
       delivery_time: delivery_time,
       updated_at: new Date().toISOString()
     };
-    
-    const { error: updateError } = await supabase
-      .from('h2s_orders')
-      .update(updatePayload)
-      .eq('id', order.id);
     
     const { error: updateError } = await supabase
       .from('h2s_orders')

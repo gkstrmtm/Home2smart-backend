@@ -16,9 +16,12 @@ SELECT
   customer_name,
   subtotal,
   total,
-  metadata->>'service_address' as address_from_metadata,
-  metadata->>'service_city' as city_from_metadata,
-  created_at
+  created_at,
+  -- Handle both JSONB metadata column or text metadata_json
+  CASE 
+    WHEN pg_typeof(metadata) = 'jsonb'::regtype THEN metadata->>'service_address'
+    ELSE NULL
+  END as address_from_metadata
 FROM h2s_orders
 ORDER BY created_at DESC
 LIMIT 5;

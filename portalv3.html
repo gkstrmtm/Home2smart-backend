@@ -3548,9 +3548,9 @@ a:focus-visible{
     // PAYOUT_POLICY: Centralized rates matching backend (Operations.js)
     const PAYOUT_POLICY = {
       materials_pct_estimate: { BYO: 0.00, BASE: 0.28, H2S: 0.38 },
-      pro_pct_on_labor: { BYO: 0.65, BASE: 0.55, H2S: 0.50 },
-      min_payout_floor: 35,
-      max_payout_cap_pct: 0.80
+      pro_pct_on_labor: { BYO: 0.75, BASE: 0.65, H2S: 0.60 },
+      min_payout_floor: 45,
+      max_payout_cap_pct: 0.90
     };
     
     function _tierFromVariant(variantCode){
@@ -3677,12 +3677,16 @@ a:focus-visible{
       <div id="step-address" style="display:none;margin-top:8px">
         <h2>Your address</h2>
         <div class="grid-2">
-          <div><label class="label" for="adStreet">Address</label><input id="adStreet" class="input" placeholder="123 Main St" autocomplete="street-address"></div>
-          <div><label class="label" for="adCity">City</label><input id="adCity" class="input" placeholder="Charlotte" autocomplete="address-level2"></div>
+          <div style="position:relative">
+            <label class="label" for="adStreet">Address</label>
+            <input id="adStreet" class="input" placeholder="123 Main St" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <div id="adStreetDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid rgba(59,130,246,0.3);border-radius:8px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.3)"></div>
+          </div>
+          <div><label class="label" for="adCity">City</label><input id="adCity" class="input" placeholder="Charlotte" autocomplete="off"></div>
         </div>
         <div class="grid-2">
-          <div><label class="label" for="adState">State</label><input id="adState" class="input" placeholder="NC" autocomplete="address-level1"></div>
-          <div><label class="label" for="adZip">ZIP</label><input id="adZip" class="input" inputmode="numeric" placeholder="28202" autocomplete="postal-code"></div>
+          <div><label class="label" for="adState">State</label><input id="adState" class="input" placeholder="NC" autocomplete="off"></div>
+          <div><label class="label" for="adZip">ZIP</label><input id="adZip" class="input" inputmode="numeric" placeholder="28202" autocomplete="off"></div>
         </div>
         <p class="muted">We use this to match you to nearby jobs.</p>
         <div class="row"><button id="finishStep1" class="btn" type="button">Create account</button><button id="backToInfo" class="btn secondary" type="button">Back</button></div>
@@ -6438,6 +6442,72 @@ function switchTab(which) {
 /* ===== DASHBOARD (pro) ===== */
 let currentJobsData = { offers: [], upcoming: [], completed: [] }; // Store job data globally
 
+// ✅ PAGINATION STATE & HELPERS
+let paginationState = {
+  offers: { page: 1, limit: 5 },
+  upcoming: { page: 1, limit: 5 },
+  completed: { page: 1, limit: 5 }
+};
+
+function renderPaginationControls(type, totalItems, container) {
+  const state = paginationState[type];
+  const totalPages = Math.ceil(totalItems / state.limit);
+  
+  if (totalPages <= 1) return;
+
+  const controls = document.createElement('div');
+  controls.className = 'pagination-controls';
+  controls.style.cssText = 'display:flex;justify-content:center;gap:12px;margin-top:16px;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)';
+  
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'btn secondary';
+  prevBtn.style.padding = '8px 16px';
+  prevBtn.textContent = '← Prev';
+  prevBtn.disabled = state.page === 1;
+  if (state.page === 1) prevBtn.style.opacity = '0.5';
+  
+  prevBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (state.page > 1) {
+      state.page--;
+      if (type === 'offers') renderOffers(currentJobsData.offers);
+      if (type === 'upcoming') renderUpcoming(currentJobsData.upcoming);
+      if (type === 'completed') renderCompleted(currentJobsData.completed);
+      // Scroll to top of list
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+  
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'btn secondary';
+  nextBtn.style.padding = '8px 16px';
+  nextBtn.textContent = 'Next →';
+  nextBtn.disabled = state.page === totalPages;
+  if (state.page === totalPages) nextBtn.style.opacity = '0.5';
+  
+  nextBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (state.page < totalPages) {
+      state.page++;
+      if (type === 'offers') renderOffers(currentJobsData.offers);
+      if (type === 'upcoming') renderUpcoming(currentJobsData.upcoming);
+      if (type === 'completed') renderCompleted(currentJobsData.completed);
+      // Scroll to top of list
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+  
+  const info = document.createElement('span');
+  info.style.cssText = 'font-size:14px;opacity:0.8;font-variant-numeric:tabular-nums';
+  info.textContent = `Page ${state.page} of ${totalPages}`;
+  
+  controls.appendChild(prevBtn);
+  controls.appendChild(info);
+  controls.appendChild(nextBtn);
+  
+  container.appendChild(controls);
+}
+
 function showJobDetails(job) {
   if (!job) {
     toast("Job details not available");
@@ -7163,8 +7233,19 @@ function renderOffers(list) {
   $("offers-empty").style.display = list.length ? "none" : "block";
   box.onclick = null;
   
+  // ✅ PAGINATION: Slice list
+  const state = paginationState.offers;
+  // Reset to page 1 if out of bounds (e.g. after filtering/accepting)
+  if ((state.page - 1) * state.limit >= list.length && list.length > 0) {
+    state.page = Math.max(1, Math.ceil(list.length / state.limit));
+  }
+  
+  const start = (state.page - 1) * state.limit;
+  const end = start + state.limit;
+  const paginatedList = list.slice(start, end);
+  
   // ✅ LOCATION INTELLIGENCE: Calculate distances asynchronously
-  Promise.all(list.map(async (j) => {
+  Promise.all(paginatedList.map(async (j) => {
     const dist = await getDistanceToJob(j);
     if (dist !== null) {
       j._calculatedDistance = dist;
@@ -7172,12 +7253,15 @@ function renderOffers(list) {
   })).then(() => {
     // Re-render with distances after calculations complete
     if (box.children.length > 0) {
-      renderOffersSync(list, box);
+      renderOffersSync(paginatedList, box);
+      renderPaginationControls('offers', list.length, box);
     }
   });
   
   // Initial render (will show backend distance or N/A)
-  renderOffersSync(list, box);
+  renderOffersSync(paginatedList, box);
+  renderPaginationControls('offers', list.length, box);
+  
   recordMetric('render', performance.now() - renderStart);
 }
 
@@ -7334,9 +7418,19 @@ function renderUpcoming(list) {
   $("upcoming-empty").style.display = list.length ? "none" : "block";
   box.onclick = null;
   
+  // ✅ PAGINATION: Slice list
+  const state = paginationState.upcoming;
+  if ((state.page - 1) * state.limit >= list.length && list.length > 0) {
+    state.page = Math.max(1, Math.ceil(list.length / state.limit));
+  }
+  
+  const start = (state.page - 1) * state.limit;
+  const end = start + state.limit;
+  const paginatedList = list.slice(start, end);
+  
   // ✅ PERFORMANCE: Use DocumentFragment for batch DOM updates
   const fragment = document.createDocumentFragment();
-  list.forEach(j => {
+  paginatedList.forEach(j => {
     const sigLabel = signatureOnFile[j.job_id] ? "Signature — saved" : "Signature";
     const statusLabel = (j.status || "").toLowerCase();
     const isOpen = statusLabel === "open";
@@ -7382,6 +7476,7 @@ function renderUpcoming(list) {
   // Single DOM update
   box.innerHTML = "";
   box.appendChild(fragment);
+  renderPaginationControls('upcoming', list.length, box);
 
   // UPCOMING JOBS CLICK HANDLERS
   box.onclick = async e => {
@@ -7508,9 +7603,19 @@ function renderCompleted(list) {
   const box = $("list-completed");
   $("completed-empty").style.display = list.length ? "none" : "block";
   
+  // ✅ PAGINATION: Slice list
+  const state = paginationState.completed;
+  if ((state.page - 1) * state.limit >= list.length && list.length > 0) {
+    state.page = Math.max(1, Math.ceil(list.length / state.limit));
+  }
+  
+  const start = (state.page - 1) * state.limit;
+  const end = start + state.limit;
+  const paginatedList = list.slice(start, end);
+  
   // ✅ PERFORMANCE: Use DocumentFragment for batch DOM updates
   const fragment = document.createDocumentFragment();
-  list.forEach(j => {
+  paginatedList.forEach(j => {
     const el = document.createElement("div");
     el.className = "item";
     el.innerHTML = `
@@ -7530,6 +7635,7 @@ function renderCompleted(list) {
   // Single DOM update
   box.innerHTML = "";
   box.appendChild(fragment);
+  renderPaginationControls('completed', list.length, box);
 
   /* ============================================
      PHOTO GALLERY FUNCTIONS (SCOPED TO COMPLETED JOBS)
@@ -7874,6 +7980,7 @@ function renderCompleted(list) {
  * @param {number} initialLimit - How many items to show initially (default: 5 on mobile, 10 on desktop)
  */
 function enableSmartPagination(containerId, initialLimit = null) {
+  return; // ✅ DISABLED: Using new page-based pagination instead
   const container = $(containerId);
   if (!container) return;
   
@@ -14021,6 +14128,136 @@ $("btnCloseHistory").addEventListener("click", () => {
     document.body.style.overflow = "";
   }
 });
+
+// ============================
+// ADDRESS AUTOCOMPLETE
+// ============================
+const adStreetInput = document.getElementById('adStreet');
+const adStreetDropdown = document.getElementById('adStreetDropdown');
+const adCityInput = document.getElementById('adCity');
+const adStateInput = document.getElementById('adState');
+const adZipInput = document.getElementById('adZip');
+
+let adDebounceTimer;
+let adSelectedIndex = -1;
+
+if (adStreetInput && adStreetDropdown) {
+  adStreetInput.addEventListener('input', (e) => {
+    const input = e.target.value.trim();
+    
+    clearTimeout(adDebounceTimer);
+    
+    if (input.length < 3) {
+      adStreetDropdown.style.display = 'none';
+      adStreetDropdown.innerHTML = '';
+      return;
+    }
+    
+    adDebounceTimer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/address_autocomplete?input=${encodeURIComponent(input)}`);
+        const data = await response.json();
+        
+        if (data.ok && data.predictions && data.predictions.length > 0) {
+          adSelectedIndex = -1;
+          adStreetDropdown.innerHTML = data.predictions.map((prediction, idx) => `
+            <div class="address-suggestion" data-index="${idx}" style="padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.15s;color:#e2e8f0;font-size:14px" 
+              onmouseover="this.style.background='rgba(59,130,246,0.15)'" 
+              onmouseout="this.style.background='transparent'">
+              ${escapeHTML(prediction.description)}
+            </div>
+          `).join('');
+          adStreetDropdown.style.display = 'block';
+          
+          // Add click handlers
+          adStreetDropdown.querySelectorAll('.address-suggestion').forEach((item, idx) => {
+            item.addEventListener('click', () => {
+              selectAdAddress(data.predictions[idx]);
+            });
+          });
+        } else {
+          adStreetDropdown.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Address autocomplete error:', error);
+        adStreetDropdown.style.display = 'none';
+      }
+    }, 300);
+  });
+  
+  // Keyboard navigation
+  adStreetInput.addEventListener('keydown', (e) => {
+    if (!adStreetDropdown.style.display || adStreetDropdown.style.display === 'none') return;
+    
+    const suggestions = adStreetDropdown.querySelectorAll('.address-suggestion');
+    if (suggestions.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      adSelectedIndex = Math.min(adSelectedIndex + 1, suggestions.length - 1);
+      updateAdSelection(suggestions);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      adSelectedIndex = Math.max(adSelectedIndex - 1, -1);
+      updateAdSelection(suggestions);
+    } else if (e.key === 'Escape') {
+      adStreetDropdown.style.display = 'none';
+      adSelectedIndex = -1;
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!adStreetInput.contains(e.target) && !adStreetDropdown.contains(e.target)) {
+      adStreetDropdown.style.display = 'none';
+      adSelectedIndex = -1;
+    }
+  });
+}
+
+function updateAdSelection(suggestions) {
+  suggestions.forEach((item, idx) => {
+    if (idx === adSelectedIndex) {
+      item.style.background = 'rgba(59,130,246,0.25)';
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.style.background = 'transparent';
+    }
+  });
+}
+
+function selectAdAddress(prediction) {
+  adStreetInput.value = prediction.description;
+  
+  // Auto-fill city, state, zip if available
+  if (prediction.components) {
+    const comp = prediction.components;
+    
+    // Build street address from components if available
+    if (comp.street_number && comp.street) {
+      adStreetInput.value = `${comp.street_number} ${comp.street}`;
+    }
+    
+    if (comp.city && adCityInput) {
+      adCityInput.value = comp.city;
+    }
+    if (comp.state && adStateInput) {
+      adStateInput.value = comp.state;
+    }
+    if (comp.zip && adZipInput) {
+      adZipInput.value = comp.zip;
+    }
+  }
+  
+  adStreetDropdown.style.display = 'none';
+  adSelectedIndex = -1;
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // View History button handler (old - kept for compatibility)
 /*

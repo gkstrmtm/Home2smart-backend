@@ -324,6 +324,94 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
+      if (item.id === 'tv_multi') {
+        const name = 'Multi-Room TV Mounting (3-4 TVs)';
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { 
+              name: name,
+              description: 'Includes mounting for 3-4 TVs, wire concealment, and soundbar setup.'
+            },
+            unit_amount: 69900, // $699.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: name,
+          description: 'Includes mounting for 3-4 TVs, wire concealment, and soundbar setup.',
+          qty: item.qty || 1,
+          price: 69900
+        });
+        continue;
+      }
+
+      if (item.id === 'cam_basic') {
+        const name = 'Basic Coverage (2 Cams + Doorbell)';
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { 
+              name: name,
+              description: 'Includes 2 cameras, 1 doorbell, and mobile alerts.'
+            },
+            unit_amount: 59900, // $599.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: name,
+          description: 'Includes 2 cameras, 1 doorbell, and mobile alerts.',
+          qty: item.qty || 1,
+          price: 59900
+        });
+        continue;
+      }
+
+      if (item.id === 'cam_standard') {
+        const name = 'Standard Coverage (4 Cams + Doorbell)';
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { 
+              name: name,
+              description: 'Includes 4 cameras, 1 doorbell, and 30-day cloud storage.'
+            },
+            unit_amount: 119900, // $1,199.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: name,
+          description: 'Includes 4 cameras, 1 doorbell, and 30-day cloud storage.',
+          qty: item.qty || 1,
+          price: 119900
+        });
+        continue;
+      }
+
+      if (item.id === 'cam_premium') {
+        const name = 'Premium Coverage (8 Cams + Doorbell + NVR)';
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: { 
+              name: name,
+              description: 'Includes 8 cameras, 1 doorbell, NVR recording, and 60-day storage.'
+            },
+            unit_amount: 219900, // $2,199.00
+          },
+          quantity: item.qty || 1
+        });
+        receiptItems.push({
+          name: name,
+          description: 'Includes 8 cameras, 1 doorbell, NVR recording, and 60-day storage.',
+          qty: item.qty || 1,
+          price: 219900
+        });
+        continue;
+      }
+
       if (item.type === 'bundle') {
         // Look up bundle in database
         const { data: bundle, error } = await supabase
@@ -433,6 +521,70 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       return res.status(400).json({ ok: false, error: 'No valid items in cart' });
     }
 
+    // Check for promo code
+    let discounts = undefined;
+    let allow_promotion_codes = true;
+
+    if (body.promotion_code) {
+      const code = String(body.promotion_code).trim();
+      let promoId = null;
+      let couponId = null;
+
+      // 1. Try Stripe Promotion Code
+      try {
+        const list = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
+        if (list.data?.[0]) {
+          promoId = list.data[0].id;
+        }
+      } catch (e) {
+        console.warn('[Checkout] Stripe promo lookup failed:', e);
+      }
+
+      // 2. If not Stripe, try Referral Code
+      if (!promoId) {
+        const { data: referrer } = await supabase
+          .from('h2s_users')
+          .select('user_id, email')
+          .eq('referral_code', code)
+          .single();
+          
+        if (referrer) {
+          // Valid referral! Apply generic referral coupon.
+          // We use a standard coupon ID 'REFERRAL_25' ($25 off).
+          // Ensure it exists.
+          const REF_COUPON_ID = 'REFERRAL_25';
+          try {
+            await stripe.coupons.retrieve(REF_COUPON_ID);
+          } catch (err) {
+            // Create if missing
+            if (err.code === 'resource_missing') {
+              await stripe.coupons.create({
+                id: REF_COUPON_ID,
+                amount_off: 2500, // $25.00
+                currency: 'usd',
+                duration: 'forever',
+                name: 'Referral Discount'
+              });
+            }
+          }
+          couponId = REF_COUPON_ID;
+          
+          // Add referrer info to metadata
+          if (!metadata) metadata = {};
+          metadata.referral_code = code;
+          metadata.referrer_email = referrer.email;
+        }
+      }
+
+      if (promoId) {
+        discounts = [{ promotion_code: promoId }];
+        allow_promotion_codes = false;
+      } else if (couponId) {
+        discounts = [{ coupon: couponId }];
+        allow_promotion_codes = false;
+      }
+    }
+
     // Create Stripe checkout session
     const frontendUrl = 'https://home2smart.com';
     const sessionParams = {
@@ -451,9 +603,14 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         customer_name: customer.name || '',
         customer_phone: customer.phone || '',
         cart_items: JSON.stringify(receiptItems)
-      },
-      allow_promotion_codes: true
+      }
     };
+
+    if (discounts) {
+        sessionParams.discounts = discounts;
+    } else {
+        sessionParams.allow_promotion_codes = true;
+    }
 
     let session;
     try {
@@ -484,6 +641,14 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           unitPrice = 39;
         } else if (item.id === 'tv_multi_4th') {
           unitPrice = 100;
+        } else if (item.id === 'tv_multi') {
+          unitPrice = 699;
+        } else if (item.id === 'cam_basic') {
+          unitPrice = 599;
+        } else if (item.id === 'cam_standard') {
+          unitPrice = 1199;
+        } else if (item.id === 'cam_premium') {
+          unitPrice = 2199;
         } else if (item.type === 'bundle') {
           const { data: bundle } = await supabase
             .from('h2s_bundles')
@@ -765,19 +930,46 @@ async function handleCreateUser(req, res, supabase, body){
     full_name: u.name || '',
     phone: u.phone || '',
     referral_code
-  }).select('user_id, email, full_name, phone').single();
+  }).select('user_id, email, full_name, phone, referral_code, points_balance, total_spent').single();
   if(error){ return res.status(400).json({ ok:false, error: error.message }); }
-  return res.status(200).json({ ok:true, user:{ email:data.email, name:data.full_name||'', phone:data.phone||'' } });
+  return res.status(200).json({ ok:true, user:{ 
+    email:data.email, 
+    name:data.full_name||'', 
+    phone:data.phone||'', 
+    referral_code: data.referral_code,
+    credits: Number(data.points_balance||0),
+    total_spent: Number(data.total_spent||0)
+  } });
 }
 
 async function handleSignIn(req, res, supabase, body){
   const email = String(body.email||'').trim().toLowerCase();
   const password = String(body.password||'');
   if(!email || !password) return res.status(400).json({ ok:false, error:'Missing credentials' });
-  const { data, error } = await supabase.from('h2s_users').select('email, full_name, phone, password_hash').eq('email', email).single();
+  
+  // Select referral_code and points
+  const { data, error } = await supabase.from('h2s_users')
+    .select('email, full_name, phone, password_hash, referral_code, points_balance, total_spent')
+    .eq('email', email).single();
+  
   if(error || !data) return res.status(401).json({ ok:false, error:'Invalid email or password' });
   if(!verifyPassword(password, data.password_hash)) return res.status(401).json({ ok:false, error:'Invalid email or password' });
-  return res.status(200).json({ ok:true, user:{ email:data.email, name:data.full_name||'', phone:data.phone||'' } });
+  
+  // Auto-generate if missing on sign-in (legacy users)
+  if (!data.referral_code) {
+    const newCode = (email.split('@')[0] + Math.random().toString(36).slice(2,6)).slice(0,16).toUpperCase();
+    await supabase.from('h2s_users').update({ referral_code: newCode }).eq('email', email);
+    data.referral_code = newCode;
+  }
+
+  return res.status(200).json({ ok:true, user:{ 
+    email:data.email, 
+    name:data.full_name||'', 
+    phone:data.phone||'', 
+    referral_code: data.referral_code,
+    credits: Number(data.points_balance||0),
+    total_spent: Number(data.total_spent||0)
+  } });
 }
 
 async function handleRequestPasswordReset(req, res, supabase, body){
@@ -823,16 +1015,39 @@ async function handleUpsertUser(req, res, supabase, body){
   if(!email) return res.status(400).json({ ok:false, error:'Missing email' });
   const { data, error } = await supabase.from('h2s_users')
     .upsert({ email, full_name: u.name||'', phone: u.phone||'' }, { onConflict: 'email' })
-    .select('email, full_name, phone').single();
+    .select('email, full_name, phone, referral_code, points_balance, total_spent').single();
   if(error) return res.status(400).json({ ok:false, error: error.message });
-  return res.status(200).json({ ok:true, user:{ email:data.email, name:data.full_name||'', phone:data.phone||'' } });
+  return res.status(200).json({ ok:true, user:{ 
+    email:data.email, 
+    name:data.full_name||'', 
+    phone:data.phone||'', 
+    referral_code: data.referral_code,
+    credits: Number(data.points_balance||0),
+    total_spent: Number(data.total_spent||0)
+  } });
 }
 
 async function handleGetUser(req, res, supabase, email){
   email = String(email||'').trim().toLowerCase();
   if(!email) return res.status(400).json({ ok:false, error:'Missing email' });
-  const { data, error } = await supabase.from('h2s_users').select('email, full_name, phone, referral_code, points_balance, total_spent, stripe_customer_id, last_login').eq('email', email).single();
+  
+  let { data, error } = await supabase.from('h2s_users').select('user_id, email, full_name, phone, referral_code, points_balance, total_spent, stripe_customer_id, last_login').eq('email', email).single();
+  
   if(error || !data) return res.status(200).json({ ok:true, user:null });
+
+  // Auto-generate referral code if missing
+  if (!data.referral_code) {
+    const newCode = (email.split('@')[0] + Math.random().toString(36).slice(2,6)).slice(0,16).toUpperCase();
+    const { error: updateError } = await supabase
+      .from('h2s_users')
+      .update({ referral_code: newCode })
+      .eq('email', email);
+      
+    if (!updateError) {
+      data.referral_code = newCode;
+    }
+  }
+
   // Map to frontend expectations
   return res.status(200).json({ ok:true, user: {
     email: data.email,
@@ -867,13 +1082,24 @@ async function handlePromoCheckCart(req, res, stripe, body){
     const TEST_PROMO = process.env.SHOP_TEST_PROMO_CODE || '';
       if(TEST_PROMO && code === TEST_PROMO.trim()){
       // Retrieve prices to compute subtotal accurately
-      const prices = await Promise.all(items.map(li => stripe.prices.retrieve(li.price)));
       let subtotal = 0;
-      items.forEach((li, idx) => {
-        const unit = Number(prices[idx]?.unit_amount||0);
-        const qty  = Number(li.quantity||1)||1;
+      let currency = 'usd';
+      
+      for(const li of items){
+        let unit = 0;
+        if(li.unit_amount !== undefined){
+          unit = Number(li.unit_amount);
+        } else if(li.price && li.price !== 'custom'){
+          try{
+            const pr = await stripe.prices.retrieve(li.price);
+            unit = Number(pr.unit_amount||0);
+            if(pr.currency) currency = pr.currency;
+          }catch(_){}
+        }
+        const qty = Number(li.quantity||1)||1;
         subtotal += unit * qty;
-      });
+      }
+
       return res.status(200).json({
         ok: true,
         applicable: true,
@@ -884,7 +1110,7 @@ async function handlePromoCheckCart(req, res, stripe, body){
           savings_cents: subtotal,
           total_cents: 0,
           summary: 'Test promo (100% off)',
-          currency: (prices[0]?.currency)||'usd'
+          currency: currency
         },
         simulated: true
       });
@@ -892,13 +1118,68 @@ async function handlePromoCheckCart(req, res, stripe, body){
 
     const list = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
     const promo = list.data?.[0];
-    if(!promo) return res.status(200).json({ ok:true, applicable:false, reason:'not_found' });
+    
+    // If not found in Stripe, check Referral Code
+    if(!promo) {
+      // Check Supabase for referral code
+      const supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      const { data: referrer } = await supabase
+        .from('h2s_users')
+        .select('email')
+        .eq('referral_code', code)
+        .single();
+        
+      if (referrer) {
+        // It's a valid referral code!
+        // Simulate a $25 discount
+        const discountAmount = 2500; // $25.00
+        
+        // Calculate totals
+        let subtotal = 0;
+        
+        for(const li of items){
+          let unit = 0;
+          if(li.unit_amount !== undefined){
+            unit = Number(li.unit_amount);
+          } else if(li.price && li.price !== 'custom'){
+             try{
+               const pr = await stripe.prices.retrieve(li.price);
+               unit = Number(pr.unit_amount||0);
+             }catch(_){}
+          }
+          const qty = Number(li.quantity||1)||1;
+          subtotal += unit * qty;
+        }
+        
+        const total = Math.max(0, subtotal - discountAmount);
+        
+        return res.status(200).json({
+          ok: true,
+          applicable: true,
+          promotion_code: code,
+          estimate: {
+            subtotal_cents: subtotal,
+            qualifying_cents: subtotal,
+            savings_cents: discountAmount,
+            total_cents: total,
+            summary: '$25.00 Referral Discount',
+            currency: 'usd'
+          }
+        });
+      }
+      
+      return res.status(200).json({ ok:true, applicable:false, reason:'not_found' });
+    }
+    
     const c = promo.coupon;
     if(c.valid === false) return res.status(200).json({ ok:true, applicable:false, reason:'inactive' });
     if(c.redeem_by && (Date.now() > c.redeem_by*1000)) return res.status(200).json({ ok:true, applicable:false, reason:'expired' });
 
     // Fetch price details and products for each line item
-    const priceIds = items.map(li=> li.price).filter(Boolean);
+    const priceIds = items.map(li=> li.price).filter(p => p && p !== 'custom');
     if(!priceIds.length) return res.status(400).json({ ok:false, error:'Missing price ids' });
 
     const prices = await Promise.all(priceIds.map(id => stripe.prices.retrieve(id, { expand: ['product'] })));
@@ -909,12 +1190,28 @@ async function handlePromoCheckCart(req, res, stripe, body){
     const appliesProducts = c.applies_to?.products || null; // array of product IDs (if present)
 
     for(const li of items){
-      const pr = byId.get(li.price);
-      if(!pr || typeof pr.unit_amount !== 'number') continue;
+      let unit = 0;
+      let productId = null;
+      
+      // Use frontend provided amount if available (for dynamic pricing)
+      if(li.unit_amount !== undefined){
+        unit = Number(li.unit_amount);
+        // Try to get product ID from price object if available
+        if(li.price && li.price !== 'custom'){
+             const pr = byId.get(li.price);
+             if(pr && pr.product) productId = typeof pr.product === 'object' ? pr.product.id : pr.product;
+        }
+      } else {
+          const pr = byId.get(li.price);
+          if(!pr || typeof pr.unit_amount !== 'number') continue;
+          unit = pr.unit_amount;
+          productId = pr.product && typeof pr.product === 'object' ? pr.product.id : pr.product;
+      }
+
       const qty = Number(li.quantity||1) || 1;
-      const line = pr.unit_amount * qty;
+      const line = unit * qty;
       subtotal += line;
-      const productId = pr.product && typeof pr.product === 'object' ? pr.product.id : pr.product;
+      
       if(!appliesProducts || (Array.isArray(appliesProducts) && appliesProducts.includes(productId))){
         qualifyingSubtotal += line;
       }
