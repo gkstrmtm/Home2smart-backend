@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY  // Use service role to bypass RLS
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY // Fallback for local testing
 );
 
 export const config = {
@@ -230,12 +230,26 @@ export default async function handler(req, res) {
         const customerName = order.customer_name || order.name || order.customer_email || 'Customer';
         const jobDescription = `${serviceName} for ${customerName}`;
         
-        // Support both old (address/city/state/zip) and new (service_address/service_city/etc) column names
-        const address = order.service_address || order.address || null;
-        const city = order.service_city || order.city || null;
-        const state = order.service_state || order.state || null;
-        const zip = order.service_zip || order.zip || null;
-        const phone = order.customer_phone || order.phone || null;
+        // Extract metadata (contains service_address, service_city, service_state, service_zip from checkout)
+        let orderMetadata = {};
+        try {
+          if (order.metadata && typeof order.metadata === 'object') {
+            orderMetadata = order.metadata;
+          } else if (order.metadata_json && typeof order.metadata_json === 'string') {
+            orderMetadata = JSON.parse(order.metadata_json);
+          } else if (order.metadata_json && typeof order.metadata_json === 'object') {
+            orderMetadata = order.metadata_json;
+          }
+        } catch (e) {
+          console.warn('[create_jobs] Could not parse order metadata:', e.message);
+        }
+        
+        // Support both metadata fields and legacy top-level columns
+        const address = orderMetadata.service_address || order.service_address || order.address || null;
+        const city = orderMetadata.service_city || order.service_city || order.city || null;
+        const state = orderMetadata.service_state || order.service_state || order.state || null;
+        const zip = orderMetadata.service_zip || order.service_zip || order.zip || null;
+        const phone = orderMetadata.customer_phone || order.customer_phone || order.phone || null;
         
         // 🌍 GEOCODE ADDRESS TO COORDINATES for dispatch routing
         console.log(`[create_jobs] Geocoding job for order ${order.order_id}`);
@@ -247,6 +261,40 @@ export default async function handler(req, res) {
           console.log(`[create_jobs] ⚠️ Could not geocode address: ${address}, ${city}, ${state}`);
         } else {
           console.log(`[create_jobs] ⚠️ No address provided for order ${order.order_id}`);
+        }
+
+        // 👤 ENSURE CUSTOMER PROFILE EXISTS
+        // We upsert into h2s_users to ensure we have a profile for this customer
+        if (order.customer_email) {
+          try {
+            // Check if user exists first to get ID, or generate new one
+            const { data: existingUser } = await supabase
+              .from('h2s_users')
+              .select('user_id')
+              .eq('email', order.customer_email)
+              .single();
+
+            const userId = existingUser?.user_id || crypto.randomUUID();
+
+            const { error: userError } = await supabase
+              .from('h2s_users')
+              .upsert({
+                user_id: userId, // Ensure ID is provided
+                email: order.customer_email,
+                full_name: customerName,
+                phone: phone,
+                // Don't overwrite existing data if not necessary, but ensure record exists
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'email' });
+              
+            if (userError) {
+              console.warn('[create_jobs] Failed to upsert user profile:', userError.message);
+            } else {
+              console.log('[create_jobs] ✅ Customer profile verified/created for:', order.customer_email);
+            }
+          } catch (e) {
+            console.warn('[create_jobs] User profile sync error:', e.message);
+          }
         }
         
         // Build resources list from items JSON if available
@@ -260,6 +308,65 @@ export default async function handler(req, res) {
         } else {
           resourcesList = `${qty}x ${serviceName}`;
         }
+
+        // Calculate Estimated Payout (Optimized for Fairness & Conversion)
+        // Logic: 
+        // 1. Try to find exact DB rule (future proofing)
+        // 2. Fallback to Percentage of Order Value (Fairness)
+        // 3. Enforce Floor ($35) and Cap (80%)
+        let estimatedPayout = 0;
+        
+        // Use subtotal (pre-discount) for payout calculation so promos don't reduce pro earnings
+        // Fallback to total if subtotal doesn't exist (backward compatibility)
+        const orderSubtotal = parseFloat(order.subtotal || order.total || 0);
+        const orderTotal = parseFloat(order.total || 0);
+        
+        console.log(`[create_jobs] Order financials - Subtotal: $${orderSubtotal}, Total: $${orderTotal}`);
+        
+        // Try to find service ID and Qty from parsed items if top-level is missing or generic
+        let effectiveServiceId = serviceIdText;
+        let effectiveQty = qty;
+
+        if ((!effectiveServiceId || parsedItems.length > 0) && parsedItems.length > 0) {
+          effectiveServiceId = parsedItems[0].service_id || parsedItems[0].service_name || effectiveServiceId;
+          effectiveQty = parsedItems[0].qty || effectiveQty;
+        }
+        
+        // HEURISTIC: 60% of Customer Subtotal (pre-discount amount for fairness)
+        // This ensures pros get a fair share even when promotions are applied
+        let basePayout = Math.floor(orderSubtotal * 0.60);
+        
+        // Adjust for specific known high-labor items if order total is low/missing
+        const serviceLower = (effectiveServiceId || '').toLowerCase();
+        if (basePayout < 45 && serviceLower.includes('mount')) {
+           basePayout = 45 * effectiveQty; // Minimum standard for mounting
+        }
+        
+        // Apply Floor and Cap
+        const MIN_PAYOUT = 35; // Minimum to roll a truck
+        const MAX_PAYOUT_PCT = 0.80; // Max 80% to ensure business margin
+        
+        estimatedPayout = Math.max(MIN_PAYOUT, basePayout);
+        // Cap at 80% of subtotal (not total) to maintain margin even with promos
+        if (orderSubtotal > 0) {
+            estimatedPayout = Math.min(estimatedPayout, orderSubtotal * MAX_PAYOUT_PCT);
+        }
+        
+        // Round to 2 decimals
+        estimatedPayout = Math.round(estimatedPayout * 100) / 100;
+        
+        console.log(`[create_jobs] Payout Calculated: $${estimatedPayout} (Order: $${orderTotal})`);
+
+        // Extract metadata from order
+        const orderMeta = order.metadata_json || {};
+        const jobMetadata = {
+          source: 'shop_order',
+          order_id: order.order_id,
+          referral_code: orderMeta.referral_code || null,
+          referrer_email: orderMeta.referrer_email || null,
+          estimated_payout: estimatedPayout,
+          items_json: parsedItems
+        };
         
         // Create job matching actual h2s_dispatch_jobs schema
         const jobData = {
@@ -278,7 +385,8 @@ export default async function handler(req, res) {
           start_iso: null,
           end_iso: null,
           geo_lat: lat,   // ✅ REAL COORDINATES from Google Maps
-          geo_lng: lng    // ✅ REAL COORDINATES from Google Maps
+          geo_lng: lng,    // ✅ REAL COORDINATES from Google Maps
+          metadata: jobMetadata // Store rich data
         };
 
         const { data: newJob, error: jobError } = await supabase
@@ -300,6 +408,34 @@ export default async function handler(req, res) {
           });
         } else {
           console.log('[create_jobs_from_orders] ✅ Job created:', newJob.job_id);
+          
+          // 🔥 CREATE JOB LINE ITEM WITH PAYOUT DATA
+          // This is the missing piece - persist payout amount as queryable line item
+          try {
+            const { error: lineError } = await supabase
+              .from('h2s_dispatch_job_lines')
+              .insert({
+                job_id: newJob.job_id,
+                service_id: null, // Schema expects UUID, serviceIdText is often a string - set NULL
+                variant_code: optionId || serviceIdText || 'STANDARD',
+                qty: effectiveQty,
+                unit_customer_price: orderTotal > 0 ? Math.round((orderTotal / effectiveQty) * 100) / 100 : 0,
+                line_customer_total: orderTotal,
+                calc_pro_payout_total: estimatedPayout, // 💰 THE MONEY FIELD
+                note: `Auto-generated from order ${order.order_id}`,
+                order_id: order.order_id,
+                created_at: order.created_at
+              });
+            
+            if (lineError) {
+              console.warn('[create_jobs_from_orders] ⚠️ Failed to create job line:', lineError.message);
+            } else {
+              console.log('[create_jobs_from_orders] ✅ Job line created with payout: $' + estimatedPayout);
+            }
+          } catch (lineErr) {
+            console.warn('[create_jobs_from_orders] Job line creation error:', lineErr.message);
+          }
+          
           results.jobs_created++;
           results.details.push({
             order_id: order.order_id,
@@ -309,7 +445,8 @@ export default async function handler(req, res) {
             service: serviceIdText,
             address: address ? `${address}, ${city}, ${state} ${zip}` : null,
             description: jobDescription,
-            items: dataRows.length || 1
+            items: dataRows.length || 1,
+            payout: estimatedPayout // Include in response
           });
         }
 

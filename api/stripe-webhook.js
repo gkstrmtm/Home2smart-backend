@@ -48,28 +48,56 @@ export default async function handler(req, res) {
       const customerPhone = session.metadata?.customer_phone || '';
       const customerEmail = session.customer_email || '';
 
-      // Save order to database
-      const { data: order, error: orderError } = await supabase
+      // Check if order exists
+      const { data: existingOrder } = await supabase
         .from('h2s_orders')
-        .insert({
-          stripe_session_id: session.id,
-          stripe_payment_intent: session.payment_intent,
-          customer_email: customerEmail,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          amount_total: session.amount_total,
-          currency: session.currency,
-          status: 'pending',
-          metadata: session.metadata,
-          created_at: new Date().toISOString()
-        })
         .select('order_id')
+        .eq('stripe_session_id', session.id)
         .single();
 
-      if (orderError) {
-        console.error('[Stripe Webhook] Failed to save order:', orderError);
+      let order;
+      
+      if (existingOrder) {
+         // Update existing
+         const { data: updated, error: updateError } = await supabase
+            .from('h2s_orders')
+            .update({
+               payment_intent_id: session.payment_intent,
+               status: 'paid',
+               metadata: session.metadata
+            })
+            .eq('order_id', existingOrder.order_id)
+            .select('order_id')
+            .single();
+         
+         if (updateError) console.error('[Stripe Webhook] Failed to update order:', updateError);
+         else console.log('[Stripe Webhook] Updated existing order:', updated.order_id);
+         
+         order = updated || existingOrder;
       } else {
-        console.log('[Stripe Webhook] Order saved:', order.order_id);
+         // Insert new (fallback)
+         const { data: inserted, error: insertError } = await supabase
+            .from('h2s_orders')
+            .insert({
+              stripe_session_id: session.id,
+              payment_intent_id: session.payment_intent,
+              customer_email: customerEmail,
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              subtotal: (session.amount_subtotal || session.amount_total) / 100, // Pre-discount amount
+              total: session.amount_total / 100, // Final amount paid (after discounts)
+              currency: session.currency,
+              status: 'pending',
+              metadata: session.metadata,
+              created_at: new Date().toISOString()
+            })
+            .select('order_id')
+            .single();
+
+         if (insertError) console.error('[Stripe Webhook] Failed to save order:', insertError);
+         else console.log('[Stripe Webhook] Order saved:', inserted?.order_id);
+         
+         order = inserted;
       }
 
       // Prepare customer data for notifications
@@ -149,6 +177,63 @@ export default async function handler(req, res) {
           // Don't fail the webhook if email fails
         }
       }
+
+      // === REWARDS SYSTEM ===
+      try {
+        const amountPaid = session.amount_total / 100;
+        const pointsEarned = Math.floor(amountPaid / 10); // 1 point per $10
+        
+        if (pointsEarned > 0 && customerEmail) {
+          // 1. Credit the buyer
+          const { data: user, error: userErr } = await supabase
+            .from('h2s_users')
+            .select('points_balance, total_spent')
+            .eq('email', customerEmail)
+            .single();
+            
+          if (user) {
+            const newBalance = (Number(user.points_balance) || 0) + pointsEarned;
+            const newTotal = (Number(user.total_spent) || 0) + amountPaid;
+            
+            await supabase
+              .from('h2s_users')
+              .update({ 
+                points_balance: newBalance,
+                total_spent: newTotal
+              })
+              .eq('email', customerEmail);
+              
+            console.log(`[Rewards] Awarded ${pointsEarned} points to ${customerEmail}`);
+          }
+        }
+        
+        // 2. Handle Referral (if applicable)
+        // If metadata contains 'referral_code', credit the referrer
+        const refCode = session.metadata?.referral_code;
+        if (refCode) {
+           const { data: referrer } = await supabase
+             .from('h2s_users')
+             .select('email, points_balance')
+             .eq('referral_code', refCode)
+             .single();
+             
+           if (referrer && referrer.email !== customerEmail) {
+             // Award referrer (e.g. flat 50 points or % based)
+             const referralBonus = 50; 
+             const newRefBalance = (Number(referrer.points_balance) || 0) + referralBonus;
+             
+             await supabase
+               .from('h2s_users')
+               .update({ points_balance: newRefBalance })
+               .eq('email', referrer.email);
+               
+             console.log(`[Rewards] Awarded ${referralBonus} referral points to ${referrer.email}`);
+           }
+        }
+      } catch (rewardErr) {
+        console.error('[Rewards] Failed to process rewards:', rewardErr);
+        // Don't fail the webhook
+      }
     }
 
     // Handle payment_intent.succeeded
@@ -163,7 +248,7 @@ export default async function handler(req, res) {
           status: 'paid',
           payment_status: 'succeeded'
         })
-        .eq('stripe_payment_intent', paymentIntent.id);
+        .eq('payment_intent_id', paymentIntent.id);
     }
 
     // Handle payment_intent.payment_failed
@@ -177,7 +262,7 @@ export default async function handler(req, res) {
           status: 'failed',
           payment_status: 'failed'
         })
-        .eq('stripe_payment_intent', paymentIntent.id);
+        .eq('payment_intent_id', paymentIntent.id);
     }
 
     return res.status(200).json({ received: true });
