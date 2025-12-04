@@ -4268,10 +4268,29 @@ async function updatePromoEstimate(){
 
     // Build line_items from current cart (packages only for now)
     const line_items = (cart||[]).map(item => {
-      if(item.type !== 'package') return null;
-      const bundle = (catalog?.bundles||[]).find(b => b.bundle_id === item.id);
-      if(!bundle || !bundle.stripe_price_id) return null;
-      return { price: bundle.stripe_price_id, quantity: item.qty || 1 };
+      // FIX: Accept both 'package' and 'bundle' types
+      if(item.type !== 'package' && item.type !== 'bundle') return null;
+      
+      const bundle = (catalog?.bundles||[]).find(b => b.bundle_id === (item.bundle_id || item.id));
+      
+      // FIX: Allow items without stripe_price_id if they have a price (for custom/legacy items)
+      const priceId = bundle?.stripe_price_id || 'custom';
+      
+      // Calculate unit amount (cents)
+      let unitAmount = 0;
+      
+      // FIX: Check for dynamic pricing override (use cart price instead of catalog price)
+      const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id || item.bundle_id);
+      
+      if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null) {
+        unitAmount = Math.round(Number(bundle.bundle_price) * 100);
+      } else {
+        unitAmount = Math.round(Number(item.price || 0) * 100);
+      }
+      
+      if(!priceId && !unitAmount) return null;
+      
+      return { price: priceId, unit_amount: unitAmount, quantity: item.qty || 1 };
     }).filter(Boolean);
     if(!line_items.length){ promoLine.style.display = 'none'; return; }
 
@@ -5204,6 +5223,18 @@ window.handleCalReturn = async function(){
     if(!startIso){
       throw new Error('Missing appointment time.');
     }
+
+    // Validate date (Must be at least tomorrow)
+    const apptDate = new Date(startIso);
+    const today = new Date();
+    
+    // Normalize to midnight for date-only comparison
+    apptDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (apptDate <= today) {
+      throw new Error('Appointments must be scheduled at least 1 day in advance. Please choose a later date.');
+    }
     
     const res = await fetch(APIV1, {
       method:'POST',
@@ -5242,11 +5273,18 @@ window.handleCalReturn = async function(){
     
   }catch(err){
     console.error('❌ Appointment save failed:', err);
+    
+    // If we have an order ID, allow retrying the schedule
+    const orderId = getParam('order_id') || getParam('session_id');
+    const retryBtn = orderId 
+      ? `<button class="btn btn-primary" onclick="navSet({view:'shopsuccess', order_id:'${escapeAttr(orderId)}'})" style="margin-top: 24px;">Pick a Different Date</button>`
+      : `<button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>`;
+
     byId('outlet').innerHTML = `
       <section class="form" style="text-align: center;">
         <h2 style="margin:0 0 10px 0;font-weight:900; color: #d32f2f;">Booking Failed</h2>
         <p class="help" style="color: var(--muted);">${escapeHtml(err.message)}</p>
-        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+        ${retryBtn}
       </section>
     `;
   }
@@ -5292,7 +5330,14 @@ window.renderSignIn = function(){
       if(!resp.ok){ showMsg('siMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('siMsg', data.error||'Sign in failed'); return; }
-      user = { name:data.user.name||'', email:data.user.email, phone:data.user.phone||'' };
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('Login', { user_email: user.email });
@@ -5352,7 +5397,14 @@ window.renderSignUp = function(){
       if(!resp.ok){ showMsg('suMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('suMsg', data.error||'Create failed'); return; }
-      user = {name:data.user.name||'', email:data.user.email, phone:data.user.phone||''};
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('CompleteRegistration', { user_email: user.email, user_name: user.name });
@@ -5542,7 +5594,7 @@ window.renderAccount = function(){
       if(!resp.ok){ showMsg('acMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('acMsg', data.error||'Save failed'); return; }
-      user = { ...user, name:data.user.name||'', phone:data.user.phone||'' };
+      user = { ...user, ...data.user };
       saveUser();
       showMsg('acMsg','✓ Saved successfully.');
     }catch(err){ showMsg('acMsg', String(err)); }

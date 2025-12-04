@@ -170,14 +170,31 @@ export default async function handler(req, res) {
       const customerName = order.customer_name || order.name || order.customer_email || 'Customer';
       const jobDescription = `${serviceName} for ${customerName}`;
 
-      // Get address (support both old and new column names)
-      const address = order.service_address || order.address || null;
-      const city = order.service_city || order.city || null;
-      const state = order.service_state || order.state || null;
-      const zip = order.service_zip || order.zip || null;
+      // Get address from Order OR Stripe Session
+      let stripeAddress = session.shipping_details?.address || session.customer_details?.address;
+      
+      const address = order.service_address || order.address || stripeAddress?.line1 || null;
+      const city = order.service_city || order.city || stripeAddress?.city || null;
+      const state = order.service_state || order.state || stripeAddress?.state || null;
+      const zip = order.service_zip || order.zip || stripeAddress?.postal_code || null;
+
+      // Update Order if address was missing but found in Stripe Session
+      if ((!order.address && !order.service_address) && address) {
+          console.log('[webhook] Updating order with address from Stripe Session');
+          await supabase.from('h2s_orders').update({
+              address: address,
+              city: city,
+              state: state,
+              zip: zip,
+              service_address: address,
+              service_city: city,
+              service_state: state,
+              service_zip: zip
+          }).eq('order_id', orderId);
+      }
 
       // Geocode address
-      console.log('[webhook] Geocoding address...');
+      console.log('[webhook] Geocoding address:', address, city);
       const { lat, lng, geocoded } = await geocodeAddress(address, city, state, zip);
       
       if (geocoded) {
@@ -185,6 +202,32 @@ export default async function handler(req, res) {
       } else {
         console.log('[webhook] ⚠️ Geocoding failed or no address');
       }
+
+      // Calculate Estimated Payout (Optimized for Fairness & Conversion)
+      let estimatedPayout = 0;
+      const orderTotal = parseFloat(order.total || session.amount_total / 100 || 0);
+      
+      // HEURISTIC: 60% of Customer Total (Fairness Baseline)
+      let basePayout = Math.floor(orderTotal * 0.60);
+      
+      // Adjust for specific known high-labor items
+      const serviceLower = (serviceIdText || '').toLowerCase();
+      if (basePayout < 45 && serviceLower.includes('mount')) {
+         basePayout = 45 * qty; // Minimum standard for mounting
+      }
+      
+      // Apply Floor and Cap
+      const MIN_PAYOUT = 35; // Minimum to roll a truck
+      const MAX_PAYOUT_PCT = 0.80; // Max 80% to ensure business margin
+      
+      estimatedPayout = Math.max(MIN_PAYOUT, basePayout);
+      if (orderTotal > 0) {
+          estimatedPayout = Math.min(estimatedPayout, orderTotal * MAX_PAYOUT_PCT);
+      }
+      
+      // Round to 2 decimals
+      estimatedPayout = Math.round(estimatedPayout * 100) / 100;
+      console.log(`[webhook] Payout Calculated: $${estimatedPayout} (Order: $${orderTotal})`);
 
       // Build resources list
       let resourcesList = '';
@@ -215,7 +258,13 @@ export default async function handler(req, res) {
         start_iso: null,
         end_iso: null,
         geo_lat: lat,
-        geo_lng: lng
+        geo_lng: lng,
+        metadata: {
+            source: 'stripe_webhook',
+            estimated_payout: estimatedPayout,
+            order_id: orderId,
+            stripe_session_id: session.id
+        }
       };
 
       const { data: newJob, error: jobError } = await supabase

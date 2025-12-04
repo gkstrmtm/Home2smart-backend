@@ -185,6 +185,7 @@ function showCheckoutForm(){
           <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: var(--ink);">Phone Number *</label>
           <input type="tel" id="checkoutPhone" class="inp" placeholder="(864) 123-4567" style="width: 100%;" required>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">For installation appointment coordination</div>
+          <div style="font-size: 10px; color: #9ca3af; margin-top: 6px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
         </div>
         
         <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;">
@@ -825,7 +826,14 @@ window.renderSignIn = function(){
       if(!resp.ok){ showMsg('siMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('siMsg', data.error||'Sign in failed'); return; }
-      user = { name:data.user.name||'', email:data.user.email, phone:data.user.phone||'' };
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('Login', { user_email: user.email });
@@ -850,6 +858,7 @@ window.renderSignUp = function(){
       <input class="inp" id="suName"  type="text"  placeholder="Full name" value="${escapeAttr(seed.name||'')}" autocomplete="name">
       <input class="inp" id="suEmail" type="email" placeholder="Email address" value="${escapeAttr(seed.email||'')}" autocomplete="email">
       <input class="inp" id="suPhone" type="tel"   placeholder="Phone number" value="${escapeAttr(seed.phone||'')}" autocomplete="tel">
+      <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; margin-bottom: 12px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
       <input class="inp" id="suPass"  type="password" placeholder="Password (min 8 characters)" autocomplete="new-password">
       <input class="inp" id="suPass2" type="password" placeholder="Confirm password" autocomplete="new-password">
       <div class="help" style="text-align:center; color:var(--text-muted); margin-top:8px;">Secure checkout, order tracking, and rewards</div>
@@ -885,7 +894,14 @@ window.renderSignUp = function(){
       if(!resp.ok){ showMsg('suMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('suMsg', data.error||'Create failed'); return; }
-      user = {name:data.user.name||'', email:data.user.email, phone:data.user.phone||''};
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('CompleteRegistration', { user_email: user.email, user_name: user.name });
@@ -1016,6 +1032,7 @@ window.renderAccount = function(){
       <input class="inp" id="acName"  type="text"  placeholder="Full name" value="${escapeAttr(user.name||'')}">
       <input class="inp" id="acEmail" type="email" placeholder="Email" value="${escapeAttr(user.email||'')}" disabled>
       <input class="inp" id="acPhone" type="tel"   placeholder="Phone" value="${escapeAttr(user.phone||'')}">
+      <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
       <div style="display:flex; gap:12px; margin-top:24px; flex-direction:column;">
         <button class="btn btn-primary" id="saveAcct" style="width:100%;">Save changes</button>
         <div style="display:flex; gap:8px;">
@@ -1075,7 +1092,7 @@ window.renderAccount = function(){
       if(!resp.ok){ showMsg('acMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('acMsg', data.error||'Save failed'); return; }
-      user = { ...user, name:data.user.name||'', phone:data.user.phone||'' };
+      user = { ...user, ...data.user };
       saveUser();
       showMsg('acMsg','✓ Saved successfully.');
     }catch(err){ showMsg('acMsg', String(err)); }

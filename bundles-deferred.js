@@ -737,6 +737,18 @@ window.handleCalReturn = async function(){
     if(!startIso){
       throw new Error('Missing appointment time.');
     }
+
+    // Validate date (Must be at least tomorrow)
+    const apptDate = new Date(startIso);
+    const today = new Date();
+    
+    // Normalize to midnight for date-only comparison
+    apptDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (apptDate <= today) {
+      throw new Error('Appointments must be scheduled at least 1 day in advance. Please choose a later date.');
+    }
     
     const res = await fetch(APIV1, {
       method:'POST',
@@ -775,11 +787,18 @@ window.handleCalReturn = async function(){
     
   }catch(err){
     console.error('❌ Appointment save failed:', err);
+    
+    // If we have an order ID, allow retrying the schedule
+    const orderId = getParam('order_id') || getParam('session_id');
+    const retryBtn = orderId 
+      ? `<button class="btn btn-primary" onclick="navSet({view:'shopsuccess', order_id:'${escapeAttr(orderId)}'})" style="margin-top: 24px;">Pick a Different Date</button>`
+      : `<button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>`;
+
     byId('outlet').innerHTML = `
       <section class="form" style="text-align: center;">
         <h2 style="margin:0 0 10px 0;font-weight:900; color: #d32f2f;">Booking Failed</h2>
         <p class="help" style="color: var(--muted);">${escapeHtml(err.message)}</p>
-        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+        ${retryBtn}
       </section>
     `;
   }

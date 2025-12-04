@@ -37,7 +37,6 @@
 <!-- Preload logo for faster LCP -->
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="dns-prefetch" href="https://js.stripe.com">
 
 <!-- Critical Fonts -->
 <!-- Fonts loaded async to avoid render-blocking -->
@@ -2497,7 +2496,7 @@ body.app-ready #outlet > * {
   </div>
   <nav class="menu-body">
     <div class="menu-nav">
-      <a href="/" class="menu-link">Home</a>
+      <a href="/bundles" class="menu-link">Home</a>
       <button class="menu-link" onclick="scrollToSection('tv'); toggleMenu();">TV Mounting</button>
       <button class="menu-link" onclick="scrollToSection('security'); toggleMenu();">Security Cameras</button>
       <button class="menu-link" onclick="openBooking(); toggleMenu();">Schedule Appointment</button>
@@ -2565,8 +2564,21 @@ body.app-ready #outlet > * {
         <span id="cartItemCount">0 items</span>
         <span></span>
       </div>
-      <div class="kv" style="padding-top: 8px; border-top: 1px solid var(--border);">
+      
+      <!-- Raw Subtotal (Visible when promo is active) -->
+      <div id="rawSubtotalLine" class="kv" style="font-size: 14px; color: var(--ink); display: none;">
         <span>Subtotal</span>
+        <span id="rawSubtotalAmount">$0.00</span>
+      </div>
+
+      <!-- Promo Discount Line -->
+      <div id="promoLine" class="kv" style="font-size: 14px; color: #059669; display: none;">
+        <span id="promoLineLabel">Promo</span>
+        <span id="promoAmount">-$0.00</span>
+      </div>
+
+      <div class="kv" style="padding-top: 8px; border-top: 1px solid var(--border);">
+        <span id="totalLabel">Subtotal</span>
         <strong id="cartSubtotal">$0.00</strong>
       </div>
       <div class="note">Final tax and fees shown at checkout.</div>
@@ -2606,6 +2618,40 @@ body.app-ready #outlet > * {
       </div>
       
       <div style="display: grid; gap: 16px;">
+        <!-- Smart Inputs for Intelligence -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Project Type</label>
+            <select id="quoteType" class="inp" style="width:100%;" onchange="updateQuoteEstimate()">
+              <option value="tv">TV Mounting</option>
+              <option value="camera">Security Cameras</option>
+              <option value="both">Both / Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Quantity</label>
+            <input type="number" id="quoteQty" class="inp" style="width:100%;" value="1" min="1" onchange="updateQuoteEstimate()" oninput="updateQuoteEstimate()">
+          </div>
+        </div>
+
+        <div>
+          <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Surface / Complexity</label>
+          <select id="quoteSurface" class="inp" style="width:100%;" onchange="updateQuoteEstimate()">
+            <option value="standard">Standard (Drywall/Wood)</option>
+            <option value="brick">Brick / Stone (+$50/ea)</option>
+            <option value="commercial">Commercial / High Ceilings (Custom)</option>
+          </select>
+        </div>
+
+        <!-- Live Estimate Box -->
+        <div id="quoteEstimateBox" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px; border-radius: 8px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Estimated Range</div>
+            <div style="font-size:11px; color:#15803d;">Includes labor & basic materials</div>
+          </div>
+          <div id="quoteEstimateValue" style="font-size:18px; font-weight:800; color:#166534;">$150 - $200</div>
+        </div>
+
         <div>
           <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Your Name *</label>
           <input type="text" id="quoteName" class="inp" placeholder="John Smith" style="width: 100%;" required>
@@ -2619,11 +2665,12 @@ body.app-ready #outlet > * {
         <div>
           <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Phone *</label>
           <input type="tel" id="quotePhone" class="inp" placeholder="(864) 528-1475" style="width: 100%;" required>
+          <div style="font-size: 10px; color: #9ca3af; margin-top: 6px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
         </div>
         
         <div>
-          <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Project Details</label>
-          <textarea id="quoteDetails" class="inp" placeholder="Tell us about your project..." style="width: 100%; min-height: 100px; resize: vertical; font-family: inherit;"></textarea>
+          <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px;">Additional Details</label>
+          <textarea id="quoteDetails" class="inp" placeholder="Any specific requirements?" style="width: 100%; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
         </div>
         
         <div id="quoteMessage" class="help" style="margin-top: 4px;"></div>
@@ -2876,11 +2923,17 @@ function h2sTrack(event, data={}){
     fbq('track', event, data, params);
   }
   
-  // Send to dashboard webhook
-  fetch(DASH_URL, {
-    method:'POST',
-    body: JSON.stringify(payload)
-  }).catch(err => console.warn('Dashboard track failed:', err));
+  // Send to dashboard webhook (use Beacon if available for non-blocking)
+  const blob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
+  if(navigator.sendBeacon){
+    navigator.sendBeacon(DASH_URL, blob);
+  } else {
+    fetch(DASH_URL, {
+      method:'POST',
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(err => console.warn('Dashboard track failed:', err));
+  }
 }
 
 async function sha256(text){
@@ -3364,6 +3417,92 @@ function safeCloseQuoteModal(){
   if(typeof window.closeQuoteModal === 'function') window.closeQuoteModal();
 }
 
+async function submitQuoteRequest(){
+  const name = document.getElementById('quoteName')?.value.trim() || '';
+  const email = document.getElementById('quoteEmail')?.value.trim() || '';
+  const phone = document.getElementById('quotePhone')?.value.trim() || '';
+  const details = document.getElementById('quoteDetails')?.value.trim() || '';
+  const msg = document.getElementById('quoteMessage');
+  const btn = document.getElementById('submitQuoteBtn');
+  const modal = document.getElementById('quoteModal');
+  const packageId = modal?.dataset.packageId || 'unknown';
+  
+  if (!msg || !btn) return;
+  
+  // Validation
+  if (!name) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your name';
+    return;
+  }
+  
+  if (!email || !email.includes('@')) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter a valid email address';
+    return;
+  }
+  
+  if (!phone) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your phone number';
+    return;
+  }
+  
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  msg.textContent = '';
+  
+  try {
+    // Send to Vercel backend (saves to Supabase + sends notifications)
+    const quoteEndpoint = API.replace('/api/shop', '/api/quote');
+    
+    const response = await fetch(quoteEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        details,
+        package_type: packageId,
+        source: '/shop',
+        timestamp: new Date().toISOString()
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.ok) {
+      // Success
+      msg.style.color = '#2e7d32';
+      msg.textContent = '✓ Request sent! We\'ll contact you within 1 hour.';
+      
+      // Track event
+      h2sTrack('QuoteRequested', {
+        package_type: packageId,
+        customer_email: email,
+        quote_id: data.quote_id
+      });
+      
+      console.log('[Quote] Successfully submitted:', data.quote_id);
+      
+      // Close after 2 seconds
+      setTimeout(() => {
+        safeCloseQuoteModal();
+      }, 2000);
+    } else {
+      throw new Error(data.error || 'Server error');
+    }
+  } catch (error) {
+    console.error('Quote request failed:', error);
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Failed to send. Please call us at (864) 528-1475';
+    btn.disabled = false;
+    btn.textContent = 'Send Request';
+  }
+}
+
 // === PACKAGE SELECTION ===
 let currentPackage = null;
 
@@ -3838,6 +3977,26 @@ function loadCart(){
   }
 }
 
+// Force reload cart from storage when page becomes visible (handles Back button)
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    console.log('[PageShow] Page restored from bfcache, reloading cart...');
+    cart = loadCart();
+    updateCartBadge();
+    paintCart();
+  }
+});
+
+// Also listen for storage events (if cart changes in another tab)
+window.addEventListener('storage', (e) => {
+  if (e.key === 'h2s_cart') {
+    console.log('[Storage] Cart updated in another tab, reloading...');
+    cart = loadCart();
+    updateCartBadge();
+    paintCart();
+  }
+});
+
 function updateQuantity(idx, delta){
   if(!cart[idx]) return;
   
@@ -4261,7 +4420,9 @@ function paintCart(){
     let itemPrice = Number(item.price||0);
     if(item.type === 'package'){
       const bundle = catalog.bundles?.find(b => b.bundle_id === item.id);
-      if(bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null){
+      // Skip override for tv_multi, cam_basic, cam_standard, cam_premium to respect dynamic pricing
+      const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id);
+      if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null){
         itemPrice = Number(bundle.bundle_price || itemPrice || 0);
       }
     }
@@ -4335,6 +4496,10 @@ function paintCart(){
   subtotal.textContent = money(cartSubtotalVal);
   if(itemCount) itemCount.textContent = `${totalQty} item${totalQty === 1 ? '' : 's'}`;
   
+  // Reset raw subtotal line if it exists (will be re-enabled by updatePromoEstimate if needed)
+  const rawLine = byId('rawSubtotalLine');
+  if(rawLine) rawLine.style.display = 'none';
+  
   renderSigninState();
 
   // Promo code wiring (validate via backend and persist)
@@ -4402,34 +4567,92 @@ async function updatePromoEstimate(){
     const promoLine = byId('promoLine');
     const promoAmount = byId('promoAmount');
     const promoMsg = byId('promoMsg');
+    const cartSubtotal = byId('cartSubtotal');
+    const totalLabel = byId('totalLabel');
+    const rawLine = byId('rawSubtotalLine');
+    const rawAmount = byId('rawSubtotalAmount');
+    
     if(!promoLine || !promoAmount) return;
+    
+    // Reset to default state first
+    if(totalLabel) totalLabel.textContent = 'Subtotal';
+    if(rawLine) rawLine.style.display = 'none';
+    // We don't reset cartSubtotal here because paintCart sets it to the raw sum
+    
     const code = localStorage.getItem('h2s_promo_code') || '';
     if(!code){ promoLine.style.display = 'none'; return; }
 
     // Build line_items from current cart (packages only for now)
     const line_items = (cart||[]).map(item => {
-      if(item.type !== 'package') return null;
-      const bundle = (catalog?.bundles||[]).find(b => b.bundle_id === item.id);
-      if(!bundle || !bundle.stripe_price_id) return null;
-      return { price: bundle.stripe_price_id, quantity: item.qty || 1 };
+      // FIX: Accept both 'package' and 'bundle' types
+      if(item.type !== 'package' && item.type !== 'bundle') return null;
+      
+      const bundle = (catalog?.bundles||[]).find(b => b.bundle_id === (item.bundle_id || item.id));
+      
+      // FIX: Allow items without stripe_price_id if they have a price (for custom/legacy items)
+      const priceId = bundle?.stripe_price_id || 'custom';
+      
+      // Calculate unit amount (cents)
+      let unitAmount = 0;
+      
+      // FIX: Check for dynamic pricing override (use cart price instead of catalog price)
+      const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id || item.bundle_id);
+      
+      if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null) {
+        unitAmount = Math.round(Number(bundle.bundle_price) * 100);
+      } else {
+        unitAmount = Math.round(Number(item.price || 0) * 100);
+      }
+      
+      if(!priceId && !unitAmount) return null;
+      
+      return { price: priceId, unit_amount: unitAmount, quantity: item.qty || 1 };
     }).filter(Boolean);
     if(!line_items.length){ promoLine.style.display = 'none'; return; }
 
     const resp = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __action:'promo_check_cart', promotion_code: code, line_items })});
     const data = await resp.json();
     if(data && data.ok && data.applicable && data.estimate){
-      const cents = Number(data.estimate.savings_cents||0);
-      promoAmount.textContent = '-' + money(cents/100);
+      const savingsCents = Number(data.estimate.savings_cents||0);
+      const totalCents = Number(data.estimate.total_cents||0);
+      
+      promoAmount.textContent = '-' + money(savingsCents/100);
       const label = byId('promoLineLabel');
       if(label) label.textContent = `Promo (${(data.promotion_code||code).toUpperCase()})`;
       promoLine.style.display = '';
+      
+      // Show Raw Subtotal
+      if(rawLine && rawAmount){
+        // Calculate raw subtotal again to be safe
+        let rawTotal = 0;
+        (cart||[]).forEach(item => {
+          let itemPrice = Number(item.price||0);
+          if(item.type === 'package'){
+            const bundle = catalog.bundles?.find(b => b.bundle_id === item.id);
+            const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id);
+            if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null){
+              itemPrice = Number(bundle.bundle_price || itemPrice || 0);
+            }
+          }
+          rawTotal += itemPrice * Number(item.qty||1);
+        });
+        rawAmount.textContent = money(rawTotal);
+        rawLine.style.display = 'flex';
+      }
+      
+      // Update Total
+      if(cartSubtotal) cartSubtotal.textContent = money(totalCents/100);
+      if(totalLabel) totalLabel.textContent = 'Total';
+      
       if(promoMsg){ promoMsg.textContent = '✓ Code will apply at checkout.'; promoMsg.style.color = '#0b6e0b'; }
     } else {
       promoLine.style.display = 'none';
+      if(rawLine) rawLine.style.display = 'none';
       if(promoMsg){ promoMsg.textContent = 'This code does not apply to your current items.'; promoMsg.style.color = '#c33'; }
     }
   }catch(_){
     const promoLine = byId('promoLine'); if(promoLine) promoLine.style.display = 'none';
+    const rawLine = byId('rawSubtotalLine'); if(rawLine) rawLine.style.display = 'none';
   }
 }
 
@@ -4685,6 +4908,7 @@ function showCheckoutModal() {
         <div style="margin-bottom:12px;">
           <label style="display:block; font-weight:600; font-size:14px; margin-bottom:4px; color:var(--ink);">Phone Number</label>
           <input type="tel" id="coPhone" class="inp" required value="${escapeAttr(prePhone)}" placeholder="(864) 528-1475" style="width:100%">
+          <div style="font-size: 10px; color: #9ca3af; margin-top: 6px; line-height: 1.4;">By entering your mobile number, you agree to receive text messages from Home2Smart about your booking, appointment reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.</div>
         </div>
         
         <div style="margin-bottom:12px;">
@@ -5099,6 +5323,7 @@ window.renderShopSuccess = async function(){
   cart = [];
   saveCart();
   localStorage.removeItem('h2s_checkout_snapshot');
+  localStorage.removeItem('h2s_promo_code');
 
   h2sTrack('Purchase', {
     order_id: displayOrderId,
@@ -5480,7 +5705,14 @@ window.renderSignIn = function(){
       if(!resp.ok){ showMsg('siMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('siMsg', data.error||'Sign in failed'); return; }
-      user = { name:data.user.name||'', email:data.user.email, phone:data.user.phone||'' };
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('Login', { user_email: user.email });
@@ -5540,7 +5772,14 @@ window.renderSignUp = function(){
       if(!resp.ok){ showMsg('suMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('suMsg', data.error||'Create failed'); return; }
-      user = {name:data.user.name||'', email:data.user.email, phone:data.user.phone||''};
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
       saveUser();
       loadAIRecommendations();
       h2sTrack('CompleteRegistration', { user_email: user.email, user_name: user.name });
@@ -5730,7 +5969,7 @@ window.renderAccount = function(){
       if(!resp.ok){ showMsg('acMsg', text || ('Error ' + resp.status)); return; }
       const data = JSON.parse(text);
       if(!data.ok){ showMsg('acMsg', data.error||'Save failed'); return; }
-      user = { ...user, name:data.user.name||'', phone:data.user.phone||'' };
+      user = { ...user, ...data.user };
       saveUser();
       showMsg('acMsg','✓ Saved successfully.');
     }catch(err){ showMsg('acMsg', String(err)); }
@@ -5793,15 +6032,40 @@ async function loadOrders(){
     box.innerHTML = orders.map(o=>{
       const oid = o.order_id || o.stripe_session_id || '—';
       const when = o.install_at ? new Date(o.install_at).toLocaleString() : (o.service_date||'');
-      const summary = o.order_summary || '';
+      
+      // Parse and format items
+      let itemsHtml = '';
+      try {
+        let items = o.order_summary;
+        if (typeof items === 'string') {
+          items = JSON.parse(items);
+        }
+        if (Array.isArray(items)) {
+          itemsHtml = '<ul style="margin:0; padding-left:16px; font-size:13px;">' + 
+            items.map(i => `<li>${i.qty||1}× ${escapeHtml(i.service_name || i.name || 'Item')}</li>`).join('') + 
+            '</ul>';
+        } else {
+          itemsHtml = escapeHtml(String(items || ''));
+        }
+      } catch (e) {
+        itemsHtml = escapeHtml(String(o.order_summary || ''));
+      }
+
       const total = (Number(o.order_total)||0);
+      
+      // Schedule Later Logic
+      let dateDisplay = escapeHtml(when||'—');
+      if (!when || when === '—') {
+        dateDisplay = `<button class="btn btn-primary" style="padding:4px 12px; font-size:12px;" onclick="navSet({view:'shopsuccess', order_id:'${o.order_id}'})">Schedule Now</button>`;
+      }
+
       return `
         <div class="pd-box" style="margin-bottom:10px">
           <div class="details-grid">
             <div class="row"><div class="k">Order ID</div><div class="v">${escapeHtml(String(oid))}</div></div>
             <div class="row"><div class="k">Total</div><div class="v">${money(total)}</div></div>
-            <div class="row"><div class="k">Items</div><div class="v">${escapeHtml(summary||'')}</div></div>
-            <div class="row"><div class="k">Service date</div><div class="v">${escapeHtml(when||'—')}</div></div>
+            <div class="row" style="align-items:flex-start"><div class="k" style="margin-top:2px">Items</div><div class="v">${itemsHtml}</div></div>
+            <div class="row"><div class="k">Service date</div><div class="v">${dateDisplay}</div></div>
           </div>
         </div>
       `;
@@ -5818,6 +6082,29 @@ window.requestQuote = function(packageId){
   
   if (!modal || !backdrop) return;
   
+  // Smart Context Setting
+  const typeSelect = document.getElementById('quoteType');
+  if (typeSelect) {
+    // Reset options
+    Array.from(typeSelect.options).forEach(opt => opt.disabled = false);
+
+    if (packageId === 'tv_custom') {
+      typeSelect.value = 'tv';
+      // Disable Camera to enforce context
+      const camOpt = Array.from(typeSelect.options).find(o => o.value === 'camera');
+      if(camOpt) camOpt.disabled = true;
+    } else if (packageId === 'cam_custom') {
+      typeSelect.value = 'camera';
+      // Disable TV to enforce context
+      const tvOpt = Array.from(typeSelect.options).find(o => o.value === 'tv');
+      if(tvOpt) tvOpt.disabled = true;
+    } else {
+      typeSelect.value = 'both';
+    }
+    // Trigger update to refresh price
+    if (typeof window.updateQuoteEstimate === 'function') window.updateQuoteEstimate();
+  }
+
   if (packageId === 'tv_custom') {
     titleEl.textContent = 'Custom TV Mounting Quote';
   } else if (packageId === 'cam_custom') {
@@ -5885,11 +6172,72 @@ window.closeQuoteModal = function(){
   }catch(e){ }
 };
 
+window.updateQuoteEstimate = function() {
+  const type = document.getElementById('quoteType')?.value || 'tv';
+  const qty = parseInt(document.getElementById('quoteQty')?.value) || 1;
+  const surface = document.getElementById('quoteSurface')?.value || 'standard';
+  const estimateBox = document.getElementById('quoteEstimateValue');
+  
+  if (!estimateBox) return;
+
+  // Commercial always custom
+  if (surface === 'commercial') {
+    estimateBox.innerText = "Custom Quote";
+    return;
+  }
+
+  let basePrice = 0;
+  let perItem = 0;
+
+  // Pricing Logic (Congruent with Packages)
+  if (type === 'tv') {
+    // 3 TVs (Multi-Room) = $699. 
+    // Formula: $149 + (3 * $183) = $698.
+    // 5 TVs = $1,064.
+    // 10 TVs = $1,979 (Under double $2,128).
+    basePrice = 149;
+    perItem = 183;
+  } else if (type === 'camera') {
+    // Basic (2 cams + doorbell) = $599.
+    // Standard (4 cams + doorbell) = $1,199.
+    // Premium (8 cams + doorbell) = $2,199.
+    // Custom Quote (Cameras only, no doorbell implied):
+    // 4 Cams = $1,000 ($250/ea).
+    // 8 Cams = $2,000 ($250/ea).
+    // 16 Cams = $4,000 (Under double Premium $4,398).
+    basePrice = 0;
+    perItem = 250;
+  } else {
+    // Mixed/Other
+    basePrice = 199;
+    perItem = 200; 
+  }
+
+  let totalLow = basePrice + (perItem * qty);
+  
+  // Add complexity
+  if (surface === 'brick') {
+    totalLow += (50 * qty);
+  }
+
+  // Range is +15% for buffer
+  let totalHigh = Math.round(totalLow * 1.15);
+
+  estimateBox.innerText = `$${totalLow} - $${totalHigh}`;
+};
+
 window.submitQuoteRequest = async function(){
   const name = document.getElementById('quoteName')?.value.trim() || '';
   const email = document.getElementById('quoteEmail')?.value.trim() || '';
   const phone = document.getElementById('quotePhone')?.value.trim() || '';
   const details = document.getElementById('quoteDetails')?.value.trim() || '';
+  
+  // Smart Fields
+  const type = document.getElementById('quoteType')?.value || 'N/A';
+  const qty = document.getElementById('quoteQty')?.value || 'N/A';
+  const surface = document.getElementById('quoteSurface')?.value || 'N/A';
+  const estimate = document.getElementById('quoteEstimateValue')?.innerText || 'N/A';
+
   const msg = document.getElementById('quoteMessage');
   const btn = document.getElementById('submitQuoteBtn');
   const modal = document.getElementById('quoteModal');
@@ -5922,6 +6270,17 @@ window.submitQuoteRequest = async function(){
   try {
     const quoteEndpoint = API.replace('/api/shop', '/api/quote');
     
+    // Combine smart fields into details
+    const smartDetails = `
+[Smart Quote Data]
+Type: ${type}
+Quantity: ${qty}
+Surface: ${surface}
+Est. Range: ${estimate}
+------------------
+${details}
+    `.trim();
+
     const response = await fetch(quoteEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
