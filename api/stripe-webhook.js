@@ -23,16 +23,12 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    // Read raw body for signature verification
-    const rawBody = await new Promise((resolve) => {
-      let data = '';
-      req.on('data', chunk => {
-        data += chunk;
-      });
-      req.on('end', () => {
-        resolve(Buffer.from(data));
-      });
-    });
+    // Read raw body as Buffer for signature verification
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    const rawBody = Buffer.concat(chunks);
 
     // Verify webhook signature
     let event;
