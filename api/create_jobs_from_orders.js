@@ -412,6 +412,46 @@ export default async function handler(req, res) {
         } else {
           console.log('[create_jobs_from_orders] ✅ Job created:', newJob.job_id);
           
+          // 🔥 AUTO-ASSIGN TO AVAILABLE PROS (so they see it in portal immediately)
+          // Query pros within service radius who are active
+          try {
+            if (lat && lng) {
+              const { data: nearbyPros, error: prosError } = await supabase.rpc('find_pros_in_radius', {
+                p_lat: lat,
+                p_lng: lng,
+                p_radius_miles: 50, // Default search radius
+                p_limit: 10 // Assign to top 10 nearest pros
+              });
+              
+              if (!prosError && nearbyPros && nearbyPros.length > 0) {
+                console.log(`[create_jobs_from_orders] Found ${nearbyPros.length} nearby pros, creating assignments...`);
+                
+                const assignments = nearbyPros.map(pro => ({
+                  job_id: newJob.job_id,
+                  pro_id: pro.pro_id,
+                  state: 'offered', // Show as pending offer in portal
+                  distance_miles: pro.distance_miles,
+                  offer_sent_at: new Date().toISOString(),
+                  created_at: new Date().toISOString()
+                }));
+                
+                const { error: assignError } = await supabase
+                  .from('h2s_dispatch_job_assignments')
+                  .insert(assignments);
+                
+                if (assignError) {
+                  console.warn('[create_jobs_from_orders] ⚠️ Failed to create assignments:', assignError.message);
+                } else {
+                  console.log(`[create_jobs_from_orders] ✅ Created ${assignments.length} job assignments`);
+                }
+              } else {
+                console.warn('[create_jobs_from_orders] ⚠️ No nearby pros found or RPC error:', prosError?.message);
+              }
+            }
+          } catch (assignErr) {
+            console.warn('[create_jobs_from_orders] Assignment creation error:', assignErr.message);
+          }
+          
           // 🔥 CREATE JOB LINE ITEM WITH PAYOUT DATA
           // This is the missing piece - persist payout amount as queryable line item
           try {
