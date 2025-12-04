@@ -220,7 +220,14 @@ export default async function handler(req, res) {
     });
 
     // Categorize jobs based on assignment state
-    const offers = [...jobsWithinRadius]; // Start with ALL available jobs in radius
+    // SMART: Merge assignment data into existing offers to preserve distance_miles from assignments
+    const offersMap = new Map();
+    
+    // First, add all available jobs in radius
+    jobsWithinRadius.forEach(job => {
+      offersMap.set(job.job_id, job);
+    });
+    
     const upcoming = [];
     const completed = [];
 
@@ -228,10 +235,34 @@ export default async function handler(req, res) {
       const assignment = assignmentMap[job.job_id];
       const state = assignment?.state || '';
       
+      // INTELLIGENT: Calculate distance from assignment OR pro location OR job metadata
+      let finalDistance = null;
+      
+      // Priority 1: Use assignment distance (most accurate)
+      if (assignment?.distance_miles != null) {
+        finalDistance = parseFloat(assignment.distance_miles);
+      }
+      // Priority 2: Calculate from pro location if available
+      else if (!isNaN(techLat) && !isNaN(techLng)) {
+        const jobLat = parseFloat(job.geo_lat);
+        const jobLng = parseFloat(job.geo_lng);
+        if (!isNaN(jobLat) && !isNaN(jobLng)) {
+          finalDistance = calculateDistance(techLat, techLng, jobLat, jobLng);
+        }
+      }
+      // Priority 3: Try metadata (if backend stored it)
+      else if (job.metadata?.geo_lat && job.metadata?.geo_lng && !isNaN(techLat) && !isNaN(techLng)) {
+        const jobLat = parseFloat(job.metadata.geo_lat);
+        const jobLng = parseFloat(job.metadata.geo_lng);
+        if (!isNaN(jobLat) && !isNaN(jobLng)) {
+          finalDistance = calculateDistance(techLat, techLng, jobLat, jobLng);
+        }
+      }
+      
       // Add assignment metadata to job
       const jobWithAssignment = {
         ...job,
-        distance_miles: assignment?.distance_miles,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 10) / 10 : null,
         is_primary: assignment?.is_primary,
         responded_at: assignment?.responded_at,
         // Expose payout info
@@ -240,17 +271,16 @@ export default async function handler(req, res) {
       };
       
       if (state === 'offered') {
-        // Don't add to offers if already in jobsWithinRadius
-        const alreadyIncluded = jobsWithinRadius.some(j => j.job_id === job.job_id);
-        if (!alreadyIncluded) {
-          offers.push(jobWithAssignment);
-        }
+        // Update the existing entry with assignment data (preserves distance from assignment)
+        offersMap.set(job.job_id, jobWithAssignment);
       } else if (state === 'accepted') {
         upcoming.push(jobWithAssignment);
       } else if (state === 'completed' || state === 'paid') {
         completed.push(jobWithAssignment);
       }
     });
+    
+    const offers = Array.from(offersMap.values());
     
     console.log('[portal_jobs] Categorized jobs:', { 
       offersCount: offers.length, 

@@ -7289,32 +7289,34 @@ function renderOffersSync(list, box) {
         ${overBy} mi outside your range
       </div>` : '';
 
-    // 💰 Compute upfront payout for this offer (per-tech if team job)
+    // 💰 Use payout from API (metadata.estimated_payout)
     let payoutLabel = 'Estimated payout';
     let payoutAmount = 0;
     try {
-      const p = (window.computePayoutForJob ? window.computePayoutForJob(j) : null);
-      const total = p && isFinite(p.total) ? p.total : 0;
-      // Split handling: default to 50/50 if team job; parse explicit split like "60/40"
-      let share = 1;
+      // FIXED: Use payout_estimated from API response (from job.metadata)
+      if (j.payout_estimated && j.payout_estimated > 0) {
+        payoutAmount = j.payout_estimated;
+      } else {
+        // Fallback: Try to compute if payout_estimated is missing
+        const p = (window.computePayoutForJob ? window.computePayoutForJob(j) : null);
+        const total = p && isFinite(p.total) ? p.total : 0;
+        payoutAmount = total;
+      }
+      
+      // Team split handling
       const splitStr = j.payout_split || '';
       const isTeam = !!(j.is_team_job || (j.team_size && Number(j.team_size) > 1) || (splitStr && splitStr.includes('/')));
       if (isTeam) {
+        let share = 0.5; // Default 50/50
         if (splitStr && splitStr.includes('/')) {
           const left = Number(String(splitStr).split('/')[0]);
           if (isFinite(left) && left > 0) {
             share = left / 100;
-          } else {
-            share = 0.5;
           }
-        } else {
-          share = 0.5;
         }
+        payoutAmount = payoutAmount * share;
         payoutLabel = `Your share • ${splitStr || '50/50'}`;
-      } else if (p && p.label) {
-        payoutLabel = p.label;
       }
-      payoutAmount = Math.max(0, asNum(total) * share);
     } catch (e) {
       console.warn('[Offers] payout compute failed for job', j.job_id, e);
     }
