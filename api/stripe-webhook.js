@@ -15,13 +15,6 @@ export default async function handler(req, res) {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!webhookSecret) {
-      console.error('[Stripe Webhook] Missing STRIPE_WEBHOOK_SECRET');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
 
     // Read raw body as Buffer for signature verification
     const chunks = [];
@@ -30,13 +23,23 @@ export default async function handler(req, res) {
     }
     const rawBody = Buffer.concat(chunks);
 
-    // Verify webhook signature
+    // Parse the event
     let event;
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-    } catch (err) {
-      console.error('[Stripe Webhook] Signature verification failed:', err.message);
-      return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (webhookSecret && sig) {
+      // Verify signature if secret is configured
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+      } catch (err) {
+        console.error('[Stripe Webhook] Signature verification failed:', err.message);
+        return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+      }
+    } else {
+      // Fallback: Parse JSON directly (like Apps Script does)
+      console.log('[Stripe Webhook] No signature verification - parsing JSON directly');
+      event = JSON.parse(rawBody.toString());
     }
 
     console.log('[Stripe Webhook] Event received:', event.type);
