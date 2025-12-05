@@ -6564,6 +6564,24 @@ function formatResourceName(text, job) {
         const suffix = details.length ? ` (${details.join(', ')})` : "";
         t = t.replace(/tv_custom/gi, "Custom TV Project" + suffix);
     }
+
+    // Handle custom camera quotes
+    if (t.toLowerCase().includes('cam_custom')) {
+        let details = [];
+        if (job) {
+             const meta = job.metadata || {};
+             // Try to find camera count in metadata or notes
+             const count = meta.camera_count || meta.num_cameras || (job.notes && job.notes.match(/(\d+)\s*(?:cameras?|cams?)/i)?.[1]);
+             if (count) details.push(`${count} Cameras`);
+             
+             // Check for NVR/DVR
+             if (meta.nvr_included || (job.notes && job.notes.match(/NVR|DVR/i))) {
+                 details.push("NVR System");
+             }
+        }
+        const suffix = details.length ? ` (${details.join(', ')})` : "";
+        t = t.replace(/cam_custom/gi, "Custom Security Project" + suffix);
+    }
     
     return t;
 }
