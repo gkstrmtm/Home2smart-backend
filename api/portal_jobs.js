@@ -246,7 +246,7 @@ export default async function handler(req, res) {
       
       offersMap.set(job.job_id, {
         ...job,
-        distance_miles: finalDistance != null ? Math.round(finalDistance * 10) / 10 : null,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         payout_estimated: job.metadata?.estimated_payout || 0,
         referral_code: job.metadata?.referral_code || null
       });
@@ -284,7 +284,7 @@ export default async function handler(req, res) {
       // Add assignment metadata to job
       const jobWithAssignment = {
         ...job,
-        distance_miles: finalDistance != null ? Math.round(finalDistance * 10) / 10 : null,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         is_primary: assignment?.is_primary,
         responded_at: assignment?.responded_at,
         // Expose payout info
