@@ -5786,7 +5786,7 @@ async function GET(action, payload={}) {
         // Endpoints that require POST with body (login, signup, etc)
         const requiresPost = [
           'portal_login', 'portal_signup_step1', 'admin_login',
-          'portal_jobs', 'portal_me', 'portal_accept', 'portal_decline', 'portal_mark_done'  // These also need POST to send token
+          'portal_jobs', 'portal_accept', 'portal_decline', 'portal_mark_done'  // These also need POST to send token
         ];
         const usePost = requiresPost.includes(action);
         
@@ -6349,10 +6349,12 @@ async function hydrateMe() {
     const out = await GET("portal_me", {token});
     
     if (!out.ok) {
+      console.warn('[HYDRATE] portal_me failed:', out);
       const oldCache = localStorage.getItem(`h2s_me_${token}`);
       if (oldCache) {
         try {
           me = JSON.parse(oldCache);
+          console.log('[HYDRATE] Recovered from cache');
           return true;
         } catch (e) {
           return false;
