@@ -6602,6 +6602,16 @@ function formatResourceName(text, job) {
              if (meta.nvr_included || (job.notes && job.notes.match(/NVR|DVR/i))) {
                  details.push("NVR System");
              }
+             
+             // Check for Doorbell
+             if (meta.doorbell_included || (job.notes && job.notes.match(/Doorbell/i))) {
+                 details.push("Doorbell");
+             }
+             
+             // Check for Floodlight
+             if (job.notes && job.notes.match(/Floodlight/i)) {
+                 details.push("Floodlight");
+             }
         }
         const suffix = details.length ? ` (${details.join(', ')})` : "";
         t = t.replace(/cam_custom/gi, "Custom Security Project" + suffix);
