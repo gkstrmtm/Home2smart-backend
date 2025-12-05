@@ -220,17 +220,31 @@ export default async function handler(req, res) {
     });
 
     // Categorize jobs based on assignment state
-    // SMART: Merge assignment data into existing offers to preserve distance_miles from assignments
+    // SMART: Merge assignment data into ALL jobs (including those without full job records)
     const offersMap = new Map();
+    const upcoming = [];
+    const completed = [];
     
     // First, add all available jobs in radius
     jobsWithinRadius.forEach(job => {
-      offersMap.set(job.job_id, job);
+      const assignment = assignmentMap[job.job_id];
+      
+      // INTELLIGENT: Use assignment distance if it exists, otherwise use calculated distance
+      let finalDistance = job.distance_miles; // Default to what was calculated
+      
+      if (assignment?.distance_miles != null) {
+        finalDistance = parseFloat(assignment.distance_miles);
+      }
+      
+      offersMap.set(job.job_id, {
+        ...job,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 10) / 10 : null,
+        payout_estimated: job.metadata?.estimated_payout || 0,
+        referral_code: job.metadata?.referral_code || null
+      });
     });
-    
-    const upcoming = [];
-    const completed = [];
 
+    // Then process assigned jobs
     (jobs || []).forEach(job => {
       const assignment = assignmentMap[job.job_id];
       const state = assignment?.state || '';
