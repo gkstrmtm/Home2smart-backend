@@ -133,6 +133,44 @@ export default async function handler(req, res) {
       .update({ status: 'completed' })
       .eq('job_id', jobId);
 
+    // Create payout record
+    try {
+      const { data: job } = await supabase
+        .from('h2s_dispatch_jobs')
+        .select('*')
+        .eq('job_id', jobId)
+        .single();
+
+      if (job && job.metadata && job.metadata.estimated_payout) {
+        const payoutAmount = parseFloat(job.metadata.estimated_payout);
+        const customerTotal = job.metadata.items_json 
+          ? job.metadata.items_json.reduce((sum, item) => sum + (item.line_total || 0), 0) 
+          : 0;
+
+        const { error: payoutError } = await supabase
+          .from('h2s_payouts_ledger')
+          .insert({
+            pro_id: proId,
+            job_id: jobId,
+            total_amount: payoutAmount,
+            base_amount: payoutAmount,
+            service_name: job.resources_needed || 'Service',
+            variant_code: job.variant_code || 'STANDARD',
+            state: 'pending', // Pending admin approval
+            earned_at: new Date().toISOString(),
+            customer_total: customerTotal
+          });
+
+        if (payoutError) {
+          console.error('Failed to create payout record:', payoutError);
+        } else {
+          console.log('Payout record created for job:', jobId, 'amount:', payoutAmount);
+        }
+      }
+    } catch (payoutErr) {
+      console.error('Error creating payout:', payoutErr);
+    }
+
     // TODO: Trigger customer review email via Apps Script webhook
     // For now, emails still handled by Apps Script background triggers
 
