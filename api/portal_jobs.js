@@ -219,6 +219,9 @@ export default async function handler(req, res) {
       };
     });
 
+    console.log('[portal_jobs] assignmentMap has', Object.keys(assignmentMap).length, 'entries');
+    console.log('[portal_jobs] Sample assignment:', Object.values(assignmentMap)[0]);
+
     // Categorize jobs based on assignment state
     // SMART: Merge assignment data into ALL jobs (including those without full job records)
     const offersMap = new Map();
@@ -229,11 +232,16 @@ export default async function handler(req, res) {
     jobsWithinRadius.forEach(job => {
       const assignment = assignmentMap[job.job_id];
       
+      console.log('[portal_jobs] Processing job', job.job_id, '- assignment:', assignment ? 'FOUND' : 'NOT FOUND', '- distance:', assignment?.distance_miles);
+      
       // INTELLIGENT: Use assignment distance if it exists, otherwise use calculated distance
       let finalDistance = job.distance_miles; // Default to what was calculated
       
       if (assignment?.distance_miles != null) {
         finalDistance = parseFloat(assignment.distance_miles);
+        console.log('[portal_jobs] Using assignment distance:', finalDistance);
+      } else {
+        console.log('[portal_jobs] No assignment distance, using calculated:', finalDistance);
       }
       
       offersMap.set(job.job_id, {
