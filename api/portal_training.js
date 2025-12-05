@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -58,6 +58,44 @@ export default async function handler(req, res) {
         videos: videos || [],
         modules: Object.values(modules)
       });
+    }
+
+    // ===================
+    // ACTION: CHINA CATALOG (region-safe URLs)
+    // ===================
+    if (action === 'china_catalog') {
+      // Fetch videos tagged for China region or with mirror URLs
+      const { data: videos, error } = await supabase
+        .from('h2s_training_videos')
+        .select('*')
+        .eq('visible', true)
+        .in('region', ['china', 'global'])
+        .order('module')
+        .order('order_num');
+
+      if (error) throw error;
+
+      // Normalize URL selection: prefer `cn_url` then `mirror_url` then `url`
+      const normalized = (videos || []).map(v => ({
+        video_id: v.video_id,
+        title: v.title,
+        module: v.module,
+        duration_sec: v.duration_sec || 0,
+        thumbnail_url: v.thumbnail_url || v.thumb || null,
+        url: v.cn_url || v.mirror_url || v.url,
+        region: v.region || 'global',
+        order_num: v.order_num || 0,
+        description: v.description || ''
+      })).filter(v => !!v.url);
+
+      // Group by module for UI consumption
+      const modules = {};
+      normalized.forEach(v => {
+        if (!modules[v.module]) modules[v.module] = { name: v.module, videos: [] };
+        modules[v.module].videos.push(v);
+      });
+
+      return res.json({ ok: true, videos: normalized, modules: Object.values(modules) });
     }
 
     // ===================

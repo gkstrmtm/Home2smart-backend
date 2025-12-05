@@ -207,28 +207,55 @@ export default async function handler(req, res) {
       });
     }
 
-    // === ENRICHMENT: Fetch Line Items and Service Names ===
+    // === ENRICHMENT: Fetch Line Items, Service Names, AND ORDERS ===
     const allJobsToEnrich = [...jobsWithinRadius, ...(jobs || [])];
     const uniqueJobIds = [...new Set(allJobsToEnrich.map(j => j.job_id))];
     const uniqueServiceIds = [...new Set(allJobsToEnrich.map(j => j.service_id).filter(Boolean))];
+    
+    // Collect Order IDs to fetch dates from h2s_orders
+    const orderIds = [...new Set(allJobsToEnrich.map(j => j.order_id || j.metadata?.order_id).filter(Boolean))];
 
     console.log('[portal_jobs] Enriching', uniqueJobIds.length, 'jobs with details...');
+    console.log('[portal_jobs] Fetching details for', orderIds.length, 'orders...');
 
     let jobLinesMap = {};
     let lineServiceIds = new Set();
+    let ordersMap = {};
+
+    // Parallel fetch for lines and orders
+    const promises = [];
 
     if (uniqueJobIds.length > 0) {
-        const { data: lines } = await supabase
-            .from('h2s_dispatch_job_lines')
-            .select('*')
-            .in('job_id', uniqueJobIds);
-            
-        (lines || []).forEach(l => {
-            if (!jobLinesMap[l.job_id]) jobLinesMap[l.job_id] = [];
-            jobLinesMap[l.job_id].push(l);
-            if (l.service_id) lineServiceIds.add(l.service_id);
-        });
+        promises.push(
+            supabase
+                .from('h2s_dispatch_job_lines')
+                .select('*')
+                .in('job_id', uniqueJobIds)
+                .then(({ data }) => {
+                    (data || []).forEach(l => {
+                        if (!jobLinesMap[l.job_id]) jobLinesMap[l.job_id] = [];
+                        jobLinesMap[l.job_id].push(l);
+                        if (l.service_id) lineServiceIds.add(l.service_id);
+                    });
+                })
+        );
     }
+    
+    if (orderIds.length > 0) {
+        promises.push(
+            supabase
+                .from('h2s_orders')
+                .select('order_id, delivery_date, delivery_time, created_at, service_name, items')
+                .in('order_id', orderIds)
+                .then(({ data }) => {
+                    (data || []).forEach(o => {
+                        ordersMap[o.order_id] = o;
+                    });
+                })
+        );
+    }
+
+    await Promise.all(promises);
 
     const allServiceIds = new Set([...uniqueServiceIds, ...lineServiceIds]);
     const allServiceIdsArray = Array.from(allServiceIds);
@@ -291,10 +318,31 @@ export default async function handler(req, res) {
         console.log('[portal_jobs] No assignment distance, using calculated:', finalDistance);
       }
       
+      // ✅ DATE & SERVICE ENRICHMENT: Pull from h2s_orders if missing
+      const orderId = job.order_id || job.metadata?.order_id;
+      const order = ordersMap[orderId];
+      let startIso = job.start_iso;
+      let window = job.window;
+      let serviceName = serviceNamesMap[job.service_id];
+      
+      if (order) {
+          if (!startIso && order.delivery_date) startIso = order.delivery_date;
+          if (!window && order.delivery_time) window = order.delivery_time;
+          
+          // If service name is missing or generic, try order's service name
+          if ((!serviceName || serviceName === 'Service') && order.service_name) {
+              serviceName = order.service_name;
+          }
+      }
+      
+      if (!serviceName) serviceName = "Service";
+
       offersMap.set(job.job_id, {
         ...job,
+        start_iso: startIso,
+        window: window,
         line_items: jobLinesMap[job.job_id] || [],
-        service_name: serviceNamesMap[job.service_id] || "Service",
+        service_name: serviceName,
         distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         payout_estimated: job.metadata?.estimated_payout || 0,
         referral_code: job.metadata?.referral_code || null
@@ -330,11 +378,32 @@ export default async function handler(req, res) {
         }
       }
       
+      // ✅ DATE & SERVICE ENRICHMENT: Pull from h2s_orders if missing
+      const orderId = job.order_id || job.metadata?.order_id;
+      const order = ordersMap[orderId];
+      let startIso = job.start_iso;
+      let window = job.window;
+      let serviceName = serviceNamesMap[job.service_id];
+      
+      if (order) {
+          if (!startIso && order.delivery_date) startIso = order.delivery_date;
+          if (!window && order.delivery_time) window = order.delivery_time;
+          
+          // If service name is missing or generic, try order's service name
+          if ((!serviceName || serviceName === 'Service') && order.service_name) {
+              serviceName = order.service_name;
+          }
+      }
+      
+      if (!serviceName) serviceName = "Service";
+
       // Add assignment metadata to job
       const jobWithAssignment = {
         ...job,
+        start_iso: startIso,
+        window: window,
         line_items: jobLinesMap[job.job_id] || [],
-        service_name: serviceNamesMap[job.service_id] || "Service",
+        service_name: serviceName,
         distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         is_primary: assignment?.is_primary,
         responded_at: assignment?.responded_at,

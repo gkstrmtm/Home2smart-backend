@@ -3659,6 +3659,10 @@ a:focus-visible{
           <div><label class="label" for="siEmail">Email</label><input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email"></div>
           <div><label class="label" for="siZip">ZIP code</label><input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code"></div>
         </div>
+        <div style="margin:12px 0;display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:#3b82f6">
+            <label for="siRemember" style="font-size:14px;color:#cbd5e1;cursor:pointer">Remember me</label>
+        </div>
         <div class="row">
           <button id="btnSignIn" class="btn" type="button">Sign in</button>
           <button id="btnStartSignup" class="btn secondary" type="button">First time? Sign up</button>
@@ -5805,12 +5809,31 @@ async function GET(action, payload={}) {
         ];
         const usePost = requiresPost.includes(action);
         
-        // ✅ ROBUSTNESS: For GET requests, also append token to query string as fallback
+        // ✅ ROBUSTNESS: For GET requests, append all payload params to query string
         let finalEndpoint = endpoint;
-        if (!usePost && token && !endpoint.includes('token=')) {
-           const separator = endpoint.includes('?') ? '&' : '?';
-           finalEndpoint = `${endpoint}${separator}token=${encodeURIComponent(token)}`;
+        if (!usePost) {
+          const queryParams = new URLSearchParams();
+          
+          // Add token first if available
+          if (token && !endpoint.includes('token=')) {
+            queryParams.append('token', token);
+          }
+          
+          // Add all payload params as query string (for Vercel GET endpoints)
+          Object.entries(payload).forEach(([key, value]) => {
+            if (key !== 'token' && value !== undefined && value !== null) {
+              queryParams.append(key, String(value));
+            }
+          });
+          
+          const queryString = queryParams.toString();
+          if (queryString) {
+            const separator = endpoint.includes('?') ? '&' : '?';
+            finalEndpoint = `${endpoint}${separator}${queryString}`;
+          }
         }
+        
+        console.log(`[GET] 🔗 Final endpoint:`, finalEndpoint);
         
         const res = await fetch(finalEndpoint, {
           method: usePost ? "POST" : "GET",
@@ -6017,7 +6040,7 @@ function asNum(x) { const n = Number(x); return isFinite(n) ? n : 0; }
 function fmtMoney(n) { return "$" + asNum(n).toFixed(2); }
 
 /* ===== STATE ===== */
-let token = localStorage.getItem(LS_TOKEN) || "";
+let token = localStorage.getItem(LS_TOKEN) || sessionStorage.getItem(LS_TOKEN) || "";
 let adminToken = localStorage.getItem(LS_ADMIN_TOKEN) || "";
 let me = null;
 let isAdmin = false;
@@ -6027,6 +6050,49 @@ const signatureOnFile = {};
 let jobPollInterval = null;
 let lastOfferCount = 0;
 let lastUpcomingCount = 0;
+
+/* ===== SMART SESSION & VIEW RESTORE ===== */
+// Persist current tab and scroll so refresh returns to same place
+const VIEW_STATE_KEY = 'portal_view_state';
+
+function saveViewState() {
+  try {
+    const state = {
+      tab: currentTab,
+      scrollY: window.scrollY,
+      ts: Date.now()
+    };
+    localStorage.setItem(VIEW_STATE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
+function restoreViewState() {
+  try {
+    const raw = localStorage.getItem(VIEW_STATE_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (!state) return;
+    // Switch tab first, then restore scroll
+    if (state.tab && typeof switchTab === 'function') {
+      switchTab(state.tab);
+    }
+    setTimeout(() => {
+      if (typeof state.scrollY === 'number') {
+        window.scrollTo(0, state.scrollY);
+      }
+    }, 250);
+  } catch {}
+}
+
+// Save on navigation and before unload
+window.addEventListener('beforeunload', saveViewState);
+document.addEventListener('scroll', () => {
+  // Throttle with requestAnimationFrame
+  if (!window.__saveScrollQueued) {
+    window.__saveScrollQueued = true;
+    requestAnimationFrame(() => { window.__saveScrollQueued = false; saveViewState(); });
+  }
+});
 
 /* ✅ PERFORMANCE: Cache variables for all sections */
 let scheduleCache = null;
@@ -6168,6 +6234,7 @@ function doSignOut() {
   localStorage.removeItem(cacheKey);
   
   localStorage.removeItem(LS_TOKEN);
+  sessionStorage.removeItem(LS_TOKEN);
   localStorage.removeItem(LS_ADMIN_TOKEN);
   token = ""; adminToken = ""; me = null; isAdmin = false;
   
@@ -6418,6 +6485,8 @@ function switchTab(which) {
   currentTab = which;
   // ✅ PERSISTENCE: Save current tab to localStorage
   localStorage.setItem('h2s_last_tab', which);
+  // Also save view state for refresh resilience
+  if (typeof saveViewState === 'function') saveViewState();
   
   ["dash","customers","payouts","reviews","training","profile","schedule"].forEach(k => {
     document.getElementById("tab-" + k).style.display = (k === which) ? "block" : "none";
@@ -6664,7 +6733,12 @@ function showJobDetails(job) {
   }
   $("md-res").textContent = resourcesText;
   
-  $("md-tech").textContent = job.included_tech_source || job.metadata?.included_tech_source || "—";
+  // ✅ INTELLIGENCE: Included Tech Clarity
+  const techSource = job.included_tech_source || job.metadata?.included_tech_source;
+  const hasTech = techSource && techSource !== 'None';
+  $("md-tech").innerHTML = hasTech 
+      ? `<strong>Yes</strong> <span style="font-size:12px;opacity:.8">(It should be there when you arrive)</span>` 
+      : "No";
   
   // ✅ INTELLIGENCE: Show Teammate if available (Team Jobs)
   const teammateEl = $("md-teammate");
@@ -7197,6 +7271,142 @@ async function renderPhotoGallery(jobId) {
 }
 
 /* ============================================
+   GLOBAL PHOTO MANAGEMENT (VIEW & DELETE)
+   ============================================ */
+async function loadJobPhotos(jobId) {
+  if (!jobId) return [];
+  try {
+    const out = await GET("portal_get_artifacts", {token, job_id: jobId, type: "photo"});
+    if (!out.ok) throw new Error(out.error);
+    return out.artifacts || [];
+  } catch(err) {
+    console.error("[Load Photos] Error:", err);
+    toast(`❌ Error loading photos: ${err.message}`);
+    return [];
+  }
+}
+
+async function deletePhoto(artifactId, jobId) {
+  if(!confirm("Are you sure you want to delete this photo?")) return;
+  
+  // Find the modal to show loading state inside it if possible, or just global loading
+  loading(true);
+  try {
+      const out = await POST("portal_delete_artifact", { token, artifact_id: artifactId });
+      if(!out.ok) throw new Error(out.error);
+      
+      toast("Photo deleted");
+      
+      // Refresh the gallery view if it's open
+      const existingModal = document.querySelector('.photo-gallery-modal');
+      if (existingModal) {
+          existingModal.remove();
+          await viewPhotos(jobId);
+      }
+      
+      // Update job list to reflect count change
+      loadJobs(); 
+  } catch(e) {
+      toast("Failed to delete: " + e.message);
+  } finally {
+      loading(false);
+  }
+}
+
+async function viewPhotos(jobId) {
+  loading(true);
+  try {
+      const photos = await loadJobPhotos(jobId);
+      
+      // Remove existing if any
+      const existing = document.querySelector('.photo-gallery-modal');
+      if(existing) existing.remove();
+
+      // Create/Open Modal
+      const modal = document.createElement('div');
+      modal.className = 'modal photo-gallery-modal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.96);backdrop-filter:blur(12px);z-index:30000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease';
+      
+      modal.innerHTML = `
+          <div class="sheet" style="max-width:800px;width:100%;max-height:90vh;display:flex;flex-direction:column;background:linear-gradient(135deg,rgba(10,42,90,.98) 0%,rgba(8,32,68,.95) 100%);border:1px solid rgba(255,255,255,0.15)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">
+                  <div style="display:flex;align-items:center;gap:12px">
+                      <span style="font-size:24px">📸</span>
+                      <div>
+                          <h3 style="margin:0;font-size:20px;color:#fff">Job Photos</h3>
+                          <div style="font-size:13px;opacity:0.7">${photos.length} photo${photos.length !== 1 ? 's' : ''} on file</div>
+                      </div>
+                  </div>
+                  <button class="btn ghost" onclick="this.closest('.modal').remove()" style="padding:8px 16px">Close</button>
+              </div>
+              
+              <div style="flex:1;overflow-y:auto;min-height:200px;padding-right:8px">
+                  ${photos.length === 0 ? `
+                      <div style="text-align:center;padding:60px 20px;opacity:0.6;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
+                          <div style="font-size:64px;margin-bottom:16px;opacity:0.5">🖼️</div>
+                          <div style="font-size:18px;font-weight:600">No photos uploaded yet</div>
+                          <div style="font-size:14px;margin-top:8px">Upload photos to document your work</div>
+                      </div>
+                  ` : `
+                      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:16px">
+                          ${photos.map(p => `
+                              <div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.3);group">
+                                  <img src="${p.storage_url}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s" 
+                                       onclick="window.open('${p.storage_url}', '_blank')"
+                                       onmouseover="this.style.transform='scale(1.05)'"
+                                       onmouseout="this.style.transform='scale(1)'">
+                                  
+                                  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px;background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);font-size:11px;color:white;opacity:0.8">
+                                      ${new Date(p.uploaded_at).toLocaleDateString()}
+                                  </div>
+
+                                  <button onclick="deletePhoto('${p.artifact_id}', '${jobId}')" 
+                                          title="Delete Photo"
+                                          style="position:absolute;top:8px;right:8px;background:rgba(220,38,38,0.9);color:white;border:1px solid rgba(255,255,255,0.3);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:all 0.2s">
+                                      🗑️
+                                  </button>
+                              </div>
+                          `).join('')}
+                      </div>
+                  `}
+              </div>
+
+              <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1)">
+                  <button class="btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%)" onclick="document.getElementById('add-photos-${jobId}').click()">
+                      <span style="font-size:18px">➕</span> Add More Photos
+                  </button>
+                  <input type="file" id="add-photos-${jobId}" multiple accept="image/*" style="display:none" 
+                         onchange="handlePhotoAdd(this, '${jobId}')">
+              </div>
+          </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Helper for adding photos from modal
+      window.handlePhotoAdd = async (input, jId) => {
+          if(input.files && input.files.length > 0) {
+              const modal = document.querySelector('.photo-gallery-modal');
+              if(modal) modal.remove(); // Close gallery to show upload preview
+              
+              const confirmed = await showPhotoUploadPreview(input.files, jId);
+              if(confirmed) {
+                  await uploadPhotos(confirmed, jId);
+                  viewPhotos(jId); // Re-open gallery
+                  loadJobs(); // Refresh counts
+              } else {
+                  viewPhotos(jId); // Re-open gallery if cancelled
+              }
+          }
+      };
+
+  } catch(e) {
+      toast("Error viewing photos: " + e.message);
+  } finally {
+      loading(false);
+  }
+}
+
+/* ============================================
    PHOTO UPLOAD PREVIEW & CONFIRMATION
    ============================================ */
 async function showPhotoUploadPreview(files, jobId) {
@@ -7582,12 +7792,77 @@ function renderOffersSync(list, box) {
       console.warn('[Offers] payout compute failed for job', j.job_id, e);
     }
     
+    // ✅ URGENCY & DATE DISPLAY (ROBUST)
+    let dateHtml = '';
+    let urgencyHtml = '';
+    
+    // Try to get a valid date object
+    // FALLBACK: Check metadata for window/date if top-level is missing
+    let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
+    let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
+    
+    let targetDate = rawDate ? new Date(rawDate) : null;
+    
+    if (targetDate && !isNaN(targetDate)) {
+        const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const timeStr = rawWindow || targetDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        
+        // Urgency
+        const now = new Date();
+        const diffHrs = (targetDate - now) / 36e5;
+        
+        let badgeColor = '#3b82f6'; // blue default
+        let badgeText = '';
+        
+        if (diffHrs < 0) { badgeText = 'OVERDUE'; badgeColor = '#ef4444'; }
+        else if (diffHrs < 4) { badgeText = 'SOON'; badgeColor = '#f59e0b'; }
+        else if (diffHrs < 24) { badgeText = 'TODAY'; badgeColor = '#10b981'; }
+        
+        if (badgeText) {
+            urgencyHtml = `<div style="background:${badgeColor};color:white;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:2px">${badgeText}</div>`;
+        }
+        
+        dateHtml = `
+            <div style="text-align:right; min-width:80px">
+                ${urgencyHtml}
+                <div style="font-weight:700;color:#fff;font-size:14px">${dateStr}</div>
+                <div style="font-size:12px;color:#94a3b8">${timeStr}</div>
+            </div>
+        `;
+    } else if (rawWindow) {
+        // Fallback for text-only window
+        dateHtml = `
+            <div style="text-align:right; min-width:80px">
+                <div style="font-weight:700;color:#fff;font-size:13px">Scheduled</div>
+                <div style="font-size:12px;color:#94a3b8">${esc(rawWindow)}</div>
+            </div>
+        `;
+    } else {
+        // No date info at all
+         dateHtml = `
+            <div style="text-align:right; min-width:80px; opacity:0.5">
+                <div style="font-size:12px;color:#94a3b8">No Date</div>
+            </div>
+        `;
+    }
+
+    // New Flex Header
+    const headerHtml = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
+            <div>
+                <h3 style="margin:0;font-size:16px;line-height:1.3">${esc(j.service_name||j.service_id||"Service")}</h3>
+                <div class="meta" style="margin-top:4px">
+                    <strong>Job ID:</strong> ${esc(j.job_id||"N/A").substring(0,8)}... • ${distanceText}
+                </div>
+            </div>
+            ${dateHtml}
+        </div>
+    `;
+
     el.innerHTML = `
-      <h3>${esc(j.service_name||j.service_id||"Service")} : ${esc(fmtWindow(j))}</h3>
+      ${headerHtml}
       <div class="meta">
-        <strong>Job ID:</strong> ${esc(j.job_id||"N/A")} • 
-        ${distanceText}${rangeWarning}<br>
-        ${esc(j.service_address||j.address||"")} ${j.service_city||j.city ? ("• "+esc(j.service_city||j.city)+" "+esc(j.service_state||j.state||"")+" "+esc(j.service_zip||j.zip||"")) : ""}
+        ${esc(j.service_address||j.address||"")} ${j.service_city||j.city ? ("• "+esc(j.service_city||j.city)) : ""}
         ${j.notes_from_customer||j.notes ? '<br><em>' + esc(j.notes_from_customer||j.notes) + '</em>' : ''}
       </div>
       ${serviceDetails}
@@ -7701,6 +7976,30 @@ function renderUpcoming(list) {
     
     // ✅ INTELLIGENCE: Enhanced Service Title & Description
     let serviceTitle = esc(j.service_name || "Service");
+    
+    // If service name is generic "Service", try to find a better title from line items or description
+    if (serviceTitle === "Service") {
+        if (j.line_items && Array.isArray(j.line_items) && j.line_items.length > 0) {
+            // Try to find a main item (TV, Mount, etc)
+            const mainItem = j.line_items.find(i => {
+                const name = (i.title || i.name || "").toLowerCase();
+                return name.includes('tv') || name.includes('mount') || name.includes('install') || name.includes('setup');
+            });
+            if (mainItem) {
+                serviceTitle = esc(mainItem.title || mainItem.name);
+            } else {
+                // Fallback to first item
+                serviceTitle = esc(j.line_items[0].title || j.line_items[0].name);
+            }
+        } else if (j.description) {
+            // Try to extract first sentence or short description
+            const desc = j.description.split('\n')[0];
+            if (desc.length < 50) {
+                serviceTitle = esc(desc);
+            }
+        }
+    }
+
     let serviceDetails = "";
     
     // Use line items for better context if available
@@ -7751,37 +8050,66 @@ function renderUpcoming(list) {
     const hasSignature = signatureOnFile[j.job_id];
     
     // Button States
-    const photoBtnLabel = hasPhotos ? "📷 Photos (Saved)" : "📷 Upload Photos";
-    const photoBtnStyle = hasPhotos ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "";
+    const photoBtnLabel = hasPhotos ? "View Photos" : "📸 Upload Photos";
+    const photoBtnStyle = hasPhotos ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "background:rgba(245,158,11,.08);color:#f59e0b;border-color:rgba(245,158,11,.2)";
     
     // Signature enabled only if photos uploaded (or override)
     const sigBtnClass = "btn secondary"; 
-    const sigBtnStyle = hasSignature ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "";
+    const sigBtnLabel = hasSignature ? "✓ Signature" : "✍️ Get Signature";
+    const sigBtnStyle = hasSignature 
+      ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" 
+      : (!hasPhotos ? "opacity:.5" : "background:rgba(245,158,11,.08);color:#f59e0b;border-color:rgba(245,158,11,.2)");
     
     // Done enabled only if BOTH present
-    const doneBtnClass = (hasPhotos && hasSignature) ? "btn" : "btn disabled";
-    const doneBtnTitle = (!hasPhotos || !hasSignature) ? "Upload photos and signature first" : "Complete Job";
+    const doneBtnClass = (hasPhotos && hasSignature) ? "btn" : "btn secondary";
+    const doneBtnStyle = (hasPhotos && hasSignature) 
+      ? "grid-column:span 2;background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;box-shadow:0 4px 14px rgba(16,185,129,.3)" 
+      : "grid-column:span 2;opacity:.5;cursor:not-allowed";
+    const doneBtnTitle = (!hasPhotos || !hasSignature) 
+      ? `⚠️ ${!hasPhotos ? 'Upload photos' : 'Get signature'} first` 
+      : "✅ Complete & Submit Job";
+    const doneBtnLabel = (hasPhotos && hasSignature) ? "✅ Complete Job" : "🔒 Complete Job";
+
+    // ✅ DATE DISPLAY (ROBUST)
+    let dateDisplay = '';
+    // Try to get a valid date object
+    let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
+    let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
+    
+    let targetDate = rawDate ? new Date(rawDate) : null;
+
+    if (targetDate && !isNaN(targetDate)) {
+        const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const timeStr = targetDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const timeDisplay = rawWindow || timeStr;
+        
+        dateDisplay = `<div style="font-size:15px;font-weight:700;color:#e0f2fe;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span>${dateStr}</span>
+          <span style="opacity:0.6">•</span>
+          <span>${timeDisplay}</span>
+        </div>`;
+    } else if (rawWindow) {
+         dateDisplay = `<div style="font-size:15px;font-weight:700;color:#e0f2fe;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span>Scheduled</span>
+          <span style="opacity:0.6">•</span>
+          <span>${esc(rawWindow)}</span>
+        </div>`;
+    }
 
     const el = document.createElement("div");
     el.className = "item";
     el.innerHTML = `
-      <h3>${serviceTitle} : ${esc(fmtWindow(j))}</h3>
-      <div class="meta">${esc(j.address||"")} ${j.city ? ("• "+esc(j.city)+" "+esc(j.state||"")+" "+esc(j.zip||"")) : ""} ${isOpen ? "• <strong>open</strong>" : ""}</div>
-      ${serviceDetails}
-      ${teamIndicator}
-      ${synopsisPreview}
-      
-      <!-- Hidden file input for direct upload -->
-      <input type="file" id="upload-${esc(j.job_id)}" accept="image/*" multiple style="display:none">
-      
+      ${dateDisplay}
       <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
         <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
-        <button class="btn secondary" data-onway="${esc(j.job_id)}" type="button">🚗 On My Way</button>
+        <button class="btn secondary" data-onway="${esc(j.job_id)}" type="button">On My Way</button>
+        
+        <button class="btn secondary" onclick="handleCallClick(event, '${esc(j.job_id)}', '${esc(j.customer_phone||"")}')" type="button" style="background:rgba(59,130,246,.1);color:#2563eb;border-color:rgba(59,130,246,.2)">Call Customer</button>
         
         <button class="btn secondary" data-photos="${esc(j.job_id)}" style="${photoBtnStyle}" type="button">${photoBtnLabel}</button>
-        <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="${sigBtnStyle}" type="button">${sigLabel}</button>
+        <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="${sigBtnStyle}" type="button">${sigBtnLabel}</button>
         
-        <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="grid-column:span 2" type="button">✅ Complete Job</button>
+        <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="${doneBtnStyle}" type="button">${doneBtnLabel}</button>
       </div>`;
     fragment.appendChild(el);
   });
@@ -7799,9 +8127,17 @@ function renderUpcoming(list) {
     const onWayBtn = e.target.closest("button[data-onway]");
     const photosBtn = e.target.closest("button[data-photos]");
     
-    // ✅ PHOTOS BUTTON: Trigger file input
+    // ✅ PHOTOS BUTTON: Trigger file input OR View Gallery
     if (photosBtn) {
       const jobId = photosBtn.dataset.photos;
+      
+      // Check if we have photos on file - View Gallery
+      if (photoOnFile[jobId]) {
+          viewPhotos(jobId);
+          return;
+      }
+
+      // No photos yet - Trigger Upload
       const input = document.getElementById(`upload-${jobId}`);
       if (input) {
         // Reset input to allow re-selecting same files
@@ -7848,11 +8184,11 @@ function renderUpcoming(list) {
         }
         
         // Update button to show confirmed
-        onWayBtn.innerHTML = '✅ En Route';
+        onWayBtn.innerHTML = 'En Route';
         onWayBtn.disabled = true;
         onWayBtn.style.opacity = '0.6';
         
-        toast("🚗 Status updated - en route timestamp logged");
+        toast("Status updated - en route timestamp logged");
         console.log("[On My Way] ✅ Success - tech_en_route_at timestamp saved for job:", jobId);
         
         // Reload jobs to get updated status
@@ -7896,74 +8232,167 @@ function renderUpcoming(list) {
       
       // ✅ ENFORCE WORKFLOW: Photos -> Signature -> Complete
       if (!photoOnFile[jobId]) {
-        toast("⚠️ Please upload photos of the work first.");
-        // Highlight photo button
-        const pBtn = box.querySelector(`button[data-photos="${jobId}"]`);
-        if (pBtn) {
-          pBtn.style.animation = "pulse 0.5s 2";
-          pBtn.focus();
-        }
+        // Show clear guidance modal
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
+        modal.innerHTML = `
+          <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(245,158,11,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
+            <div style="font-size:72px;margin-bottom:16px">📸</div>
+            <h2 style="margin:0 0 12px;font-size:22px;color:#fbbf24">Upload Photos First</h2>
+            <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
+              Before completing this job, you must upload photos of the completed work.
+              This protects both you and the customer.
+            </p>
+            <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
+              <div style="font-weight:700;color:#fbbf24;margin-bottom:10px;font-size:14px">Required Steps:</div>
+              <div style="font-size:14px;opacity:.9;line-height:1.8">
+                <div>1. 📸 Upload photos of completed work</div>
+                <div>2. ✍️ Get customer signature</div>
+                <div>3. ✅ Complete job</div>
+              </div>
+            </div>
+            <button onclick="this.closest('.modal').remove()" class="btn" style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);padding:14px;font-size:15px">
+              Got It - Upload Photos Now
+            </button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Auto-highlight photo button
+        setTimeout(() => {
+          const pBtn = box.querySelector(`button[data-photos="${jobId}"]`);
+          if (pBtn) {
+            pBtn.style.animation = "pulse 0.5s 3";
+            pBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
         return;
       }
       
       if (!signatureOnFile[jobId]) {
-        toast("⚠️ Please get the customer's signature.");
-        // Highlight signature button
-        const sBtn = box.querySelector(`button[data-sign="${jobId}"]`);
-        if (sBtn) {
-          sBtn.style.animation = "pulse 0.5s 2";
-          sBtn.focus();
-        }
+        // Show signature reminder modal
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
+        modal.innerHTML = `
+          <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(139,92,246,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
+            <div style="font-size:72px;margin-bottom:16px">✍️</div>
+            <h2 style="margin:0 0 12px;font-size:22px;color:#a78bfa">Get Customer Signature</h2>
+            <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
+              Photos uploaded! ✓<br><br>
+              Now get the customer's signature to confirm they're satisfied with the work.
+            </p>
+            <div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
+              <div style="font-weight:700;color:#a78bfa;margin-bottom:10px;font-size:14px">Progress:</div>
+              <div style="font-size:14px;opacity:.9;line-height:1.8">
+                <div style="opacity:.5;text-decoration:line-through">1. 📸 Upload photos</div>
+                <div style="color:#fbbf24">2. ✍️ Get customer signature ← You are here</div>
+                <div style="opacity:.5">3. ✅ Complete job</div>
+              </div>
+            </div>
+            <button onclick="this.closest('.modal').remove()" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);padding:14px;font-size:15px">
+              Got It - Get Signature Now
+            </button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Auto-highlight signature button
+        setTimeout(() => {
+          const sBtn = box.querySelector(`button[data-sign="${jobId}"]`);
+          if (sBtn) {
+            sBtn.style.animation = "pulse 0.5s 3";
+            sBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
         return;
       }
       
-      if (!confirm("Mark this job as complete?\n\nEnsure you have:\n1. Uploaded all photos\n2. Collected signature\n3. Cleaned up the work area")) {
-        return;
-      }
+      // Both requirements met - Final confirmation
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
+      modal.innerHTML = `
+        <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(16,185,129,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
+          <div style="font-size:72px;margin-bottom:16px">✅</div>
+          <h2 style="margin:0 0 12px;font-size:22px;color:#10b981">Ready to Complete?</h2>
+          <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
+            All requirements satisfied!
+          </p>
+          <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
+            <div style="font-weight:700;color:#10b981;margin-bottom:10px;font-size:14px">Checklist Complete:</div>
+            <div style="font-size:14px;opacity:.9;line-height:1.8">
+              <div>✓ Photos uploaded</div>
+              <div>✓ Signature collected</div>
+              <div>✓ Work area cleaned up</div>
+            </div>
+          </div>
+          <p style="margin:0 0 20px;font-size:13px;opacity:.7;line-height:1.5">
+            This job will be marked complete and moved to your Completed Jobs tab.
+            Payment will be processed according to your schedule.
+          </p>
+          <div style="display:flex;gap:12px">
+            <button onclick="this.closest('.modal').remove()" class="btn ghost" style="flex:1">Cancel</button>
+            <button id="final-complete-confirm" class="btn" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);padding:14px;font-size:15px">
+              Complete Job
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Final complete handler
+      modal.querySelector('#final-complete-confirm').onclick = async () => {
+        modal.remove();
 
-      try {
-        loading(true);
-        
-        // ✅ OPTIMISTIC UPDATE: Move to completed immediately
-        const upcomingIndex = currentJobsData.upcoming.findIndex(j => j.job_id === jobId);
-        if (upcomingIndex !== -1) {
-          const completedJob = currentJobsData.upcoming[upcomingIndex];
-          currentJobsData.upcoming.splice(upcomingIndex, 1);
-          completedJob.assign_state = 'completed';
-          completedJob.completed_at = new Date().toISOString();
-          currentJobsData.completed.unshift(completedJob);
+        try {
+          loading(true);
           
-          // Re-render immediately (feels instant)
-          renderUpcoming(currentJobsData.upcoming);
-          renderCompleted(currentJobsData.completed);
-        }
-        
-        // Send to backend
-        const out = await GET("portal_mark_done", {token, job_id: jobId});
-        
-        if (!out.ok) { 
-          toast(out.error || "Could not mark done");
-          // Rollback on error
+          // ✅ OPTIMISTIC UPDATE: Move to completed immediately
+          const upcomingIndex = currentJobsData.upcoming.findIndex(j => j.job_id === jobId);
+          if (upcomingIndex !== -1) {
+            const completedJob = currentJobsData.upcoming[upcomingIndex];
+            currentJobsData.upcoming.splice(upcomingIndex, 1);
+            completedJob.assign_state = 'completed';
+            completedJob.completed_at = new Date().toISOString();
+            currentJobsData.completed.unshift(completedJob);
+            
+            // Re-render immediately (feels instant)
+            renderUpcoming(currentJobsData.upcoming);
+            renderCompleted(currentJobsData.completed);
+          }
+          
+          // Send to backend
+          const out = await GET("portal_mark_done", {token, job_id: jobId});
+          
+          if (!out.ok) { 
+            toast(out.error || "Could not mark done");
+            // Rollback on error
+            await loadJobs();
+            return;
+          }
+          
+          toast("✅ Job Completed! Payment processing will update shortly.");
+          
+          // ✅ Invalidate cache
+          invalidateCache('dash');
+          invalidateCache('schedule');
+          invalidateCache('payouts');
+          
+          // Refresh in background (don't block UI)
+          setTimeout(() => loadJobs(), 1000);
+          
+        } catch(err) { 
+          toast(err.message || "Could not mark done");
+          // Rollback
           await loadJobs();
-          return;
+        } finally { 
+          loading(false); 
         }
-        
-        toast("✅ Job Completed!");
-        
-        // ✅ Invalidate cache
-        invalidateCache('dash');
-        invalidateCache('schedule');
-        invalidateCache('payouts');
-        
-        // Refresh in background (don't block UI)
-        setTimeout(() => loadJobs(), 1000);
-        
-      } catch(err) { 
-        toast(err.message || "Could not mark done");
-        // Rollback
-        await loadJobs();
-      }
-      finally { loading(false); }
+      };
+      return;
+    }
     }
   };
 }
@@ -7990,12 +8419,8 @@ function renderCompleted(list) {
     el.innerHTML = `
       <h3>${esc(j.service_name||"Service")} : ${esc(fmtWindow(j))}</h3>
       <div class="meta">${esc(j.address||"")} ${j.city ? ("• "+esc(j.city)+" "+esc(j.state||"")+" "+esc(j.zip||"")) : ""} • ${esc(j.completed_label||"Completed")}</div>
-      <div id="photo-gallery-${esc(j.job_id)}" class="photo-gallery" style="margin-top:12px;display:none"></div>
       <div class="actions">
-        <label class="btn ghost" style="position:relative;overflow:hidden">
-          📸 Upload photos<input type="file" accept="image/*" multiple data-job="${esc(j.job_id)}" style="opacity:0;position:absolute;inset:0;cursor:pointer">
-        </label>
-        <button class="btn secondary" data-gallery="${esc(j.job_id)}" id="gallery-btn-${esc(j.job_id)}" type="button">📷 View photos</button>
+        <button class="btn secondary" onclick="viewPhotos('${esc(j.job_id)}')" type="button">📷 View Photos</button>
         <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
       </div>`;
     fragment.appendChild(el);
@@ -8009,324 +8434,11 @@ function renderCompleted(list) {
   /* ============================================
      PHOTO GALLERY FUNCTIONS (SCOPED TO COMPLETED JOBS)
      ============================================ */
-  
-  async function loadJobPhotos(jobId) {
-    if (!jobId) {
-      console.warn("[Load Photos] No job ID provided");
-      return [];
-    }
-    
-    try {
-      console.log("[Load Photos] ========================================");
-      console.log("[Load Photos] Fetching photos for job:", jobId);
-      console.log("[Load Photos] Token:", token ? `${token.substring(0,20)}...` : 'MISSING');
-      
-      const out = await GET("portal_get_artifacts", {token, job_id: jobId, type: "photo"});
-      
-      console.log("[Load Photos] Raw Response:", JSON.stringify(out, null, 2));
-      
-      if (!out.ok) {
-        console.error("[Load Photos] ❌ Failed:", out.error);
-        toast(`❌ Failed to load photos: ${out.error || 'Unknown error'}`);
-        return [];
-      }
-      
-      const artifacts = out.artifacts || [];
-      console.log(`[Load Photos] ✅ Loaded ${artifacts.length} photos for job ${jobId}`);
-      console.log("[Load Photos] Photos data:", artifacts);
-      console.log("[Load Photos] ========================================");
-      
-      return artifacts;
-    } catch(err) {
-      console.error("[Load Photos] ❌ Exception:", err);
-      toast(`❌ Error loading photos: ${err.message || 'Unknown error'}`);
-      return [];
-    }
-  }
-
-  async function renderPhotoGallery(jobId, photos) {
-    console.log("[Render Gallery] Starting render for job:", jobId);
-    
-    const gallery = document.getElementById(`photo-gallery-${jobId}`);
-    if (!gallery) {
-      console.error("[Render Gallery] Gallery element not found for job:", jobId);
-      return;
-    }
-    
-    console.log("[Render Gallery] Photos to render:", photos.length);
-    console.log("[Render Gallery] Photo data:", photos);
-    
-    if (photos.length === 0) {
-      gallery.innerHTML = `
-        <div style="padding:20px;text-align:center;opacity:.6;font-size:14px;background:rgba(59,130,246,.05);border-radius:10px;border:1px dashed rgba(59,130,246,.2)">
-          <div style="font-size:32px;margin-bottom:8px">📸</div>
-          <div>No photos uploaded yet</div>
-          <div style="font-size:12px;margin-top:4px;opacity:.7">Upload photos to document your work</div>
-        </div>`;
-      console.log("[Render Gallery] Rendered empty state");
-      return;
-    }
-    
-    gallery.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:12px 0">
-        ${photos.map(photo => {
-          const imageUrl = photo.storage_url || photo.file_url || photo.photo_url || photo.url;
-          console.log("[Render Gallery] Photo URL:", imageUrl);
-          return `
-          <div style="position:relative;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,rgba(10,22,40,.8) 0%,rgba(8,16,30,.9) 100%);border:1px solid rgba(96,181,255,.15);box-shadow:0 4px 12px rgba(0,0,0,.2);transition:all 0.2s ease;cursor:pointer"
-               onmouseover="this.style.transform='translateY(-2px) scale(1.02)';this.style.boxShadow='0 8px 20px rgba(20,147,255,.3)'"
-               onmouseout="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(0,0,0,.2)'"
-               onclick="window.open('${esc(imageUrl)}', '_blank')">
-            <img src="${esc(imageUrl)}" 
-                 style="width:100%;height:140px;object-fit:cover;display:block"
-                 loading="lazy"
-                 alt="Job photo"
-                 onerror="console.error('[Gallery] Image failed to load:', '${esc(imageUrl)}'); this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22140%22 height=%22140%22%3E%3Crect fill=%22%23374151%22 width=%22140%22 height=%22140%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2214%22 fill=%22%23fff%22 text-anchor=%22middle%22 dy=%22.3em%22%3EImage Error%3C/text%3E%3C/svg%3E';">
-            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, rgba(0,0,0,.8) 0%, transparent 100%);padding:8px 6px 6px;font-size:10px;opacity:.8">
-              ${photo.uploaded_at ? new Date(photo.uploaded_at).toLocaleDateString() : 'Unknown date'}
-            </div>
-            <button 
-              onclick="event.stopPropagation();if(confirm('Delete this photo?')){console.log('Delete photo:', '${esc(photo.artifact_id)}');}"
-              style="position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;background:rgba(239,68,68,.95);border:1px solid rgba(255,255,255,.2);color:white;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:0;transition:all 0.2s ease;font-weight:300"
-              onmouseover="this.style.background='rgba(220,38,38,1)';this.style.transform='scale(1.1)'"
-              onmouseout="this.style.background='rgba(239,68,68,.95)';this.style.transform='scale(1)'"
-              title="Delete photo">×</button>
-          </div>
-        `;}).join('')}
-      </div>
-      <div style="font-size:13px;opacity:.7;padding:8px 0;display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.08);border-radius:8px;padding:10px 12px;border:1px solid rgba(16,185,129,.15)">
-        <span style="font-size:18px">✅</span>
-        <span><strong>${photos.length}</strong> photo${photos.length !== 1 ? 's' : ''} uploaded successfully</span>
-      </div>
-    `;
-    
-    console.log("[Render Gallery] ✅ Rendered", photos.length, "photos");
-  }
-
-  /* PHOTO UPLOAD - WITH PREVIEW & CONFIRMATION */
-  box.querySelectorAll('input[type="file"]').forEach(inp => {
-    inp.addEventListener("change", async () => {
-      console.log("[Photo Upload] ========================================");
-      console.log("[Photo Upload] File input changed");
-      
-      const files = inp.files;
-      if (!files || files.length === 0) {
-        console.log("[Photo Upload] No files selected");
-        return;
-      }
-      
-      console.log("[Photo Upload] Files selected:", files.length);
-      
-      const jobId = inp.dataset.job;
-      console.log("[Photo Upload] Job ID:", jobId);
-      
-      // ✅ STEP 1: Show preview modal and get user confirmation
-      console.log("[Photo Upload] Showing preview modal...");
-      const confirmedPreviews = await showPhotoUploadPreview(files, jobId);
-      
-      // Reset file input
-      inp.value = '';
-      
-      if (!confirmedPreviews || confirmedPreviews.length === 0) {
-        console.log("[Photo Upload] User cancelled or no photos confirmed");
-        return; // User cancelled or removed all photos
-      }
-      
-      console.log("[Photo Upload] User confirmed", confirmedPreviews.length, "photos");
-      
-      // ✅ STEP 2: Upload confirmed photos
-      let uploaded = 0;
-      let failed = 0;
-      
-      try {
-        loading(true);
-        const uploadMsg = `Uploading ${confirmedPreviews.length} photo${confirmedPreviews.length > 1 ? 's' : ''}...`;
-        console.log("[Photo Upload]", uploadMsg);
-        toast(uploadMsg);
-        
-        for (const preview of confirmedPreviews) {
-          const f = preview.file;
-          
-          try {
-            const b64 = preview.dataUrl.split(",").pop();
-            
-            console.log(`[Photo Upload] Uploading ${f.name} (${Math.round(f.size / 1024)}KB) for job ${jobId}`);
-            
-            const out = await POST("portal_upload_artifact", {
-              token, 
-              job_id: jobId, 
-              type: "photo", 
-              data: b64, 
-              filename: f.name || `photo_${Date.now()}.jpg`, 
-              mimetype: f.type || "image/jpeg"
-            });
-            
-            if (!out.ok) {
-              let errorMsg = out.error || "Upload failed";
-              if (errorMsg.includes('500') || errorMsg.includes('Server error')) {
-                errorMsg = "Server error - please try again";
-                console.error(`[Photo Upload] Server error for ${f.name}:`, out);
-              }
-              toast(`❌ ${f.name}: ${errorMsg}`);
-              console.error(`[Photo Upload] Failed:`, { file: f.name, error: out });
-              failed++;
-              continue;
-            }
-            
-            console.log(`[Photo Upload] ✅ Successfully uploaded ${f.name}`);
-            uploaded++;
-            
-          } catch (fileErr) {
-            console.error(`[Photo Upload] Error processing ${f.name}:`, fileErr);
-            toast(`❌ ${f.name}: ${fileErr.message || "Processing failed"}`);
-            failed++;
-          }
-        }
-        
-        // ✅ ENHANCED SUCCESS EXPERIENCE
-        if (uploaded > 0) {
-          photoOnFile[jobId] = true;
-          
-          console.log("[Photo Upload] ========================================");
-          console.log("[Photo Upload] SUCCESS! Uploaded:", uploaded, "Failed:", failed);
-          console.log("[Photo Upload] ========================================");
-          
-          // Show BIG success notification
-          const summary = failed > 0 
-            ? `✅ Uploaded ${uploaded}/${confirmedPreviews.length} photo${confirmedPreviews.length > 1 ? 's' : ''}`
-            : `🎉 ${uploaded} photo${uploaded > 1 ? 's' : ''} uploaded successfully!`;
-          
-          toast(summary, 4000);
-          
-          // Wait a moment for backend to process
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Reload photos and show gallery
-          console.log("[Photo Upload] Fetching uploaded photos for job:", jobId);
-          const photos = await loadJobPhotos(jobId);
-          console.log("[Photo Upload] ✅ Photos fetched, count:", photos.length);
-          
-          if (photos.length > 0) {
-            // Auto-open gallery to show uploaded photos
-            const gallery = document.getElementById(`photo-gallery-${jobId}`);
-            if (gallery) {
-              console.log("[Photo Upload] Rendering", photos.length, "photos in gallery...");
-              await renderPhotoGallery(jobId, photos);
-              gallery.style.display = "block";
-              
-              // Show another toast confirming gallery opened
-              setTimeout(() => {
-                toast(`📸 Viewing ${photos.length} photo${photos.length > 1 ? 's' : ''}`, 2000);
-              }, 500);
-              
-              // Smooth scroll to gallery
-              setTimeout(() => {
-                gallery.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }, 600);
-              
-              console.log("[Photo Upload] ✅ Gallery opened and photos displayed");
-            } else {
-              console.error("[Photo Upload] ❌ Gallery element not found for job:", jobId);
-              toast("⚠️ Photos uploaded but gallery not found");
-            }
-          } else {
-            console.warn("[Photo Upload] ⚠️ No photos returned after upload - backend might still be processing");
-            toast("⚠️ Photos uploaded but not showing yet - try refreshing", 3000);
-          }
-          
-          // Update button to show new photo count
-          const btn = document.getElementById(`gallery-btn-${jobId}`);
-          if (btn && photos.length > 0) {
-            btn.textContent = `✅ View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
-            btn.className = 'btn';
-            btn.style.cssText = 'background:linear-gradient(135deg,rgba(16,185,129,.2) 0%,rgba(5,150,105,.15) 100%);border-color:rgba(16,185,129,.3);color:#34d399';
-          }
-          
-          // Invalidate job list cache so refresh shows correct count
-          invalidateCache('dash');
-          
-          console.log("[Photo Upload] ========================================");
-          
-        } else if (failed > 0) {
-          console.error("[Photo Upload] ❌ All uploads failed. Failed count:", failed);
-          toast(`❌ All ${failed} upload${failed > 1 ? 's' : ''} failed - check console`, 4000);
-        } else { 
-          console.warn("[Photo Upload] ⚠️ No uploads attempted");
-          toast("⚠️ No photos were uploaded", 3000);
-        }
-        
-      } catch(err) {
-        console.error("[Photo Upload] Critical error:", err);
-        console.error("[Photo Upload] Error stack:", err.stack);
-        toast(err && err.message ? `Upload error: ${err.message}` : "Upload failed - please try again");
-      } finally {
-        loading(false);
-        inp.value = "";
-      }
-    });
-  });
+  // Functions removed - using global viewPhotos() instead
 
   // COMPLETED JOBS CLICK HANDLERS
   box.onclick = async function(e) {
-    const galleryBtn = e.target.closest("button[data-gallery]");
     const detailsBtn = e.target.closest("button[data-details]");
-    
-    // ✅ PHOTO GALLERY: Toggle photo view
-    if (galleryBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const jobId = galleryBtn.dataset.gallery;
-      
-      console.log("[Gallery] Button clicked for job:", jobId);
-      
-      const gallery = document.getElementById(`photo-gallery-${jobId}`);
-      if (!gallery) {
-        console.error("[Gallery] Gallery element not found for job:", jobId);
-        toast("Gallery not found");
-        return;
-      }
-      
-      if (gallery.style.display === "none" || !gallery.style.display) {
-        // Show gallery
-        console.log("[Gallery] Opening gallery...");
-        loading(true);
-        try {
-          const photos = await loadJobPhotos(jobId);
-          await renderPhotoGallery(jobId, photos);
-          gallery.style.display = "block";
-          console.log("[Gallery] Gallery opened successfully");
-          
-          // Update button text with actual photo count
-          const btn = document.getElementById(`gallery-btn-${jobId}`);
-          if (btn) {
-            if (photos.length > 0) {
-              btn.textContent = `✅ View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
-              btn.className = 'btn';
-              btn.style.cssText = 'background:linear-gradient(135deg,rgba(16,185,129,.2) 0%,rgba(5,150,105,.15) 100%);border-color:rgba(16,185,129,.3);color:#34d399';
-            } else {
-              btn.textContent = '📷 View photos';
-              btn.className = 'btn secondary';
-              btn.style.cssText = '';
-            }
-          }
-          
-          // Scroll gallery into view
-          setTimeout(() => {
-            gallery.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 100);
-        } catch (err) {
-          console.error("[Gallery] Error opening gallery:", err);
-          toast("Failed to load photos: " + err.message);
-        } finally {
-          loading(false);
-        }
-      } else {
-        // Hide gallery
-        console.log("[Gallery] Closing gallery");
-        gallery.style.display = "none";
-      }
-      return;
-    }
     
     // ✅ DETAILS BUTTON: Show full job details
     if (detailsBtn) {
@@ -8710,9 +8822,10 @@ async function loadCustomers() {
       customersList.style.display = 'none';
       customersEmpty.style.display = 'block';
       customersEmpty.innerHTML = `
-        <div style="font-size:64px;margin-bottom:16px;opacity:.4">📋</div>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">No appointments available</div>
-        <div style="font-size:14px;opacity:.8">Check back soon for upcoming customer calls</div>
+        <div style="font-size:64px;margin-bottom:16px;opacity:.4">⚠️</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">System Error</div>
+        <div style="font-size:14px;opacity:.8;color:#f87171;margin-bottom:12px">${esc(out.error || 'Unknown error')}</div>
+        <div style="font-size:13px;opacity:.6">Please contact support if this persists.</div>
       `;
       console.log('[Customers] No data available:', out.error);
       return; 
@@ -8724,10 +8837,45 @@ async function loadCustomers() {
     if (customers.length === 0) {
       customersList.style.display = 'none';
       customersEmpty.style.display = 'block';
+      
+      // DEBUG PROBE DISPLAY
+      let debugHTML = '';
+      if (out.debug && out.debug.assignments && out.debug.assignments.length > 0) {
+          debugHTML = `
+            <div style="margin-top:24px;text-align:left;background:rgba(0,0,0,0.3);padding:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);font-size:12px;font-family:monospace;color:#cbd5e1">
+                <div style="font-weight:bold;color:#fcd34d;margin-bottom:8px">⚠️ DEBUG PROBE: Found ${out.debug.assignments.length} raw assignments</div>
+                <div style="max-height:200px;overflow-y:auto">
+                ${out.debug.assignments.map(a => {
+                    const job = out.debug.jobs?.find(j => j.job_id === a.job_id);
+                    const jobStatus = job ? job.status : 'UNKNOWN_JOB';
+                    const jobDate = job ? job.start_iso : 'N/A';
+                    const jobName = job ? job.customer_name : 'N/A';
+                    
+                    let reason = '';
+                    if (a.state !== 'accepted') reason += `[State: ${a.state}] `;
+                    if (jobStatus !== 'scheduled') reason += `[Job Status: ${jobStatus}] `;
+                    // Check if date is in past
+                    if (jobDate && new Date(jobDate) < new Date()) reason += `[Past Date] `;
+                    
+                    return `
+                        <div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                            <span style="color:#fff">${jobName}</span><br>
+                            <span style="opacity:0.7">Assign: ${a.state} | Job: ${jobStatus}</span><br>
+                            <span style="opacity:0.7">Date: ${jobDate}</span><br>
+                            ${reason ? `<span style="color:#f87171">Possible Filter: ${reason}</span>` : '<span style="color:#4ade80">Should Show?</span>'}
+                        </div>
+                    `;
+                }).join('')}
+                </div>
+            </div>
+          `;
+      }
+
       customersEmpty.innerHTML = `
         <div style="font-size:64px;margin-bottom:16px;opacity:.4">✅</div>
         <div style="font-size:18px;font-weight:600;margin-bottom:8px">All caught up!</div>
         <div style="font-size:14px;opacity:.8">No upcoming appointments to call about right now</div>
+        ${debugHTML}
       `;
       return;
     }
@@ -8746,7 +8894,32 @@ async function loadCustomers() {
       
       // Determine context and talking points
       const context = c.context || 'Appointment Prep / Check-in';
-      const talkingPoints = c.notes ? `Notes: ${esc(c.notes)}` : '"Hi, just checking in on our appointment..."';
+      let talkingPoints = c.notes ? `Notes: ${esc(c.notes)}` : '"Hi, just checking in on our appointment..."';
+
+      // ✅ INTELLIGENCE: Prompt to verify equipment
+      if (c.included_tech_source && c.included_tech_source !== 'None') {
+          talkingPoints += ' • <strong>Verify equipment landed</strong>';
+      }
+
+      // ✅ INTELLIGENCE: Enhanced Service Title
+      let serviceTitle = esc(c.service_name || 'N/A');
+      
+      // If generic, try to find better name from items (if available)
+      if (serviceTitle === 'Service' || serviceTitle === 'Appointment Prep' || serviceTitle === 'N/A') {
+          if (c.items && Array.isArray(c.items) && c.items.length > 0) {
+              // Try to find a main item (TV, Mount, etc)
+              const mainItem = c.items.find(i => {
+                  const name = (i.title || i.name || "").toLowerCase();
+                  return name.includes('tv') || name.includes('mount') || name.includes('install') || name.includes('setup');
+              });
+              if (mainItem) {
+                  serviceTitle = esc(mainItem.title || mainItem.name);
+              } else {
+                  // Fallback to first item
+                  serviceTitle = esc(c.items[0].title || c.items[0].name);
+              }
+          }
+      }
 
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px">
@@ -8758,14 +8931,19 @@ async function loadCustomers() {
             </div>
             ${callStatus}
           </div>
-          <a href="tel:${esc(c.customer_phone)}" class="btn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;color:#fff;padding:12px 20px;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap">
-            📞 Call Now
-          </a>
+          <div style="display:flex;gap:8px;flex-direction:column;align-items:flex-end">
+            <button class="btn" onclick="handleCustomerCallClick(event, '${esc(c.order_id)}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;color:#fff;padding:12px 20px;font-size:14px;font-weight:600;white-space:nowrap;width:100%">
+              📞 Call Customer
+            </button>
+            <button class="btn secondary" onclick="handleCustomerRescheduleClick(event, '${esc(c.order_id)}', '${esc(c.customer_name || 'Customer')}')" style="padding:8px 16px;font-size:13px;white-space:nowrap;width:100%">
+              📅 Reschedule
+            </button>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
           <div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Service</div>
-            <div style="font-size:14px;color:#e0f2fe;font-weight:600">${esc(c.service_name || 'N/A')}</div>
+            <div style="font-size:14px;color:#e0f2fe;font-weight:600">${serviceTitle}</div>
           </div>
           <div>
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Address</div>
@@ -8776,11 +8954,6 @@ async function loadCustomers() {
             <div style="font-size:14px;color:#10b981;font-weight:700">${c.amount_total ? fmtMoney(c.amount_total) : 'N/A'}</div>
           </div>
         </div>
-        <div style="margin-top:16px">
-          <button class="btn secondary" data-log-call="${esc(c.order_id)}" data-phone="${esc(c.customer_phone)}" data-email="${esc(c.customer_email || '')}" data-name="${esc(c.customer_name || '')}" style="width:100%;font-size:14px">
-            ✓ Mark as Contacted
-          </button>
-        </div>
       `;
       
       customersList.appendChild(card);
@@ -8788,15 +8961,7 @@ async function loadCustomers() {
     
     // Add click handler for "Mark as Contacted" buttons
     customersList.onclick = e => {
-      const btn = e.target.closest('button[data-log-call]');
-      if (!btn) return;
-      
-      showCallLogModal({
-        order_id: btn.dataset.logCall,
-        customer_phone: btn.dataset.phone,
-        customer_email: btn.dataset.email,
-        customer_name: btn.dataset.name
-      });
+      // Legacy handler removed
     };
     
   } catch(e) { 
@@ -8804,9 +8969,10 @@ async function loadCustomers() {
     customersList.style.display = 'none';
     customersEmpty.style.display = 'block';
     customersEmpty.innerHTML = `
-      <div style="font-size:64px;margin-bottom:16px;opacity:.4">📋</div>
-      <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">No appointments available</div>
-      <div style="font-size:14px;opacity:.8">Check back soon for upcoming customer calls</div>
+      <div style="font-size:64px;margin-bottom:16px;opacity:.4">⚠️</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">Application Error</div>
+      <div style="font-size:14px;opacity:.8;color:#f87171;margin-bottom:12px">${esc(e.message || 'Unknown error')}</div>
+      <div style="font-size:13px;opacity:.6">Please refresh the page.</div>
     `;
   }
   finally { loading(false); }
@@ -9006,6 +9172,10 @@ async function loadCustomerHistory() {
       const daysSince = Math.floor((new Date() - new Date(c.last_job_date)) / (1000 * 60 * 60 * 24));
       const lastJobText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : `${daysSince} days ago`;
       
+      const callStatus = c.last_called_at 
+        ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px">📞 Last called: ${new Date(c.last_called_at).toLocaleDateString()} (${esc(c.last_call_outcome || 'Unknown')})</div>`
+        : '';
+
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px">
           <div style="flex:1;min-width:0">
@@ -9017,10 +9187,11 @@ async function loadCustomerHistory() {
               <span style="background:rgba(59,130,246,.15);color:#60a5fa;padding:4px 10px;border-radius:6px;font-weight:600">${totalJobsText}</span>
               <span style="background:rgba(16,185,129,.15);color:#10b981;padding:4px 10px;border-radius:6px;font-weight:600">${c.total_revenue ? fmtMoney(c.total_revenue) : '$0'} lifetime</span>
             </div>
+            ${callStatus}
           </div>
-          <a href="tel:${esc(c.customer_phone)}" class="btn secondary" style="padding:10px 16px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap" onclick="event.stopPropagation()">
+          <button class="btn secondary" onclick="handleCustomerCallClick(event, '${esc(c.order_id || '')}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')" style="padding:10px 16px;font-size:13px;font-weight:600;white-space:nowrap">
             📞 Call
-          </a>
+          </button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.05)">
           <div>
@@ -9435,8 +9606,15 @@ document.getElementById("btnSignIn").addEventListener("click", async function() 
     }
     
     token = out.token || "";
-    localStorage.setItem(LS_TOKEN, token);
-    localStorage.setItem('h2s_last_login_email', email);
+    const remember = document.getElementById("siRemember")?.checked;
+    
+    if (remember) {
+        localStorage.setItem(LS_TOKEN, token);
+        localStorage.setItem('h2s_last_login_email', email);
+    } else {
+        sessionStorage.setItem(LS_TOKEN, token);
+        localStorage.removeItem(LS_TOKEN); // Ensure local is clear if not remembering
+    }
     
     const hydrated = await hydrateMe();
     
@@ -9452,6 +9630,7 @@ document.getElementById("btnSignIn").addEventListener("click", async function() 
       return;
     } else {
       localStorage.removeItem(LS_TOKEN);
+      sessionStorage.removeItem(LS_TOKEN);
       token = "";
       errDiv.textContent = "Failed to load profile"; 
       errDiv.style.display = "block";
@@ -12600,8 +12779,25 @@ async function loadTraining() {
     $("training-loading").style.display = "grid";
     
     console.log("📡 Fetching training catalog from backend...");
-    console.log("🔍 Calling GET with action: portal_training?action=catalog");
-    const out = await GET("portal_training?action=catalog", {token});
+    const preferredRegion = (localStorage.getItem('training_region') || '').toLowerCase();
+    const useChina = preferredRegion === 'cn' || preferredRegion === 'china';
+    let out;
+    if (useChina) {
+      console.log("🔍 Using China catalog per region preference");
+      out = await GET("portal_training", {token, action: "china_catalog"});
+    } else {
+      console.log("🔍 Calling GET with action: catalog");
+      out = await GET("portal_training", {token, action: "catalog"});
+      // Fallback: if backend signals region block or no videos and user prefers CN
+      if (!out.ok && (out.error_code === 'blocked_region' || out.error_code === 'china_required')) {
+        console.log("⚠️ Region blocked or China required; switching to China catalog");
+        out = await GET("portal_training", {token, action: "china_catalog"});
+      } else if (out.ok && (!out.videos || out.videos.length === 0) && (preferredRegion === 'cn' || preferredRegion === 'china')) {
+        console.log("ℹ️ Global catalog empty for CN preference; trying China catalog");
+        const cnOut = await GET("portal_training", {token, action: "china_catalog"});
+        if (cnOut && cnOut.ok) out = cnOut;
+      }
+    }
     
     console.log("🔍 Raw response:", out);
     
@@ -12816,7 +13012,7 @@ async function loadTrainingProgress(videoIds) {
     // Fetch progress for all videos in parallel
     const promises = videoIds.map(async id => {
       try {
-        const out = await POST("portal_training?action=progress", {token, video_id: id});
+        const out = await POST("portal_training", {token, action: "progress", video_id: id});
         if (out.ok) {
           trainingProgress[id] = {
             position_sec: out.position_sec || 0,
@@ -13303,8 +13499,9 @@ function detectPlatform(url) {
 async function markVideoViewed(videoId) {
   try {
     console.log("👁️ Marking video as viewed:", videoId);
-    await POST("portal_training?action=heartbeat", {
+    await POST("portal_training", {
       token,
+      action: "heartbeat",
       video_id: videoId,
       position_sec: 1,
       duration_sec: currentVideo?.duration_sec || 0,
@@ -13358,8 +13555,9 @@ function startVideoHeartbeat(videoId, videoDuration) {
     logTraining("Heartbeat", {videoId, position, duration: videoDuration, delta: watchTimeDelta});
     
     try {
-      const out = await POST("portal_training?action=heartbeat", {
+      const out = await POST("portal_training", {
         token,
+        action: "heartbeat",
         video_id: videoId,
         position_sec: position,
         duration_sec: videoDuration,
@@ -13429,7 +13627,7 @@ $("videoMarkComplete").addEventListener("click", async () => {
   try {
     loading(true);
     console.log("✅ Manually marking complete:", currentVideo.id);
-    const out = await POST("portal_training?action=complete", {token, video_id: currentVideo.id});
+    const out = await POST("portal_training", {token, action: "complete", video_id: currentVideo.id});
     if (!out.ok) { 
       toast(out.error || "Failed to mark complete");
       loading(false);
@@ -13492,8 +13690,9 @@ async function saveFinalProgress() {
   console.log("💾 Saving final progress:", videoId, position + "s");
   
   try {
-    await POST("portal_training?action=heartbeat", {
+    await POST("portal_training", {
       token,
+      action: "heartbeat",
       video_id: videoId,
       position_sec: position,
       duration_sec: videoDuration,
@@ -13522,9 +13721,10 @@ window.addEventListener("beforeunload", () => {
     });
     
     // Try sendBeacon first (most reliable)
-    const beaconUrl = API_BASE + "/portal_training?action=heartbeat";
+    const beaconUrl = VERCEL_API + "/portal_training";
+    const beaconPayload = new Blob([payload], {type: 'application/json'});
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(beaconUrl, new Blob([payload], {type: 'application/json'}));
+      navigator.sendBeacon(beaconUrl, beaconPayload);
       console.log("📡 Beacon sent:", videoId);
     }
   }
@@ -13575,12 +13775,15 @@ window.addEventListener("beforeunload", () => {
         renderOffers(cachedJobs.offers || []);
         renderUpcoming(cachedJobs.upcoming || []);
         renderCompleted(cachedJobs.completed || []);
-        switchTab(lastTab); // Restore last tab
+            // Restore last tab and view state
+            switchTab(lastTab);
+            restoreViewState();
         console.log(`⚡ Instant render complete: ${Math.round(performance.now() - perfStart)}ms`);
       } else {
         // No cache, show loading for first-time users
         loading(true);
-        switchTab(lastTab); // Restore last tab
+            switchTab(lastTab);
+            restoreViewState();
       }
       
       // Validate token in background (doesn't block render)
@@ -13595,6 +13798,9 @@ window.addEventListener("beforeunload", () => {
           if (!cachedJobs) {
             loadJobs(); // Only load if we didn't show cache
           }
+
+          // Keep view state consistent on successful hydration
+          restoreViewState();
           
           console.log(`⚡ Portal fully loaded in ${Math.round(performance.now() - perfStart)}ms`);
         } else {
@@ -13605,9 +13811,9 @@ window.addEventListener("beforeunload", () => {
              console.warn("⚠️ Hydration failed but cache exists - staying logged in (offline mode)");
              toast("⚠️ Offline mode - using cached data");
           } else {
-             console.log("❌ Pro session invalid and no cache, showing auth");
-             loading(false);
-             showAuth();
+             console.warn("⚠️ Hydration failed and no cache - redirecting to auth");
+             // If we can't verify session and have no data, we must log in again
+             doSignOut();
           }
         }
       }).catch(err => {
@@ -13617,8 +13823,8 @@ window.addEventListener("beforeunload", () => {
            console.warn("⚠️ Hydration exception but cache exists - staying logged in");
            toast("⚠️ Network error - using cached data");
         } else {
-           loading(false);
-           showAuth();
+           console.warn("⚠️ Hydration error and no cache - redirecting to auth");
+           doSignOut();
         }
       });
     } else {
@@ -14663,6 +14869,539 @@ $("btnViewHistory").addEventListener("click", () => {
 
 }); // End of DOMContentLoaded
 
+</script>
+<!-- Call Outcome Modal -->
+<div id="callOutcomeModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="callOutcomeTitle">
+  <div class="sheet" style="max-width: 400px;">
+    <h3 id="callOutcomeTitle">Call Outcome</h3>
+    <p id="callOutcomeText">How did the call go?</p>
+    
+    <div id="callOutcomeButtons" class="row" style="flex-direction: column; gap: 10px;">
+      <button id="btnCallConfirmed" class="btn" type="button">Confirmed</button>
+      <button id="btnCallVM" class="btn secondary" type="button">Left Voicemail</button>
+      <button id="btnCallReschedule" class="btn secondary" type="button">Reschedule</button>
+    </div>
+
+    <div id="rescheduleForm" style="display:none; margin-top: 15px;">
+      <label class="label" for="rescheduleDate">New Date</label>
+      <input type="date" id="rescheduleDate" class="input" style="width:100%; padding: 10px; margin-bottom: 10px;">
+      <label class="label" for="rescheduleTime">New Time</label>
+      <input type="time" id="rescheduleTime" class="input" style="width:100%; padding: 10px; margin-bottom: 10px;">
+      <button id="btnSubmitReschedule" class="btn" type="button" style="width:100%">Confirm Reschedule</button>
+      <button id="btnCancelReschedule" class="btn ghost" type="button" style="width:100%; margin-top: 5px;">Back</button>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+      <button id="btnCallClose" class="btn ghost" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Lead Nurturing Modal -->
+<div id="customerCallOutcomeModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="customerCallTitle">
+  <div class="sheet" style="max-width: 400px;">
+    <h3 id="customerCallTitle">Lead Follow-up</h3>
+    <p id="customerCallText">What happened with this lead?</p>
+    
+    <div id="customerCallButtons" class="row" style="flex-direction: column; gap: 10px;">
+      <button id="btnCustContacted" class="btn" type="button" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981">
+        ✅ Contacted / Confirmed
+      </button>
+      <button id="btnCustVM" class="btn secondary" type="button">
+        📼 Left Voicemail
+      </button>
+      <button id="btnCustNoAnswer" class="btn secondary" type="button">
+        📵 No Answer
+      </button>
+      <button id="btnCustReschedule" class="btn secondary" type="button">
+        📅 Reschedule
+      </button>
+    </div>
+
+    <div id="custRescheduleForm" style="display:none; margin-top: 15px;">
+      <!-- Calendar Widget (Adapted from Bundles) -->
+      <p style="margin: 0 0 12px; color: #b8d9ff; font-size: 14px;">Pick a date and time window.</p>
+      
+      <div id="custRescheduleCalendar" style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); color: #0a2a5a;"></div>
+      
+      <div id="custTimeWindowSection" style="display:none; margin-bottom:16px;">
+        <label style="display:block; font-weight:600; font-size:14px; margin-bottom:8px; color:#b8d9ff;">Select Time Window</label>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+          <button class="time-slot-btn" data-window="9:00 AM - 12:00 PM" type="button" style="padding:10px 4px; border:2px solid rgba(255,255,255,0.2); border-radius:8px; background:rgba(255,255,255,0.1); color:white; cursor:pointer; font-weight:600; font-size:13px; transition: all 0.2s;">9-12</button>
+          <button class="time-slot-btn" data-window="12:00 PM - 3:00 PM" type="button" style="padding:10px 4px; border:2px solid rgba(255,255,255,0.2); border-radius:8px; background:rgba(255,255,255,0.1); color:white; cursor:pointer; font-weight:600; font-size:13px; transition: all 0.2s;">12-3</button>
+          <button class="time-slot-btn" data-window="3:00 PM - 6:00 PM" type="button" style="padding:10px 4px; border:2px solid rgba(255,255,255,0.2); border-radius:8px; background:rgba(255,255,255,0.1); color:white; cursor:pointer; font-weight:600; font-size:13px; transition: all 0.2s;">3-6</button>
+        </div>
+      </div>
+
+      <button id="btnCustSubmitReschedule" class="btn" type="button" style="width:100%; opacity:0.5; pointer-events:none;">Confirm Reschedule</button>
+      <button id="btnCustCancelReschedule" class="btn ghost" type="button" style="width:100%; margin-top: 5px;">Back</button>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+      <button id="btnCustClose" class="btn ghost" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentCustomerCallData = null;
+let selectedRescheduleDate = null;
+let selectedRescheduleWindow = null;
+
+function renderRescheduleCalendar() {
+  const cal = document.getElementById('custRescheduleCalendar');
+  if(!cal) return;
+  
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = now.getDate();
+  
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  let html = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h4 style="margin:0; font-size:15px; font-weight:800; color:#0a2a5a;">${monthNames[currentMonth]} ${currentYear}</h4>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; text-align:center;">
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Su</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Mo</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Tu</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">We</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Th</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Fr</div>
+      <div style="font-size:11px; font-weight:700; color:#64748b; padding:4px 0;">Sa</div>
+  `;
+  
+  // Empty cells before first day
+  for(let i = 0; i < firstDay; i++) {
+    html += `<div></div>`;
+  }
+  
+  // Days of month
+  for(let day = 1; day <= daysInMonth; day++) {
+    const isPast = day < today;
+    const isToday = day === today;
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    if(isPast) {
+      html += `<div style="padding:8px; color:#cbd5e1; font-size:13px;">${day}</div>`;
+    } else {
+      const style = isToday 
+        ? 'padding:8px; border:2px solid #0a2a5a; border-radius:6px; cursor:pointer; font-weight:700; font-size:13px; color:#0a2a5a;'
+        : 'padding:8px; border:2px solid transparent; border-radius:6px; cursor:pointer; font-size:13px; color:#334155;';
+      html += `<div class="cal-day-resched" data-date="${dateStr}" style="${style}" onmouseover="if(!this.classList.contains('selected')) this.style.background='#f1f5f9'" onmouseout="if(!this.classList.contains('selected')) this.style.background='transparent'">${day}</div>`;
+    }
+  }
+  
+  html += `</div>`;
+  cal.innerHTML = html;
+  
+  // Click handlers
+  cal.querySelectorAll('.cal-day-resched').forEach(dayEl => {
+    dayEl.onclick = () => {
+      selectedRescheduleDate = dayEl.getAttribute('data-date');
+      
+      // Reset styles
+      cal.querySelectorAll('.cal-day-resched').forEach(d => {
+        d.classList.remove('selected');
+        d.style.background = 'transparent';
+        d.style.color = d.textContent == today ? '#0a2a5a' : '#334155';
+        d.style.borderColor = d.textContent == today ? '#0a2a5a' : 'transparent';
+      });
+      
+      // Set active style
+      dayEl.classList.add('selected');
+      dayEl.style.background = '#3b82f6';
+      dayEl.style.color = 'white';
+      dayEl.style.borderColor = '#3b82f6';
+      
+      // Show time window
+      document.getElementById('custTimeWindowSection').style.display = 'block';
+      
+      // Reset time selection
+      selectedRescheduleWindow = null;
+      document.querySelectorAll('.time-slot-btn').forEach(b => {
+        b.style.borderColor = 'rgba(255,255,255,0.2)';
+        b.style.background = 'rgba(255,255,255,0.1)';
+      });
+      
+      // Disable submit
+      const btn = document.getElementById('btnCustSubmitReschedule');
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+    };
+  });
+}
+
+function handleCustomerRescheduleClick(e, orderId, name) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  currentCustomerCallData = { orderId, name, phone: '' };
+  
+  const modal = document.getElementById("customerCallOutcomeModal");
+  if (modal) {
+    modal.style.display = "grid";
+    modal.setAttribute("aria-hidden", "false");
+    
+    // Show reschedule form directly
+    document.getElementById("customerCallButtons").style.display = "none";
+    document.getElementById("custRescheduleForm").style.display = "block";
+    document.getElementById("customerCallText").textContent = `Reschedule ${name || 'Customer'}`;
+    
+    renderRescheduleCalendar();
+  }
+}
+
+function handleCustomerCallClick(e, orderId, phone, name) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  if (!phone) {
+    toast("No phone number available");
+    return;
+  }
+  
+  currentCustomerCallData = { orderId, phone, name };
+  
+  // Open phone dialer
+  window.location.href = `tel:${phone}`;
+  
+  // Show outcome modal after a short delay
+  setTimeout(() => {
+    const modal = document.getElementById("customerCallOutcomeModal");
+    if (modal) {
+      modal.style.display = "grid";
+      modal.setAttribute("aria-hidden", "false");
+      
+      // Reset view
+      document.getElementById("customerCallButtons").style.display = "flex";
+      document.getElementById("custRescheduleForm").style.display = "none";
+      document.getElementById("customerCallText").textContent = `What happened with ${name || 'this customer'}?`;
+    }
+  }, 1000);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("customerCallOutcomeModal");
+  const closeBtn = document.getElementById("btnCustClose");
+  
+  const contactedBtn = document.getElementById("btnCustContacted");
+  const vmBtn = document.getElementById("btnCustVM");
+  const noAnswerBtn = document.getElementById("btnCustNoAnswer");
+  const rescheduleBtn = document.getElementById("btnCustReschedule");
+  
+  const submitRescheduleBtn = document.getElementById("btnCustSubmitReschedule");
+  const cancelRescheduleBtn = document.getElementById("btnCustCancelReschedule");
+  
+  if (closeBtn) closeBtn.onclick = closeCustomerCallModal;
+  
+  if (contactedBtn) contactedBtn.onclick = async () => {
+    if (!currentCustomerCallData) return;
+    await submitCallLog(currentCustomerCallData.orderId, currentCustomerCallData.phone, null, currentCustomerCallData.name, 'completed');
+    closeCustomerCallModal();
+  };
+  
+  if (vmBtn) vmBtn.onclick = async () => {
+    if (!currentCustomerCallData) return;
+    await submitCallLog(currentCustomerCallData.orderId, currentCustomerCallData.phone, null, currentCustomerCallData.name, 'voicemail');
+    closeCustomerCallModal();
+  };
+  
+  if (noAnswerBtn) noAnswerBtn.onclick = async () => {
+    if (!currentCustomerCallData) return;
+    await submitCallLog(currentCustomerCallData.orderId, currentCustomerCallData.phone, null, currentCustomerCallData.name, 'no_answer');
+    closeCustomerCallModal();
+  };
+  
+  if (rescheduleBtn) rescheduleBtn.onclick = () => {
+    document.getElementById("customerCallButtons").style.display = "none";
+    document.getElementById("custRescheduleForm").style.display = "block";
+    document.getElementById("customerCallText").textContent = "Select new time";
+    
+    // Render calendar
+    renderRescheduleCalendar();
+  };
+  
+  // Time slot handlers
+  document.querySelectorAll('.time-slot-btn').forEach(btn => {
+    btn.onclick = () => {
+      selectedRescheduleWindow = btn.getAttribute('data-window');
+      
+      // Reset all buttons
+      document.querySelectorAll('.time-slot-btn').forEach(b => {
+        b.style.borderColor = 'rgba(255,255,255,0.2)';
+        b.style.background = 'rgba(255,255,255,0.1)';
+      });
+      
+      // Highlight selected
+      btn.style.borderColor = '#3b82f6';
+      btn.style.background = '#3b82f6';
+      
+      // Enable submit
+      const submitBtn = document.getElementById('btnCustSubmitReschedule');
+      submitBtn.style.opacity = '1';
+      submitBtn.style.pointerEvents = 'auto';
+    };
+  });
+  
+  if (cancelRescheduleBtn) cancelRescheduleBtn.onclick = () => {
+    document.getElementById("customerCallButtons").style.display = "flex";
+    document.getElementById("custRescheduleForm").style.display = "none";
+    document.getElementById("customerCallText").textContent = `What happened with ${currentCustomerCallData?.name || 'this customer'}?`;
+    
+    // Reset selection
+    selectedRescheduleDate = null;
+    selectedRescheduleWindow = null;
+  };
+  
+  if (submitRescheduleBtn) submitRescheduleBtn.onclick = async () => {
+    if (!selectedRescheduleDate || !selectedRescheduleWindow) {
+      toast("Please select date and time");
+      return;
+    }
+    
+    if (!currentCustomerCallData) return;
+    
+    loading(true);
+    try {
+      // 1. Call the Reschedule API
+      const response = await fetch(`${API}/reschedule-appointment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: currentCustomerCallData.orderId,
+          delivery_date: selectedRescheduleDate,
+          delivery_time: selectedRescheduleWindow,
+          reason: 'Rescheduled by Pro via Portal'
+        })
+      });
+      
+      const result = await response.json();
+      if (!result.ok) throw new Error(result.error || 'Reschedule failed');
+
+      // 2. Log the call outcome
+      await submitCallLog(
+        currentCustomerCallData.orderId, 
+        currentCustomerCallData.phone, 
+        null, 
+        currentCustomerCallData.name, 
+        'rescheduled', 
+        `Rescheduled to ${selectedRescheduleDate} ${selectedRescheduleWindow}`
+      );
+      
+      toast("✅ Appointment rescheduled successfully");
+      closeCustomerCallModal();
+      
+      // Reload to show changes
+      setTimeout(() => loadCustomers(), 1000);
+      
+    } catch (err) {
+      console.error(err);
+      toast("Failed to reschedule: " + err.message);
+    } finally {
+      loading(false);
+    }
+  };
+});
+
+function closeCustomerCallModal() {
+  const modal = document.getElementById("customerCallOutcomeModal");
+  if (modal) {
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+  }
+  currentCustomerCallData = null;
+}
+
+// Overload submitCallLog to handle direct calls
+const originalSubmitCallLog = window.submitCallLog;
+window.submitCallLog = async function(order_id, phone, email, name, outcomeOverride = null, notesOverride = null) {
+  // If called from modal (no args), use DOM elements
+  let outcome = outcomeOverride;
+  let notes = notesOverride;
+  let followUp = null;
+  
+  if (!outcome) {
+    const outcomeEl = $('callOutcome');
+    if (outcomeEl) outcome = outcomeEl.value;
+  }
+  
+  if (!notes) {
+    const notesEl = $('callNotes');
+    if (notesEl) notes = notesEl.value;
+  }
+  
+  if (!outcome) {
+    toast('Please select a call outcome');
+    return;
+  }
+  
+  try {
+    loading(true);
+    // Close any open modals
+    closeModal(); 
+    
+    const response = await fetch(`${API}/portal_log_call`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        customer_phone: phone,
+        customer_email: email || null,
+        customer_name: name || null,
+        order_id: order_id,
+        call_reason: 'appointment',
+        call_outcome: outcome,
+        notes: notes || null,
+        follow_up_date: followUp || null
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.ok) {
+      toast(result.error || 'Failed to log call');
+      return;
+    }
+    
+    toast('✅ Call logged successfully');
+    
+    // Reload customers list to show updated status
+    setTimeout(() => loadCustomers(), 500);
+    
+  } catch(e) {
+    console.error('[CallLog] Error:', e);
+    toast(e.message || 'Failed to log call');
+  } finally {
+    loading(false);
+  }
+};
+</script>
+
+<script>
+let currentCallJobId = null;
+
+function handleCallClick(e, jobId, phone) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  if (!phone) {
+    toast("No phone number available");
+    return;
+  }
+  
+  currentCallJobId = jobId;
+  
+  // Open phone dialer
+  window.location.href = `tel:${phone}`;
+  
+  // Show outcome modal after a short delay
+  setTimeout(() => {
+    const modal = document.getElementById("callOutcomeModal");
+    if (modal) {
+      modal.style.display = "grid";
+      modal.setAttribute("aria-hidden", "false");
+      
+      // Reset view
+      document.getElementById("callOutcomeButtons").style.display = "flex";
+      document.getElementById("rescheduleForm").style.display = "none";
+      document.getElementById("callOutcomeText").textContent = "How did the call go?";
+    }
+  }, 1000);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("callOutcomeModal");
+  const closeBtn = document.getElementById("btnCallClose");
+  const confirmBtn = document.getElementById("btnCallConfirmed");
+  const vmBtn = document.getElementById("btnCallVM");
+  const rescheduleBtn = document.getElementById("btnCallReschedule");
+  const submitRescheduleBtn = document.getElementById("btnSubmitReschedule");
+  const cancelRescheduleBtn = document.getElementById("btnCancelReschedule");
+  
+  if (closeBtn) closeBtn.onclick = closeCallModal;
+  
+  if (confirmBtn) confirmBtn.onclick = async () => {
+    if (!currentCallJobId) return;
+    await logCallOutcome(currentCallJobId, "confirmed");
+    closeCallModal();
+  };
+  
+  if (vmBtn) vmBtn.onclick = async () => {
+    if (!currentCallJobId) return;
+    await logCallOutcome(currentCallJobId, "voicemail");
+    closeCallModal();
+  };
+  
+  if (rescheduleBtn) rescheduleBtn.onclick = () => {
+    document.getElementById("callOutcomeButtons").style.display = "none";
+    document.getElementById("rescheduleForm").style.display = "block";
+    document.getElementById("callOutcomeText").textContent = "Select new time";
+  };
+  
+  if (cancelRescheduleBtn) cancelRescheduleBtn.onclick = () => {
+    document.getElementById("callOutcomeButtons").style.display = "flex";
+    document.getElementById("rescheduleForm").style.display = "none";
+    document.getElementById("callOutcomeText").textContent = "How did the call go?";
+  };
+  
+  if (submitRescheduleBtn) submitRescheduleBtn.onclick = async () => {
+    const date = document.getElementById("rescheduleDate").value;
+    const time = document.getElementById("rescheduleTime").value;
+    
+    if (!date || !time) {
+      toast("Please select date and time");
+      return;
+    }
+    
+    if (!currentCallJobId) return;
+    
+    loading(true);
+    try {
+      console.log(`Rescheduling job ${currentCallJobId} to ${date} ${time}`);
+      // TODO: Implement actual backend call
+      toast(`Reschedule requested for ${date} at ${time}`);
+      closeCallModal();
+      setTimeout(() => loadJobs(), 1000);
+    } catch (err) {
+      console.error(err);
+      toast("Failed to reschedule");
+    } finally {
+      loading(false);
+    }
+  };
+});
+
+function closeCallModal() {
+  const modal = document.getElementById("callOutcomeModal");
+  if (modal) {
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+  }
+  currentCallJobId = null;
+}
+
+async function logCallOutcome(jobId, outcome) {
+  loading(true);
+  try {
+    console.log(`Logging call outcome for ${jobId}: ${outcome}`);
+    // TODO: Implement actual backend call
+    await new Promise(r => setTimeout(r, 500));
+    toast(`Call logged: ${outcome}`);
+  } catch (err) {
+    console.error(err);
+    toast("Failed to log call");
+  } finally {
+    loading(false);
+  }
+}
 </script>
 </body>
 </html>
