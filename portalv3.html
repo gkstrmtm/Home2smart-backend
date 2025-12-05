@@ -6539,12 +6539,36 @@ function renderPaginationControls(type, totalItems, container) {
 function formatResourceName(text, job) {
     if (!text) return "";
     let t = text;
+    
+    // Check for 4th TV presence in the job
+    const has4th = job && job.line_items && Array.isArray(job.line_items) && 
+                   job.line_items.some(i => (i.service_id||i.bundle_id||i.name||'').includes('tv_multi_4th'));
+
     // Handle specific bundle codes
     t = t.replace(/cam_premium/gi, "Premium Cam Pkg (8 Cams + Doorbell + NVR)");
     t = t.replace(/cam_standard/gi, "Standard Cam Pkg (4 Cams + Doorbell)");
     t = t.replace(/cam_basic/gi, "Basic Cam Pkg (2 Cams + Doorbell)");
     
-    t = t.replace(/tv_multi/gi, "Multi-TV Mount (3-4 TVs)");
+    // Handle TV Multi variations precisely
+    // 1. Handle the 4th TV add-on specifically
+    t = t.replace(/tv_multi_4th/gi, "4th TV Add-on");
+    
+    // 2. Handle the base tv_multi package (It is always 3 TVs in the bundle)
+    // Use negative lookahead to ensure we don't match tv_multi_4th if it wasn't caught above
+    t = t.replace(/tv_multi(?!_4th)/gi, "Multi-TV Package (3 TVs)");
+    
+    // 3. Handle the Service Name / Title (e.g. "Multi-Room Package")
+    // If the title is generic, make it precise based on the line items
+    if (t.includes("Multi-Room Package") || t.includes("Multi-TV Mount")) {
+         if (has4th) {
+             // If we have the add-on, the total job is 4 TVs
+             t = "Multi-TV Mount (4 TVs)";
+         } else if (t.includes("Multi-Room Package")) {
+             // If no add-on, it's 3 TVs
+             t = "Multi-TV Mount (3 TVs)";
+         }
+    }
+
     t = t.replace(/tv_2pack/gi, "2-TV Package");
     t = t.replace(/tv_single/gi, "Single TV Mount");
     
