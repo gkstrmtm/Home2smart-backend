@@ -3578,26 +3578,39 @@ a:focus-visible{
     // Compute total payout for a job with multiple lines
     // job.lines: [{ customer_total, variant_code }]
     window.computePayoutForJob = function(job){
-      const lines = job?.lines || [];
+      // Support both legacy 'lines' and new 'line_items'
+      const lines = job?.line_items || job?.lines || [];
       let lineTotal = 0;
       lines.forEach(ln => {
         lineTotal += _computeProPayoutForLine(ln.customer_total, ln.variant_code);
       });
       
       // If no lines but job has direct payout fields, use them
-      const base = Number(job?.base_pay||0);
-      const extras = Number(job?.extras_total||0);
-      const deductions = Number(job?.deductions_total||0);
-      const directTotal = base + extras - deductions;
+      // Priority: payout_estimated (from API) > base_pay (legacy)
+      const estimated = Number(job?.payout_estimated || 0);
+      const base = Number(job?.base_pay || job?.payout_base || 0);
+      const extras = Number(job?.extras_total || job?.payout_extras || 0);
+      const deductions = Number(job?.deductions_total || job?.payout_deductions || 0);
+      
+      let directTotal = 0;
+      if (estimated > 0) {
+          directTotal = estimated;
+      } else {
+          directTotal = base + extras - deductions;
+      }
       
       const total = lines.length > 0 ? lineTotal : Math.max(0, directTotal);
+      
+      // If we have a hard estimated payout from backend, prefer that over calculation
+      const finalTotal = (estimated > 0 && lines.length === 0) ? estimated : total;
+
       return { 
         base, 
         extras, 
         deductions, 
         lineTotal, 
-        total, 
-        label: fmtMoney(total) 
+        total: finalTotal, 
+        label: fmtMoney(finalTotal) 
       };
     };
     
@@ -6643,7 +6656,18 @@ function showOfferDetails(job) {
   $("md-title").textContent = job.service_name || "Job Offer";
   $("md-date").textContent = job.window || job.start_iso || "TBD";
   $("md-addr").textContent = (job.address || job.service_address || "") + (job.city||job.service_city ? (", " + (job.city||job.service_city) + " " + (job.state||job.service_state||"") + " " + (job.zip||job.service_zip||"")) : "");
-  $("md-res").textContent = job.resources_needed || "None specified";
+  
+  // ✅ INTELLIGENCE: Show line items in resources if available
+  let resourcesText = job.resources_needed || "None specified";
+  if (job.line_items && Array.isArray(job.line_items) && job.line_items.length > 0) {
+      const items = job.line_items.map(i => {
+          const qty = (i.qty && i.qty > 1) ? `(${i.qty}) ` : '';
+          return `${qty}${i.title || i.name || 'Item'}`;
+      });
+      resourcesText = items.join(', ');
+  }
+  $("md-res").textContent = resourcesText;
+  
   $("md-tech").textContent = job.pro_name || "—";
 
   // Compute payout
@@ -6679,16 +6703,29 @@ function showOfferDetails(job) {
   const linesBox = $("md-lines");
   linesBox.innerHTML = "";
   let hadLines = false;
-  if (job.lines && Array.isArray(job.lines) && job.lines.length) {
+  
+  // Support both legacy 'lines' and new 'line_items'
+  const linesToRender = job.line_items || job.lines || [];
+  
+  if (linesToRender && Array.isArray(linesToRender) && linesToRender.length) {
     hadLines = true;
-    job.lines.forEach((ln, idx) => {
-      const lineAmt = (window.computePayoutForLine ? window.computePayoutForLine(ln.customer_total, ln.variant_code) : 0);
+    linesToRender.forEach((ln, idx) => {
+      // If we have a direct payout amount for the line (future), use it. Otherwise compute.
+      let lineAmt = 0;
+      let lineLabel = '';
+      
+      if (window.computePayoutForLine) {
+          const res = window.computePayoutForLine(ln.customer_total, ln.variant_code);
+          lineAmt = res.amount;
+          lineLabel = res.label;
+      }
+      
       const line = document.createElement('div');
       line.className = 'item';
       line.innerHTML = `
-        <div style="font-weight:600">${esc(ln.name || ln.sku || ('Line ' + (idx+1)))}</div>
-        <div class="meta">Customer: ${fmtMoney(ln.customer_total || 0)} • Variant: ${esc(ln.variant_code || 'BASE')}</div>
-        <div class="payout"><div class="num" style="font-size:20px">${fmtMoney(lineAmt)}</div></div>
+        <div style="font-weight:600">${esc(ln.title || ln.name || ln.sku || ('Line ' + (idx+1)))}</div>
+        <div class="meta">Variant: ${esc(ln.variant_code || 'BASE')} ${ln.qty > 1 ? `• Qty: ${ln.qty}` : ''}</div>
+        <div class="payout"><div class="num" style="font-size:20px">${lineLabel || fmtMoney(lineAmt)}</div></div>
       `;
       linesBox.appendChild(line);
     });
