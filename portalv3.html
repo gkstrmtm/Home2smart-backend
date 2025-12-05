@@ -5786,7 +5786,7 @@ async function GET(action, payload={}) {
         // Endpoints that require POST with body (login, signup, etc)
         const requiresPost = [
           'portal_login', 'portal_signup_step1', 'admin_login',
-          'portal_jobs', 'portal_me'  // These also need POST to send token
+          'portal_jobs', 'portal_me', 'portal_accept', 'portal_decline', 'portal_mark_done'  // These also need POST to send token
         ];
         const usePost = requiresPost.includes(action);
         
