@@ -7278,12 +7278,18 @@ function renderOffersSync(list, box) {
     el.style.animationDelay = `${index * 0.08}s`;
     
     // Use calculated distance if available, otherwise backend distance
-    const distance = j._calculatedDistance || j.distance_miles;
+    // FIXED: Handle 0 or 0.01 correctly by checking for null/undefined explicitly
+    let distance = j._calculatedDistance;
+    if (distance === undefined || distance === null) {
+      distance = j.distance_miles;
+    }
+    
     const maxRadius = me && me.service_radius_miles ? asNum(me.service_radius_miles) : 0;
     const isOutOfRange = maxRadius > 0 && distance && distance > maxRadius;
     const overBy = isOutOfRange ? Math.round((distance - maxRadius) * 10) / 10 : 0;
     
-    const distanceText = distance ? 
+    // FIXED: Check if distance is a valid number (including 0), not just truthy
+    const distanceText = (distance !== null && distance !== undefined) ? 
       `<strong>Distance:</strong> ${distance} mi` : 
       `<strong>Distance:</strong> N/A`;
     
