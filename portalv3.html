@@ -5728,7 +5728,7 @@ async function GET(action, payload={}) {
   // List of all Vercel endpoints (faster, no CORS issues)
   const VERCEL_ENDPOINTS = [
     // Portal endpoints
-    'portal_login', 'portal_signup_step1', 'portal_me', 'portal_jobs', 'portal_jobs_v2',
+    'portal_login', 'portal_signup_step1', 'portal_me', 'portal_jobs', 
     'portal_accept', 'portal_decline', 'portal_mark_done', 'portal_payouts',
     'portal_reviews_get', 'portal_training',
     'portal_customers', 'portal_customer_history', 'portal_log_call',
@@ -5786,7 +5786,7 @@ async function GET(action, payload={}) {
         // Endpoints that require POST with body (login, signup, etc)
         const requiresPost = [
           'portal_login', 'portal_signup_step1', 'admin_login',
-          'portal_jobs', 'portal_jobs_v2', 'portal_me'  // These also need POST to send token
+          'portal_jobs', 'portal_me'  // These also need POST to send token
         ];
         const usePost = requiresPost.includes(action);
         
@@ -7143,7 +7143,7 @@ async function loadJobs() {
     const apiStart = performance.now();
     console.log('[Dashboard] 🔄 Loading fresh data from backend...');
     
-    const out = await GET("portal_jobs_v2", {token});
+    const out = await GET("portal_jobs", {token});
     const apiTime = Math.round(performance.now() - apiStart);
     recordMetric('api', apiTime);
     console.log(`[Dashboard] 📡 API response time: ${apiTime}ms`);
@@ -8064,7 +8064,7 @@ function startJobPolling() {
     if (!token || isAdmin || currentTab !== "dash") return;
     
     try {
-      const out = await GET("portal_jobs_v2", {token});
+      const out = await GET("portal_jobs", {token});
       if (!out.ok) return;
       
       const offers = out.offers || out.pending || [];
@@ -8263,7 +8263,7 @@ async function loadPayouts() {
         
         try {
           loading(true);
-          const out = await GET("portal_jobs_v2", {token});
+          const out = await GET("portal_jobs", {token});
           if (!out.ok) { toast(out.error || "Could not load jobs"); return; }
           
           // Find the job in all lists
