@@ -8744,11 +8744,18 @@ async function loadCustomers() {
         ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px">Last called: ${new Date(c.last_called_at).toLocaleDateString()} - ${esc(c.last_call_outcome || 'Unknown')}</div>`
         : '';
       
+      // Determine context and talking points
+      const context = c.context || 'Appointment Prep / Check-in';
+      const talkingPoints = c.notes ? `Notes: ${esc(c.notes)}` : '"Hi, just checking in on our appointment..."';
+
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px">
           <div style="flex:1;min-width:0">
             <div style="font-size:18px;font-weight:700;color:#e0f2fe;margin-bottom:6px">${esc(c.customer_name || 'Customer')}</div>
-            <div style="font-size:14px;color:#94a3b8;margin-bottom:4px">${esc(c.context || '')}</div>
+            <div style="font-size:14px;color:#94a3b8;margin-bottom:4px">${esc(context)}</div>
+            <div style="font-size:13px;color:#60a5fa;margin-top:4px;font-style:italic;background:rgba(59,130,246,.1);padding:6px 10px;border-radius:6px;display:inline-block">
+               ${talkingPoints}
+            </div>
             ${callStatus}
           </div>
           <a href="tel:${esc(c.customer_phone)}" class="btn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;color:#fff;padding:12px 20px;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap">
