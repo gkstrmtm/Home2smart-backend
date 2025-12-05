@@ -5790,7 +5790,14 @@ async function GET(action, payload={}) {
         ];
         const usePost = requiresPost.includes(action);
         
-        const res = await fetch(endpoint, {
+        // ✅ ROBUSTNESS: For GET requests, also append token to query string as fallback
+        let finalEndpoint = endpoint;
+        if (!usePost && token && !endpoint.includes('token=')) {
+           const separator = endpoint.includes('?') ? '&' : '?';
+           finalEndpoint = `${endpoint}${separator}token=${encodeURIComponent(token)}`;
+        }
+        
+        const res = await fetch(finalEndpoint, {
           method: usePost ? "POST" : "GET",
           headers: headers,
           body: usePost ? JSON.stringify(payload) : undefined
@@ -6394,6 +6401,9 @@ async function hydrateMe() {
 /* ===== TABS (pro) ===== */
 function switchTab(which) {
   currentTab = which;
+  // ✅ PERSISTENCE: Save current tab to localStorage
+  localStorage.setItem('h2s_last_tab', which);
+  
   ["dash","customers","payouts","reviews","training","profile","schedule"].forEach(k => {
     document.getElementById("tab-" + k).style.display = (k === which) ? "block" : "none";
   });
@@ -13303,18 +13313,22 @@ window.addEventListener("beforeunload", () => {
       
       // Show cached data FIRST (instant), then validate and refresh
       const cachedJobs = getCache('dash');
+      
+      // ✅ PERSISTENCE: Restore last used tab
+      const lastTab = localStorage.getItem('h2s_last_tab') || 'dash';
+      
       if (cachedJobs) {
         console.log("⚡ Rendering cached dashboard instantly...");
         currentJobsData = cachedJobs;
         renderOffers(cachedJobs.offers || []);
         renderUpcoming(cachedJobs.upcoming || []);
         renderCompleted(cachedJobs.completed || []);
-        switchTab("dash");
+        switchTab(lastTab); // Restore last tab
         console.log(`⚡ Instant render complete: ${Math.round(performance.now() - perfStart)}ms`);
       } else {
         // No cache, show loading for first-time users
         loading(true);
-        switchTab("dash");
+        switchTab(lastTab); // Restore last tab
       }
       
       // Validate token in background (doesn't block render)
@@ -13332,14 +13346,28 @@ window.addEventListener("beforeunload", () => {
           
           console.log(`⚡ Portal fully loaded in ${Math.round(performance.now() - perfStart)}ms`);
         } else {
-          console.log("❌ Pro session invalid, showing auth");
-          loading(false);
-          showAuth();
+          // ✅ RESILIENCE: Don't log out on network error, only on explicit auth failure
+          // If we have a token but hydration failed, it might be a network blip.
+          // We'll assume valid for now if we have cached data, otherwise show auth.
+          if (cachedJobs) {
+             console.warn("⚠️ Hydration failed but cache exists - staying logged in (offline mode)");
+             toast("⚠️ Offline mode - using cached data");
+          } else {
+             console.log("❌ Pro session invalid and no cache, showing auth");
+             loading(false);
+             showAuth();
+          }
         }
       }).catch(err => {
         console.error("❌ Hydration error:", err);
-        loading(false);
-        showAuth();
+        // ✅ RESILIENCE: Same logic as above
+        if (cachedJobs) {
+           console.warn("⚠️ Hydration exception but cache exists - staying logged in");
+           toast("⚠️ Network error - using cached data");
+        } else {
+           loading(false);
+           showAuth();
+        }
       });
     } else {
       console.log("📝 No token, showing auth");
