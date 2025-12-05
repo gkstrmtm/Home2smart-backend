@@ -265,11 +265,12 @@ export default async function handler(req, res) {
           console.log(`[create_jobs] ⚠️ No address provided for order ${order.order_id}`);
         }
 
-        // 👤 ENSURE CUSTOMER PROFILE EXISTS
-        // We upsert into h2s_users to ensure we have a profile for this customer
+        // 👤 ENSURE CUSTOMER PROFILE EXISTS (CRM & Auth)
+        let dispatchCustomerId = null;
+
         if (order.customer_email) {
           try {
-            // Check if user exists first to get ID, or generate new one
+            // 1. Sync to h2s_users (Auth/Identity)
             const { data: existingUser } = await supabase
               .from('h2s_users')
               .select('user_id')
@@ -281,21 +282,55 @@ export default async function handler(req, res) {
             const { error: userError } = await supabase
               .from('h2s_users')
               .upsert({
-                user_id: userId, // Ensure ID is provided
+                user_id: userId,
                 email: order.customer_email,
                 full_name: customerName,
                 phone: phone,
-                // Don't overwrite existing data if not necessary, but ensure record exists
                 updated_at: new Date().toISOString()
               }, { onConflict: 'email' });
               
             if (userError) {
               console.warn('[create_jobs] Failed to upsert user profile:', userError.message);
-            } else {
-              console.log('[create_jobs] ✅ Customer profile verified/created for:', order.customer_email);
             }
+
+            // 2. Sync to h2s_dispatch_customers (CRM/Dispatch System)
+            // This is critical for linking jobs to customer history and LTV
+            const { data: dispatchCustomer, error: dispatchError } = await supabase
+              .from('h2s_dispatch_customers')
+              .select('customer_id')
+              .eq('email', order.customer_email)
+              .single();
+
+            if (dispatchCustomer) {
+                dispatchCustomerId = dispatchCustomer.customer_id;
+                console.log('[create_jobs] ✅ Found existing dispatch customer:', dispatchCustomerId);
+            } else {
+                // Create new customer profile
+                const { data: newCustomer, error: createError } = await supabase
+                  .from('h2s_dispatch_customers')
+                  .insert({
+                    name: customerName,
+                    email: order.customer_email,
+                    phone: phone,
+                    address: address,
+                    city: city,
+                    state: state,
+                    zip: zip ? parseInt(zip) : null,
+                    created_at: new Date().toISOString()
+                  })
+                  .select('customer_id')
+                  .single();
+                
+                if (createError) {
+                    console.warn('[create_jobs] Failed to create dispatch customer:', createError.message);
+                } else {
+                    dispatchCustomerId = newCustomer.customer_id;
+                    console.log('[create_jobs] ✅ Created new dispatch customer:', dispatchCustomerId);
+                }
+            }
+
           } catch (e) {
-            console.warn('[create_jobs] User profile sync error:', e.message);
+            console.warn('[create_jobs] User/Customer sync error:', e.message);
           }
         }
         
@@ -375,6 +410,7 @@ export default async function handler(req, res) {
         const jobData = {
           status: 'pending',
           service_id: serviceIdText,
+          customer_id: dispatchCustomerId, // ✅ LINKED TO CRM PROFILE
           customer_email: order.customer_email || order.email || null,
           customer_name: customerName,
           service_address: address,
