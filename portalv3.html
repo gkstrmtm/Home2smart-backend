@@ -6536,14 +6536,35 @@ function renderPaginationControls(type, totalItems, container) {
 }
 
 // Helper to translate bundle codes to operational language
-function formatResourceName(text) {
+function formatResourceName(text, job) {
     if (!text) return "";
     let t = text;
     // Handle specific bundle codes
     t = t.replace(/cam_premium/gi, "Premium Cam Pkg (8 Cams + Doorbell + NVR)");
     t = t.replace(/cam_standard/gi, "Standard Cam Pkg (4 Cams + Doorbell)");
     t = t.replace(/cam_basic/gi, "Basic Cam Pkg (2 Cams + Doorbell)");
+    
     t = t.replace(/tv_multi/gi, "Multi-TV Mount (3-4 TVs)");
+    t = t.replace(/tv_2pack/gi, "2-TV Package");
+    t = t.replace(/tv_single/gi, "Single TV Mount");
+    
+    // Handle custom quotes with intelligence
+    if (t.toLowerCase().includes('tv_custom')) {
+        let details = [];
+        if (job) {
+             const meta = job.metadata || {};
+             // Check various places for TV size
+             const size = job.tv_size || meta.tv_size || (job.notes && job.notes.match(/TV Size: ([^\n]+)/i)?.[1]);
+             if (size) details.push(size);
+             
+             // Check for wall type
+             const wall = job.wall_type || meta.wall_type || (job.notes && job.notes.match(/Wall Type: ([^\n]+)/i)?.[1]);
+             if (wall) details.push(wall);
+        }
+        const suffix = details.length ? ` (${details.join(', ')})` : "";
+        t = t.replace(/tv_custom/gi, "Custom TV Project" + suffix);
+    }
+    
     return t;
 }
 
@@ -6556,7 +6577,7 @@ function showJobDetails(job) {
   // Populate modal with job details
   let title = job.service_name || "Job Details";
   // Apply operational language to title as well
-  title = formatResourceName(title);
+  title = formatResourceName(title, job);
   $("md-title").textContent = title;
   
   // ✅ INTELLIGENCE: Better status for unscheduled jobs
@@ -6575,7 +6596,7 @@ function showJobDetails(job) {
           const prefix = qty > 1 ? `(${qty}) ` : '';
           
           // Try to format the ID directly
-          let name = formatResourceName(id);
+          let name = formatResourceName(id, job);
           
           // If it didn't change (no match), and we have a title, use the title
           if (name === id && (i.title || i.name)) {
@@ -6587,7 +6608,7 @@ function showJobDetails(job) {
       resourcesText = items.join(', ');
   } else {
       // Fallback: Try to format the raw resources text (e.g. "1x cam_premium")
-      resourcesText = formatResourceName(resourcesText);
+      resourcesText = formatResourceName(resourcesText, job);
   }
   $("md-res").textContent = resourcesText;
   
@@ -6721,7 +6742,7 @@ function showOfferDetails(job) {
 
   let title = job.service_name || "Job Offer";
   // Apply operational language to title as well
-  title = formatResourceName(title);
+  title = formatResourceName(title, job);
   $("md-title").textContent = title;
   
   // ✅ INTELLIGENCE: Better status for unscheduled jobs
@@ -6740,7 +6761,7 @@ function showOfferDetails(job) {
           const prefix = qty > 1 ? `(${qty}) ` : '';
           
           // Try to format the ID directly
-          let name = formatResourceName(id);
+          let name = formatResourceName(id, job);
           
           // If it didn't change (no match), and we have a title, use the title
           if (name === id && (i.title || i.name)) {
@@ -6752,7 +6773,7 @@ function showOfferDetails(job) {
       resourcesText = items.join(', ');
   } else {
       // Fallback: Try to format the raw resources text (e.g. "1x cam_premium")
-      resourcesText = formatResourceName(resourcesText);
+      resourcesText = formatResourceName(resourcesText, job);
   }
   $("md-res").textContent = resourcesText;
   
