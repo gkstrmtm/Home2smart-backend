@@ -207,6 +207,53 @@ export default async function handler(req, res) {
       });
     }
 
+    // === ENRICHMENT: Fetch Line Items and Service Names ===
+    const allJobsToEnrich = [...jobsWithinRadius, ...(jobs || [])];
+    const uniqueJobIds = [...new Set(allJobsToEnrich.map(j => j.job_id))];
+    const uniqueServiceIds = [...new Set(allJobsToEnrich.map(j => j.service_id).filter(Boolean))];
+
+    console.log('[portal_jobs] Enriching', uniqueJobIds.length, 'jobs with details...');
+
+    let jobLinesMap = {};
+    let lineServiceIds = new Set();
+
+    if (uniqueJobIds.length > 0) {
+        const { data: lines } = await supabase
+            .from('h2s_dispatch_job_lines')
+            .select('*')
+            .in('job_id', uniqueJobIds);
+            
+        (lines || []).forEach(l => {
+            if (!jobLinesMap[l.job_id]) jobLinesMap[l.job_id] = [];
+            jobLinesMap[l.job_id].push(l);
+            if (l.service_id) lineServiceIds.add(l.service_id);
+        });
+    }
+
+    const allServiceIds = new Set([...uniqueServiceIds, ...lineServiceIds]);
+    const allServiceIdsArray = Array.from(allServiceIds);
+
+    let serviceNamesMap = {};
+    if (allServiceIdsArray.length > 0) {
+        const { data: services } = await supabase
+            .from('h2s_dispatch_services')
+            .select('service_id, name')
+            .in('service_id', allServiceIdsArray);
+            
+        (services || []).forEach(s => {
+            serviceNamesMap[s.service_id] = s.name;
+        });
+    }
+
+    // Enrich line items with names
+    Object.values(jobLinesMap).forEach(lines => {
+        lines.forEach(l => {
+            l.name = serviceNamesMap[l.service_id] || "Item";
+            l.title = l.name;
+        });
+    });
+    // ====================================================
+
     // Merge assignment state with job data
     const assignmentMap = {};
     assignments.forEach(a => {
@@ -246,6 +293,8 @@ export default async function handler(req, res) {
       
       offersMap.set(job.job_id, {
         ...job,
+        line_items: jobLinesMap[job.job_id] || [],
+        service_name: serviceNamesMap[job.service_id] || "Service",
         distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         payout_estimated: job.metadata?.estimated_payout || 0,
         referral_code: job.metadata?.referral_code || null
@@ -284,6 +333,8 @@ export default async function handler(req, res) {
       // Add assignment metadata to job
       const jobWithAssignment = {
         ...job,
+        line_items: jobLinesMap[job.job_id] || [],
+        service_name: serviceNamesMap[job.service_id] || "Service",
         distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
         is_primary: assignment?.is_primary,
         responded_at: assignment?.responded_at,

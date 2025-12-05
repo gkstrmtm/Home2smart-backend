@@ -7310,6 +7310,27 @@ function renderOffersSync(list, box) {
         ${overBy} mi outside your range
       </div>` : '';
 
+    // ✅ INTELLIGENCE: Enhanced Service Details (Line Items)
+    let serviceDetails = "";
+    if (j.line_items && Array.isArray(j.line_items) && j.line_items.length > 0) {
+      const keyItems = j.line_items.filter(i => {
+        const name = (i.title || i.name || "").toLowerCase();
+        return name.includes('tv') || name.includes('mount') || name.includes('install') || name.includes('setup');
+      }).map(i => {
+          const name = i.title || i.name;
+          const qty = (i.qty && i.qty > 1) ? `(${i.qty}) ` : '';
+          return `${qty}${name}`;
+      });
+      
+      if (keyItems.length > 0) {
+        serviceDetails = `<div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.4">
+          ${keyItems.map(item => `• ${esc(item)}`).join('<br>')}
+        </div>`;
+      }
+    } else if (j.description) {
+       serviceDetails = `<div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(j.description)}</div>`;
+    }
+
     // 💰 Use payout from API (metadata.estimated_payout)
     let payoutLabel = 'Estimated payout';
     let payoutAmount = 0;
@@ -7350,6 +7371,7 @@ function renderOffersSync(list, box) {
         ${esc(j.service_address||j.address||"")} ${j.service_city||j.city ? ("• "+esc(j.service_city||j.city)+" "+esc(j.service_state||j.state||"")+" "+esc(j.service_zip||j.zip||"")) : ""}
         ${j.notes_from_customer||j.notes ? '<br><em>' + esc(j.notes_from_customer||j.notes) + '</em>' : ''}
       </div>
+      ${serviceDetails}
       <div class="payout"><div class="num">${fmtMoney(payoutAmount)}</div><div class="subl">${esc(payoutLabel)}</div></div>
       <div class="actions">
         <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button">Accept${isOutOfRange ? ' Anyway' : ''}</button>
@@ -7468,7 +7490,11 @@ function renderUpcoming(list) {
       const keyItems = j.line_items.filter(i => {
         const name = (i.title || i.name || "").toLowerCase();
         return name.includes('tv') || name.includes('mount') || name.includes('install') || name.includes('setup');
-      }).map(i => i.title || i.name);
+      }).map(i => {
+          const name = i.title || i.name;
+          const qty = (i.qty && i.qty > 1) ? `(${i.qty}) ` : '';
+          return `${qty}${name}`;
+      });
       
       if (keyItems.length > 0) {
         serviceDetails = `<div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.4">
