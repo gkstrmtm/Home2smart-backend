@@ -7244,11 +7244,14 @@ function renderOffers(list) {
   const end = start + state.limit;
   const paginatedList = list.slice(start, end);
   
-  // ✅ LOCATION INTELLIGENCE: Calculate distances asynchronously
+  //✅ LOCATION INTELLIGENCE: Calculate distances asynchronously ONLY if no distance from API
   Promise.all(paginatedList.map(async (j) => {
-    const dist = await getDistanceToJob(j);
-    if (dist !== null) {
-      j._calculatedDistance = dist;
+    // Only calculate if API didn't provide distance
+    if (!j.distance_miles) {
+      const dist = await getDistanceToJob(j);
+      if (dist !== null) {
+        j._calculatedDistance = dist;
+      }
     }
   })).then(() => {
     // Re-render with distances after calculations complete
