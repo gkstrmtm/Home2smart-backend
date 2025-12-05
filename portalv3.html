@@ -6535,6 +6535,18 @@ function renderPaginationControls(type, totalItems, container) {
   container.appendChild(controls);
 }
 
+// Helper to translate bundle codes to operational language
+function formatResourceName(text) {
+    if (!text) return "";
+    let t = text;
+    // Handle specific bundle codes
+    t = t.replace(/cam_premium/gi, "Premium Cam Pkg (8 Cams + Doorbell + NVR)");
+    t = t.replace(/cam_standard/gi, "Standard Cam Pkg (4 Cams + Doorbell)");
+    t = t.replace(/cam_basic/gi, "Basic Cam Pkg (2 Cams + Doorbell)");
+    t = t.replace(/tv_multi/gi, "Multi-TV Mount (3-4 TVs)");
+    return t;
+}
+
 function showJobDetails(job) {
   if (!job) {
     toast("Job details not available");
@@ -6542,7 +6554,10 @@ function showJobDetails(job) {
   }
   
   // Populate modal with job details
-  $("md-title").textContent = job.service_name || "Job Details";
+  let title = job.service_name || "Job Details";
+  // Apply operational language to title as well
+  title = formatResourceName(title);
+  $("md-title").textContent = title;
   
   // ✅ INTELLIGENCE: Better status for unscheduled jobs
   const dateText = job.window || job.start_iso || "Scheduling Pending";
@@ -6552,21 +6567,27 @@ function showJobDetails(job) {
   
   // ✅ INTELLIGENCE: Show line items in resources if available (Consistent with Offer View)
   let resourcesText = job.resources_needed || "None specified";
+  
   if (job.line_items && Array.isArray(job.line_items) && job.line_items.length > 0) {
       const items = job.line_items.map(i => {
-          // Translate bundle codes to operational language
           const id = (i.service_id || i.bundle_id || i.name || '').toLowerCase();
           const qty = i.qty || 1;
           const prefix = qty > 1 ? `(${qty}) ` : '';
           
-          if (id.includes('cam_basic')) return `${prefix}Basic Cam Pkg (2 Cams + Doorbell)`;
-          if (id.includes('cam_standard')) return `${prefix}Standard Cam Pkg (4 Cams + Doorbell)`;
-          if (id.includes('cam_premium')) return `${prefix}Premium Cam Pkg (8 Cams + Doorbell + NVR)`;
-          if (id.includes('tv_multi')) return `${prefix}Multi-TV Mount (3-4 TVs)`;
+          // Try to format the ID directly
+          let name = formatResourceName(id);
           
-          return `${prefix}${i.title || i.name || 'Item'}`;
+          // If it didn't change (no match), and we have a title, use the title
+          if (name === id && (i.title || i.name)) {
+             name = i.title || i.name;
+          }
+          
+          return `${prefix}${name}`;
       });
       resourcesText = items.join(', ');
+  } else {
+      // Fallback: Try to format the raw resources text (e.g. "1x cam_premium")
+      resourcesText = formatResourceName(resourcesText);
   }
   $("md-res").textContent = resourcesText;
   
@@ -6698,7 +6719,10 @@ function showJobDetails(job) {
 function showOfferDetails(job) {
   if (!job) { toast("Job details not available"); return; }
 
-  $("md-title").textContent = job.service_name || "Job Offer";
+  let title = job.service_name || "Job Offer";
+  // Apply operational language to title as well
+  title = formatResourceName(title);
+  $("md-title").textContent = title;
   
   // ✅ INTELLIGENCE: Better status for unscheduled jobs
   const dateText = job.window || job.start_iso || "Scheduling Pending";
@@ -6708,21 +6732,27 @@ function showOfferDetails(job) {
   
   // ✅ INTELLIGENCE: Show line items in resources if available
   let resourcesText = job.resources_needed || "None specified";
+  
   if (job.line_items && Array.isArray(job.line_items) && job.line_items.length > 0) {
       const items = job.line_items.map(i => {
-          // Translate bundle codes to operational language
           const id = (i.service_id || i.bundle_id || i.name || '').toLowerCase();
           const qty = i.qty || 1;
           const prefix = qty > 1 ? `(${qty}) ` : '';
           
-          if (id.includes('cam_basic')) return `${prefix}Basic Cam Pkg (2 Cams + Doorbell)`;
-          if (id.includes('cam_standard')) return `${prefix}Standard Cam Pkg (4 Cams + Doorbell)`;
-          if (id.includes('cam_premium')) return `${prefix}Premium Cam Pkg (8 Cams + Doorbell + NVR)`;
-          if (id.includes('tv_multi')) return `${prefix}Multi-TV Mount (3-4 TVs)`;
+          // Try to format the ID directly
+          let name = formatResourceName(id);
           
-          return `${prefix}${i.title || i.name || 'Item'}`;
+          // If it didn't change (no match), and we have a title, use the title
+          if (name === id && (i.title || i.name)) {
+             name = i.title || i.name;
+          }
+          
+          return `${prefix}${name}`;
       });
       resourcesText = items.join(', ');
+  } else {
+      // Fallback: Try to format the raw resources text (e.g. "1x cam_premium")
+      resourcesText = formatResourceName(resourcesText);
   }
   $("md-res").textContent = resourcesText;
   
