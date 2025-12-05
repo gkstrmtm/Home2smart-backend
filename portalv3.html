@@ -7448,6 +7448,27 @@ function renderUpcoming(list) {
     const statusLabel = (j.status || "").toLowerCase();
     const isOpen = statusLabel === "open";
     
+    // ✅ INTELLIGENCE: Enhanced Service Title & Description
+    let serviceTitle = esc(j.service_name || "Service");
+    let serviceDetails = "";
+    
+    // Use line items for better context if available
+    if (j.line_items && Array.isArray(j.line_items) && j.line_items.length > 0) {
+      // Extract key items (TVs, Mounts, Smart Devices)
+      const keyItems = j.line_items.filter(i => {
+        const name = (i.title || i.name || "").toLowerCase();
+        return name.includes('tv') || name.includes('mount') || name.includes('install') || name.includes('setup');
+      }).map(i => i.title || i.name);
+      
+      if (keyItems.length > 0) {
+        serviceDetails = `<div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.4">
+          ${keyItems.map(item => `• ${esc(item)}`).join('<br>')}
+        </div>`;
+      }
+    } else if (j.description) {
+      serviceDetails = `<div style="font-size:13px;color:#64748b;margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(j.description)}</div>`;
+    }
+
     // ✅ TEAM JOB INDICATOR: Check if this is a team job
     let teamIndicator = '';
     if (j.is_team_job || j.team_size > 1 || j.teammate_name) {
@@ -7470,18 +7491,42 @@ function renderUpcoming(list) {
       }
     }
     
+    // ✅ COMPLETION STATUS CHECK
+    const hasPhotos = photoOnFile[j.job_id];
+    const hasSignature = signatureOnFile[j.job_id];
+    
+    // Button States
+    const photoBtnLabel = hasPhotos ? "📷 Photos (Saved)" : "📷 Upload Photos";
+    const photoBtnStyle = hasPhotos ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "";
+    
+    // Signature enabled only if photos uploaded (or override)
+    const sigBtnClass = "btn secondary"; 
+    const sigBtnStyle = hasSignature ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "";
+    
+    // Done enabled only if BOTH present
+    const doneBtnClass = (hasPhotos && hasSignature) ? "btn" : "btn disabled";
+    const doneBtnTitle = (!hasPhotos || !hasSignature) ? "Upload photos and signature first" : "Complete Job";
+
     const el = document.createElement("div");
     el.className = "item";
     el.innerHTML = `
-      <h3>${esc(j.service_name||"Service")} : ${esc(fmtWindow(j))}</h3>
+      <h3>${serviceTitle} : ${esc(fmtWindow(j))}</h3>
       <div class="meta">${esc(j.address||"")} ${j.city ? ("• "+esc(j.city)+" "+esc(j.state||"")+" "+esc(j.zip||"")) : ""} ${isOpen ? "• <strong>open</strong>" : ""}</div>
+      ${serviceDetails}
       ${teamIndicator}
       ${synopsisPreview}
-      <div class="actions">
+      
+      <!-- Hidden file input for direct upload -->
+      <input type="file" id="upload-${esc(j.job_id)}" accept="image/*" multiple style="display:none">
+      
+      <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
         <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
-        <button class="btn secondary" data-sign="${esc(j.job_id)}" type="button">${sigLabel}</button>
-        <button class="btn ghost" data-onway="${esc(j.job_id)}" type="button">🚗 On My Way</button>
-        <button class="btn" data-done="${esc(j.job_id)}" type="button">Mark Done</button>
+        <button class="btn secondary" data-onway="${esc(j.job_id)}" type="button">🚗 On My Way</button>
+        
+        <button class="btn secondary" data-photos="${esc(j.job_id)}" style="${photoBtnStyle}" type="button">${photoBtnLabel}</button>
+        <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="${sigBtnStyle}" type="button">${sigLabel}</button>
+        
+        <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="grid-column:span 2" type="button">✅ Complete Job</button>
       </div>`;
     fragment.appendChild(el);
   });
@@ -7497,7 +7542,33 @@ function renderUpcoming(list) {
     const doneBtn = e.target.closest("button[data-done]");
     const detailsBtn = e.target.closest("button[data-details]");
     const onWayBtn = e.target.closest("button[data-onway]");
+    const photosBtn = e.target.closest("button[data-photos]");
     
+    // ✅ PHOTOS BUTTON: Trigger file input
+    if (photosBtn) {
+      const jobId = photosBtn.dataset.photos;
+      const input = document.getElementById(`upload-${jobId}`);
+      if (input) {
+        // Reset input to allow re-selecting same files
+        input.value = '';
+        
+        // Attach change listener once
+        input.onchange = async (evt) => {
+          if (evt.target.files && evt.target.files.length > 0) {
+            // Use existing preview/upload logic
+            const confirmedFiles = await showPhotoUploadPreview(evt.target.files, jobId);
+            if (confirmedFiles) {
+              await uploadPhotos(confirmedFiles, jobId);
+              // Refresh to update button state
+              loadJobs();
+            }
+          }
+        };
+        input.click();
+      }
+      return;
+    }
+
     // ✅ ON MY WAY: Update job status
     if (onWayBtn) {
       const jobId = onWayBtn.dataset.onway;
@@ -7555,16 +7626,46 @@ function renderUpcoming(list) {
     
     if (sigBtn) { 
       const jobId = sigBtn.dataset.sign;
+      // UX: Warn if photos not uploaded yet
+      if (!photoOnFile[jobId]) {
+        if (!confirm("⚠️ You haven't uploaded photos yet.\n\nIt's recommended to upload photos of the completed work BEFORE getting the customer's signature.\n\nContinue to signature anyway?")) {
+          return;
+        }
+      }
       openSignatureModal(jobId);
       return;
     }
+    
     if (doneBtn) {
       const jobId = doneBtn.dataset.done;
-      // Only require signature (photos added after completion)
-      if (!signatureOnFile[jobId]) {
-        toast("Please add a signature before marking done.");
+      
+      // ✅ ENFORCE WORKFLOW: Photos -> Signature -> Complete
+      if (!photoOnFile[jobId]) {
+        toast("⚠️ Please upload photos of the work first.");
+        // Highlight photo button
+        const pBtn = box.querySelector(`button[data-photos="${jobId}"]`);
+        if (pBtn) {
+          pBtn.style.animation = "pulse 0.5s 2";
+          pBtn.focus();
+        }
         return;
       }
+      
+      if (!signatureOnFile[jobId]) {
+        toast("⚠️ Please get the customer's signature.");
+        // Highlight signature button
+        const sBtn = box.querySelector(`button[data-sign="${jobId}"]`);
+        if (sBtn) {
+          sBtn.style.animation = "pulse 0.5s 2";
+          sBtn.focus();
+        }
+        return;
+      }
+      
+      if (!confirm("Mark this job as complete?\n\nEnsure you have:\n1. Uploaded all photos\n2. Collected signature\n3. Cleaned up the work area")) {
+        return;
+      }
+
       try {
         loading(true);
         
@@ -7592,7 +7693,7 @@ function renderUpcoming(list) {
           return;
         }
         
-        toast("Marked done");
+        toast("✅ Job Completed!");
         
         // ✅ Invalidate cache
         invalidateCache('dash');
