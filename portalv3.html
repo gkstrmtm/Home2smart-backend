@@ -5797,9 +5797,10 @@ async function GET(action, payload={}) {
           'Accept': 'application/json'
         };
         
-        // Add bearer token if available
-        if (typeof token !== 'undefined' && token) {
-          headers['Authorization'] = `Bearer ${token}`;
+        // Add bearer token if available (from payload OR global)
+        const authToken = payload.token || (typeof token !== 'undefined' ? token : null);
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
         }
         
         // Endpoints that require POST with body (login, signup, etc)
@@ -5814,9 +5815,9 @@ async function GET(action, payload={}) {
         if (!usePost) {
           const queryParams = new URLSearchParams();
           
-          // Add token first if available
-          if (token && !endpoint.includes('token=')) {
-            queryParams.append('token', token);
+          // Add token first if available (from payload OR global)
+          if (authToken && !endpoint.includes('token=')) {
+            queryParams.append('token', authToken);
           }
           
           // Add all payload params as query string (for Vercel GET endpoints)
