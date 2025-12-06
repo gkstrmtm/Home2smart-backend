@@ -7418,14 +7418,6 @@ async function viewPhotos(jobId) {
                       </div>
                   `}
               </div>
-
-              <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1)">
-                  <button class="btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%)" onclick="document.getElementById('add-photos-${jobId}').click()">
-                      <span style="font-size:18px">➕</span> Add More Photos
-                  </button>
-                  <input type="file" id="add-photos-${jobId}" multiple accept="image/*" style="display:none" 
-                         onchange="handlePhotoAdd(this, '${jobId}')">
-              </div>
           </div>
       `;
       document.body.appendChild(modal);
