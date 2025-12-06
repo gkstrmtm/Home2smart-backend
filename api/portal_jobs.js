@@ -1,4 +1,5 @@
 ﻿import { createClient } from '@supabase/supabase-js';
+import { calculatePayout } from './utils/payout_calculator.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -284,13 +285,17 @@ export default async function handler(req, res) {
     // Merge assignment state with job data
     const assignmentMap = {};
     assignments.forEach(a => {
-      assignmentMap[a.job_id] = {
-        state: a.state,
-        distance_miles: a.distance_miles,
-        offer_sent_at: a.offer_sent_at,
-        accepted_at: a.accepted_at,
-        declined_at: a.declined_at
-      };
+      // ✅ FIX: Only keep the newest assignment (assignments are ordered by offer_sent_at DESC)
+      // This prevents older 'offered' states from overwriting newer 'accepted' states if duplicates exist
+      if (!assignmentMap[a.job_id]) {
+        assignmentMap[a.job_id] = {
+          state: a.state,
+          distance_miles: a.distance_miles,
+          offer_sent_at: a.offer_sent_at,
+          accepted_at: a.accepted_at,
+          declined_at: a.declined_at
+        };
+      }
     });
 
     console.log('[portal_jobs] assignmentMap has', Object.keys(assignmentMap).length, 'entries');
@@ -337,6 +342,14 @@ export default async function handler(req, res) {
       
       if (!serviceName) serviceName = "Service";
 
+      // Calculate payout if missing from metadata
+      let payoutAmount = job.metadata?.estimated_payout || 0;
+      if (!payoutAmount || payoutAmount == 0) {
+          const lines = jobLinesMap[job.job_id] || [];
+          const calc = calculatePayout(job, lines, null);
+          payoutAmount = calc.total;
+      }
+
       offersMap.set(job.job_id, {
         ...job,
         start_iso: startIso,
@@ -344,7 +357,7 @@ export default async function handler(req, res) {
         line_items: jobLinesMap[job.job_id] || [],
         service_name: serviceName,
         distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
-        payout_estimated: job.metadata?.estimated_payout || 0,
+        payout_estimated: payoutAmount,
         referral_code: job.metadata?.referral_code || null
       });
     });
@@ -397,6 +410,14 @@ export default async function handler(req, res) {
       
       if (!serviceName) serviceName = "Service";
 
+      // Calculate payout if missing from metadata
+      let payoutAmount = job.metadata?.estimated_payout || 0;
+      if (!payoutAmount || payoutAmount == 0) {
+          const lines = jobLinesMap[job.job_id] || [];
+          const calc = calculatePayout(job, lines, null);
+          payoutAmount = calc.total;
+      }
+
       // Add assignment metadata to job
       const jobWithAssignment = {
         ...job,
@@ -408,7 +429,7 @@ export default async function handler(req, res) {
         is_primary: assignment?.is_primary,
         responded_at: assignment?.responded_at,
         // Expose payout info
-        payout_estimated: job.metadata?.estimated_payout || 0,
+        payout_estimated: payoutAmount,
         referral_code: job.metadata?.referral_code || null
       };
       

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { calculatePayout } from './utils/payout_calculator.js';
 
 // Retry helper inline
 async function retryWithBackoff(fn, maxAttempts = 3, delayMs = 100) {
@@ -85,16 +86,19 @@ export default async function handler(req, res) {
     let assignments;
     try {
       assignments = await retryWithBackoff(async () => {
+        // ✅ FIX: Handle potential duplicates by taking newest accepted assignment
         const { data, error } = await supabase
           .from('h2s_dispatch_job_assignments')
           .select('*')
           .eq('job_id', jobId)
           .eq('pro_id', proId)
           .eq('state', 'accepted')
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
         
         if (error) throw error;
-        return data;
+        if (!data || data.length === 0) throw new Error('No accepted assignment found');
+        return data[0];
       }, 3, 100);
     } catch (assignError) {
       console.error('Find assignment error:', assignError);
@@ -141,30 +145,76 @@ export default async function handler(req, res) {
         .eq('job_id', jobId)
         .single();
 
-      if (job && job.metadata && job.metadata.estimated_payout) {
-        const payoutAmount = parseFloat(job.metadata.estimated_payout);
-        const customerTotal = job.metadata.items_json 
-          ? job.metadata.items_json.reduce((sum, item) => sum + (item.line_total || 0), 0) 
-          : 0;
+      // Fetch lines for accurate calculation
+      const { data: lines } = await supabase
+        .from('h2s_dispatch_job_lines')
+        .select('*')
+        .eq('job_id', jobId);
 
+      // Fetch team configuration if exists
+      const { data: teammates } = await supabase
+        .from('h2s_dispatch_job_teammates')
+        .select('*')
+        .eq('job_id', jobId)
+        .maybeSingle();
+
+      // Calculate payout using robust logic
+      const payoutResult = calculatePayout(job, lines, teammates);
+      console.log('Payout calculation result:', payoutResult);
+
+      const payoutsToCreate = [];
+      
+      if (payoutResult.split_details) {
+        // Team Job - Pay both pros
+        const primaryProId = teammates.primary_pro_id;
+        const secondaryProId = teammates.secondary_pro_id;
+        
+        if (payoutResult.primary_amount > 0) {
+           payoutsToCreate.push({
+             pro_id: primaryProId,
+             amount: payoutResult.primary_amount,
+             note: `Team job - Primary (${payoutResult.split_details.mode})`
+           });
+        }
+        if (payoutResult.secondary_amount > 0) {
+           payoutsToCreate.push({
+             pro_id: secondaryProId,
+             amount: payoutResult.secondary_amount,
+             note: `Team job - Secondary (${payoutResult.split_details.mode})`
+           });
+        }
+      } else {
+        // Solo Job
+        if (payoutResult.total > 0) {
+          payoutsToCreate.push({
+            pro_id: proId, // The completing pro
+            amount: payoutResult.total,
+            note: 'Solo job completion'
+          });
+        }
+      }
+
+      // Insert payouts
+      for (const p of payoutsToCreate) {
         const { error: payoutError } = await supabase
           .from('h2s_payouts_ledger')
           .insert({
-            pro_id: proId,
+            pro_id: p.pro_id,
             job_id: jobId,
-            total_amount: payoutAmount,
-            base_amount: payoutAmount,
+            total_amount: p.amount,
+            base_amount: p.amount,
             service_name: job.resources_needed || 'Service',
             variant_code: job.variant_code || 'STANDARD',
             state: 'pending', // Pending admin approval
             earned_at: new Date().toISOString(),
-            customer_total: customerTotal
+            customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
+            note: p.note
           });
 
         if (payoutError) {
           console.error('Failed to create payout record:', payoutError);
         } else {
-          console.log('Payout record created for job:', jobId, 'amount:', payoutAmount);
+          console.log('Payout record created for pro:', p.pro_id, 'amount:', p.amount);
         }
       }
     } catch (payoutErr) {

@@ -81,13 +81,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if assignment already exists
-    const { data: existingAssignment } = await supabase
+    // Check if assignment already exists (handle potential duplicates by taking newest)
+    const { data: existingAssignments } = await supabase
       .from('h2s_dispatch_job_assignments')
       .select('*')
       .eq('job_id', jobId)
       .eq('pro_id', proId)
-      .maybeSingle();
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const existingAssignment = existingAssignments && existingAssignments.length > 0 ? existingAssignments[0] : null;
 
     // Get job details to calculate distance
     const { data: job } = await supabase
