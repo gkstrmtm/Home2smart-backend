@@ -7276,13 +7276,43 @@ async function renderPhotoGallery(jobId) {
    GLOBAL PHOTO MANAGEMENT (VIEW & DELETE)
    ============================================ */
 async function loadJobPhotos(jobId) {
-  if (!jobId) return [];
+  if (!jobId) {
+    console.warn("[Load Photos] No job ID provided");
+    return [];
+  }
+  
   try {
+    console.log(`[Load Photos] ==================== START ====================`);
+    console.log(`[Load Photos] Job ID: ${jobId}`);
+    console.log(`[Load Photos] Token: ${token ? token.substring(0, 20) + '...' : 'MISSING'}`);
+    
     const out = await GET("portal_get_artifacts", {token, job_id: jobId, type: "photo"});
-    if (!out.ok) throw new Error(out.error);
-    return out.artifacts || [];
+    
+    console.log(`[Load Photos] Response:`, JSON.stringify(out, null, 2));
+    
+    if (!out.ok) {
+      console.error(`[Load Photos] ❌ Endpoint returned ok: false`);
+      console.error(`[Load Photos] Error:`, out.error);
+      console.error(`[Load Photos] Error code:`, out.error_code);
+      throw new Error(out.error || 'Failed to load photos');
+    }
+    
+    const artifacts = out.artifacts || [];
+    console.log(`[Load Photos] ✅ Loaded ${artifacts.length} photo(s)`);
+    
+    if (artifacts.length > 0) {
+      console.log(`[Load Photos] Sample photo:`, {
+        artifact_id: artifacts[0].artifact_id,
+        storage_url: artifacts[0].storage_url,
+        uploaded_at: artifacts[0].uploaded_at
+      });
+    }
+    
+    console.log(`[Load Photos] ==================== END ====================`);
+    return artifacts;
   } catch(err) {
-    console.error("[Load Photos] Error:", err);
+    console.error("[Load Photos] ❌ Exception:", err);
+    console.error("[Load Photos] Stack:", err.stack);
     toast(`❌ Error loading photos: ${err.message}`);
     return [];
   }
@@ -7316,9 +7346,14 @@ async function deletePhoto(artifactId, jobId) {
 }
 
 async function viewPhotos(jobId) {
+  console.log(`[View Photos] ==================== OPENING GALLERY ====================`);
+  console.log(`[View Photos] Job ID: ${jobId}`);
+  
   loading(true);
   try {
       const photos = await loadJobPhotos(jobId);
+      
+      console.log(`[View Photos] Received ${photos.length} photo(s) from loadJobPhotos`);
       
       // Remove existing if any
       const existing = document.querySelector('.photo-gallery-modal');
