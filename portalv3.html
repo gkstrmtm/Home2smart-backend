@@ -8494,7 +8494,7 @@ function enableSmartPagination(containerId, initialLimit = null) {
   
   const remainingCount = totalItems - initialLimit;
   loadMoreBtn.innerHTML = `
-    Show ${remainingCount} more job${remainingCount > 1 ? 's' : ''}
+    Show ${remainingCount} more job${(remainingCount > 1 ? 's' : '')}
     <span class="load-more-count">${remainingCount}</span>
   `;
   
