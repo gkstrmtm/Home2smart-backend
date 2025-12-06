@@ -7527,6 +7527,136 @@ async function showPhotoUploadPreview(files, jobId) {
 }
 
 /* ============================================
+   PHOTO UPLOAD (JOB ARTIFACTS)
+   ============================================ */
+async function uploadPhotos(previews, jobId) {
+  try {
+    if (!token) {
+      toast('❌ Please sign in to upload photos');
+      return;
+    }
+    if (!jobId) {
+      toast('❌ Missing job ID');
+      return;
+    }
+    if (!previews || previews.length === 0) {
+      toast('❌ No photos selected');
+      return;
+    }
+
+    loading(true);
+    console.log(`[Upload Photos] ==================== START ====================`);
+    console.log(`[Upload Photos] Job: ${jobId}`);
+    console.log(`[Upload Photos] Files to upload: ${previews.length}`);
+
+    // Normalize to objects with dataUrl + file
+    const items = await Promise.all(previews.map(async (p) => {
+      if (p.dataUrl) return p;
+      // If we were passed a File, convert to dataUrl
+      const dataUrl = await new Promise((resolve) => {
+        const fr = new FileReader();
+        fr.onload = (e) => resolve(e.target.result);
+        fr.onerror = () => resolve(null);
+        fr.readAsDataURL(p);
+      });
+      return { file: p, dataUrl, valid: !!dataUrl };
+    }));
+
+    const valid = items.filter(i => i.dataUrl);
+    if (valid.length === 0) {
+      toast('❌ No valid images to upload');
+      loading(false);
+      return;
+    }
+
+    console.log(`[Upload Photos] Valid files ready: ${valid.length}`);
+
+    let success = 0;
+    let failed = 0;
+    
+    for (let i = 0; i < valid.length; i++) {
+      const it = valid[i];
+      const filename = (it.file && it.file.name) ? it.file.name : `photo-${Date.now()}-${i}.jpg`;
+      
+      console.log(`[Upload Photos] [${i+1}/${valid.length}] Uploading: ${filename}`);
+      
+      try {
+        // Extract base64 data (remove data:image/xxx;base64, prefix)
+        const base64Data = it.dataUrl.includes(',') ? it.dataUrl.split(',')[1] : it.dataUrl;
+        
+        const payload = {
+          token,
+          job_id: jobId,
+          type: 'photo',
+          data: base64Data,  // Backend expects 'data' field
+          filename: filename,
+          mimetype: it.file?.type || 'image/jpeg'
+        };
+        
+        console.log(`[Upload Photos] Payload:`, {
+          job_id: payload.job_id,
+          type: payload.type,
+          filename: payload.filename,
+          mimetype: payload.mimetype,
+          data_length: payload.data.length
+        });
+        
+        const out = await POST('portal_upload_artifact', payload);
+        
+        console.log(`[Upload Photos] Response:`, out);
+        
+        if (!out.ok) {
+          console.error(`[Upload Photos] ❌ Failed:`, out.error);
+          failed++;
+          // Don't toast individual failures during batch - we'll summarize at end
+        } else {
+          console.log(`[Upload Photos] ✅ Success - artifact_id: ${out.artifact_id}`);
+          success++;
+        }
+      } catch (e) {
+        console.error(`[Upload Photos] ❌ Exception:`, e);
+        failed++;
+      }
+    }
+
+    console.log(`[Upload Photos] ==================== COMPLETE ====================`);
+    console.log(`[Upload Photos] Success: ${success}, Failed: ${failed}`);
+
+    if (success > 0) {
+      // Mark state and refresh gallery/job list
+      photoOnFile[jobId] = true;
+      
+      // Reload photos for this job
+      try {
+        await loadJobPhotos(jobId);
+      } catch (e) {
+        console.error('[Upload Photos] Failed to reload photos:', e);
+      }
+      
+      // Invalidate caches so counts update
+      invalidateCache('dash');
+      
+      // Refresh job list to show updated counts
+      setTimeout(() => loadJobs(), 500);
+      
+      // Success message
+      if (failed === 0) {
+        toast(`✅ Uploaded ${success} photo${success !== 1 ? 's' : ''} successfully`);
+      } else {
+        toast(`⚠️ Uploaded ${success} photo${success !== 1 ? 's' : ''}, ${failed} failed`);
+      }
+    } else {
+      toast(`❌ Upload failed - please try again`);
+    }
+  } catch (err) {
+    console.error('[Upload Photos] Fatal error:', err);
+    toast(`❌ Upload error: ${err.message}`);
+  } finally {
+    loading(false);
+  }
+}
+
+/* ============================================
    REQUEST TEAMMATE FOR SOLO JOB
    ============================================ */
 async function requestTeammate(jobId) {
@@ -8113,6 +8243,15 @@ function renderUpcoming(list) {
         
         <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="${doneBtnStyle}" type="button">${doneBtnLabel}</button>
       </div>`;
+    // Hidden file input for photo uploads (per job)
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'file';
+    hiddenInput.id = `upload-${j.job_id}`;
+    hiddenInput.accept = 'image/*';
+    hiddenInput.multiple = true;
+    hiddenInput.capture = 'environment';
+    hiddenInput.style.display = 'none';
+    el.appendChild(hiddenInput);
     fragment.appendChild(el);
   });
   
@@ -8394,7 +8533,6 @@ function renderUpcoming(list) {
         }
       };
       return;
-    }
     }
   };
 }
