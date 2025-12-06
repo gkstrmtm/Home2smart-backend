@@ -1731,74 +1731,69 @@ select.input:hover,select.select:hover{
     font-size:16px !important;
   }
   
-  /* Minimum tap targets - 44px iOS standard */
-  button, .btn, a, input, select {
-    min-height:44px;
-    min-width:44px;
+  /* Minimum tap targets - 48px Standard */
+  button, .btn, input, select {
+    min-height:48px !important;
+    min-width:48px !important;
+  }
+  
+  /* Exception for small icon buttons (like delete) */
+  button[style*="width:36px"] {
+    min-height:36px !important;
+    min-width:36px !important;
   }
   
   /* Header optimization - MUCH SMALLER, cleaner */
   .header{
-    padding:4px 12px !important;
-    min-height:36px !important;
+    padding:8px 16px !important;
+    min-height:56px !important;
     backdrop-filter:blur(20px) saturate(180%) !important;
     -webkit-backdrop-filter:blur(20px) saturate(180%) !important;
-    background:linear-gradient(180deg, rgba(10,42,90,0.95) 0%, rgba(8,32,68,0.92) 100%) !important;
-    border-bottom:1px solid rgba(96,181,255,.06) !important;
-    box-shadow:0 1px 8px rgba(0,0,0,.1) !important;
+    background:rgba(10,42,90,0.95) !important;
+    border-bottom:1px solid rgba(255,255,255,.08) !important;
     /* iPhone notch adaptation */
     top:env(safe-area-inset-top, 0) !important;
-    padding-top:max(4px, env(safe-area-inset-top)) !important;
+    padding-top:max(8px, env(safe-area-inset-top)) !important;
   }
   .header img{
-    height:22px !important;
+    height:28px !important;
     width:auto;
   }
   .support{
-    font-size:11px !important;
-    padding:4px 10px !important;
-    min-height:28px !important;
-    font-weight:500 !important;
+    font-size:12px !important;
+    padding:6px 12px !important;
+    min-height:32px !important;
+    font-weight:600 !important;
   }
   .header-right{
-    gap:6px;
+    gap:8px;
   }
   .menu-btn{
-    padding:4px 10px !important;
-    min-height:28px !important;
-    font-size:12px !important;
-    font-weight:500 !important;
+    padding:6px 12px !important;
+    min-height:32px !important;
+    font-size:13px !important;
+    font-weight:600 !important;
   }
   
   /* Compact typography - REFINED */
   .h1{
     font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    font-size:18px !important;
-    margin-top:calc(env(safe-area-inset-top, 0px) + 160px) !important; /* LARGE margin to push content DOWN */
-    margin-left:14px !important;
-    margin-right:14px !important;
-    margin-bottom:10px !important;
-    padding-top:0 !important;
+    font-size:24px !important;
+    margin-top:calc(env(safe-area-inset-top, 0px) + 80px) !important;
+    margin-left:16px !important;
+    margin-right:16px !important;
+    margin-bottom:16px !important;
     line-height:1.2 !important;
-    padding-bottom:6px !important;
-    border-bottom:1px solid rgba(255,255,255,.05) !important;
-    background:linear-gradient(135deg,#fff 0%,#9bc8ff 100%) !important;
-    -webkit-background-clip:text !important;
-    background-clip:text !important;
-    -webkit-text-fill-color:transparent !important;
-    color:#fff !important;
-    font-weight:700 !important;
-    letter-spacing:-0.03em !important;
+    letter-spacing:-0.02em !important;
   }
   .card h2{
-    font-size:16px !important;
-    margin:0 0 10px !important;
+    font-size:18px !important;
+    margin:0 0 12px !important;
     line-height:1.3 !important;
-    font-weight:600 !important;
-    letter-spacing:-0.01em !important;
+    font-weight:700 !important;
   }
   .card h3{
-    font-size:14px !important;
+    font-size:16px !important;
     margin:0 0 8px !important;
     line-height:1.3 !important;
     font-weight:600 !important;
@@ -1806,7 +1801,7 @@ select.input:hover,select.select:hover{
   
   /* Tighter spacing - REFINED */
   .main{
-    padding:0 0 50px 0 !important;
+    padding:0 !important;
     min-height:100vh !important;
   }
   .container{
@@ -1814,14 +1809,15 @@ select.input:hover,select.select:hover{
     min-height:auto !important;
   }
   .card{
-    padding:14px !important;
-    margin:0 0 0 0 !important;
+    padding:20px !important;
+    margin:0 0 12px 0 !important;
     border-radius:0 !important;
     border-left:none !important;
     border-right:none !important;
-    border-bottom:1px solid rgba(255,255,255,.03) !important;
-    overflow:visible !important;
-    min-height:auto !important;
+    border-top:1px solid rgba(255,255,255,.05) !important;
+    border-bottom:1px solid rgba(255,255,255,.05) !important;
+    box-shadow:none !important;
+    background:rgba(10,42,90,0.4) !important;
   }
   
   /* Login screen - ensure it's scrollable */
@@ -1830,6 +1826,12 @@ select.input:hover,select.select:hover{
     max-height:none !important;
     overflow-y:visible !important;
     -webkit-overflow-scrolling:touch !important;
+    padding:20px !important;
+  }
+  #view-auth .card {
+    border-radius:16px !important;
+    border:1px solid rgba(255,255,255,.1) !important;
+    margin-top:40px !important;
   }
   
   /* TEAM UPDATES MOBILE - PREMIUM FEEL */
@@ -1849,57 +1851,34 @@ select.input:hover,select.select:hover{
     font-size:16px !important;
   }
   .announcement-title{
-    font-size:14px !important;
+    font-size:15px !important;
     font-weight:600 !important;
     letter-spacing:-0.01em !important;
   }
   .announcement-subtitle{
-    font-size:11px !important;
+    font-size:12px !important;
     opacity:0.7 !important;
   }
   .announcement-card{
-    padding:12px !important;
-    gap:10px !important;
-    margin-bottom:10px !important;
-    border-radius:10px !important;
-    transition:all 0.2s ease !important;
+    padding:16px !important;
+    gap:12px !important;
+    margin-bottom:12px !important;
+    border-radius:12px !important;
+    background:rgba(255,255,255,.03) !important;
+    border:1px solid rgba(255,255,255,.05) !important;
   }
   .announcement-card:active{
     transform:scale(0.98) !important;
-    opacity:0.9 !important;
-  }
-  .announcement-card-icon{
-    font-size:17px !important;
-  }
-  .announcement-card-title{
-    font-size:14px !important;
-    margin-bottom:3px !important;
-    font-weight:600 !important;
-    letter-spacing:-0.01em !important;
-  }
-  .announcement-preview{
-    font-size:12px !important;
-    line-height:1.5 !important;
-    opacity:0.85 !important;
-  }
-  .announcement-actions{
-    flex-wrap:wrap !important;
+    background:rgba(255,255,255,.06) !important;
   }
   
   /* Communication Hub mobile - REFINED */
   #communicationHub{
-    padding:14px !important;
+    padding:16px !important;
     margin-bottom:0 !important;
     border-radius:0 !important;
     border-left:none !important;
     border-right:none !important;
-  }
-  #activeAnnouncementsSection > div:first-child{
-    margin-bottom:12px !important;
-    gap:8px !important;
-  }
-  #announcementCardsContainer{
-    gap:10px !important;
   }
   
   /* Announcements Modal mobile optimization */
@@ -1911,16 +1890,14 @@ select.input:hover,select.select:hover{
     border-radius:0 !important;
     max-width:100% !important;
     min-height:100vh !important;
+    height:100vh !important;
   }
   #announcementsModal > div > div:first-child{
-    padding:16px 18px !important;
-  }
-  #announcementsModal h2{
-    font-size:18px !important;
+    padding:16px 20px !important;
   }
   #announcementsListPro{
-    padding:16px 18px !important;
-    max-height:calc(100vh - 140px) !important;
+    padding:16px 20px !important;
+    max-height:calc(100vh - 80px) !important;
   }
   
   /* TRAINING SEARCH - HIDE ON MOBILE */
@@ -1940,52 +1917,61 @@ select.input:hover,select.select:hover{
   .filter-tabs{
     gap:8px !important;
     margin-bottom:14px !important;
+    overflow-x:auto !important;
+    padding-bottom:8px !important;
+    -webkit-overflow-scrolling:touch !important;
   }
   .filter-tab{
-    padding:10px 16px !important;
-    font-size:13px !important;
+    padding:8px 16px !important;
+    font-size:14px !important;
     min-height:40px !important;
+    flex-shrink:0 !important;
   }
   
   /* Job list mobile optimization - Smart pagination */
   .list-collapsed{
-    max-height:600px !important; /* Shorter on mobile */
+    max-height:none !important; /* Show all on mobile, scrolling is natural */
+  }
+  .list-collapsed::after {
+    display:none !important;
   }
   .load-more-btn{
-    padding:12px !important;
-    font-size:13px !important;
-    margin-top:12px !important;
-    border-radius:10px !important;
-  }
-  .load-more-count{
-    font-size:11px !important;
+    padding:16px !important;
+    font-size:15px !important;
+    margin-top:16px !important;
+    border-radius:12px !important;
+    background:rgba(59,130,246,.15) !important;
   }
   .item{
-    padding:12px !important;
-    margin-bottom:8px !important;
-    border-radius:10px !important;
+    padding:16px !important;
+    margin-bottom:12px !important;
+    border-radius:12px !important;
+    background:rgba(255,255,255,.03) !important;
+    border:1px solid rgba(255,255,255,.08) !important;
   }
   .item h3{
-    font-size:15px !important;
-    font-weight:600 !important;
+    font-size:17px !important;
+    font-weight:700 !important;
   }
   .item .meta{
-    font-size:12px !important;
+    font-size:14px !important;
+    line-height:1.5 !important;
   }
   
   /* Signature canvas - PERFECTLY CONTAINED */
   .canvas-wrap{
     margin:0 !important;
     padding:0 !important;
-    border-radius:0 !important;
-    background:transparent !important;
+    border-radius:12px !important;
+    background:#fff !important;
+    overflow:hidden !important;
   }
   .sig-canvas{
     width:100% !important;
     max-width:100% !important;
-    height:180px !important;
+    height:200px !important;
     display:block !important;
-    border-radius:8px !important;
+    border-radius:0 !important;
     touch-action:none !important;
   }
   
@@ -1993,127 +1979,109 @@ select.input:hover,select.select:hover{
   .btn{
     width:100% !important;
     min-width:auto !important;
-    padding:0 16px !important;
-    font-size:15px !important;
-    min-height:46px !important;
-    line-height:46px !important;
-    border-radius:10px !important;
-    font-weight:600 !important;
+    padding:0 20px !important;
+    font-size:16px !important;
+    min-height:52px !important;
+    line-height:52px !important;
+    border-radius:12px !important;
+    font-weight:700 !important;
     letter-spacing:-0.01em !important;
+    margin-bottom:8px !important;
   }
   .btn.ghost{
-    background:rgba(255,255,255,.04) !important;
-    border:1px solid rgba(255,255,255,.1) !important;
+    background:rgba(255,255,255,.05) !important;
+    border:1px solid rgba(255,255,255,.15) !important;
     color:rgba(255,255,255,.9) !important;
   }
   .btn.secondary{
-    background:rgba(139,92,246,.12) !important;
-    border:1px solid rgba(139,92,246,.25) !important;
+    background:rgba(139,92,246,.15) !important;
+    border:1px solid rgba(139,92,246,.3) !important;
     color:#e0e7ff !important;
   }
   .row{
     flex-direction:column !important;
-    gap:10px !important;
-    margin-top:12px !important;
+    gap:12px !important;
+    margin-top:16px !important;
   }
   
   /* Optimized inputs - CLEAN & MODERN */
   .input,.textarea,.select{
-    min-height:46px !important;
+    min-height:52px !important;
     font-size:16px !important;
-    padding:12px 14px !important;
-    border-radius:10px !important;
+    padding:14px 16px !important;
+    border-radius:12px !important;
     width:100% !important;
-    border:1px solid rgba(255,255,255,.1) !important;
-    background:rgba(255,255,255,.03) !important;
+    border:1px solid rgba(255,255,255,.15) !important;
+    background:rgba(255,255,255,.05) !important;
     transition:all 0.2s ease !important;
   }
   .input:focus,.textarea:focus,.select:focus{
-    border-color:rgba(96,181,255,.3) !important;
-    background:rgba(255,255,255,.05) !important;
+    border-color:rgba(96,181,255,.5) !important;
+    background:rgba(255,255,255,.08) !important;
     outline:none !important;
   }
   .textarea{
-    min-height:100px !important;
+    min-height:120px !important;
     line-height:1.5 !important;
   }
   
   /* Modal optimization */
   .modal{
     padding:0 !important;
+    align-items:flex-end !important; /* Bottom sheet style */
   }
   .sheet{
     width:100vw !important;
     max-width:100vw !important;
-    border-radius:0 !important;
+    border-radius:24px 24px 0 0 !important; /* Rounded top corners */
     border-left:none !important;
     border-right:none !important;
-    padding:20px 16px !important;
-    max-height:90vh !important;
+    border-bottom:none !important;
+    padding:24px 20px !important;
+    max-height:92vh !important;
     overflow-y:auto !important;
+    background:linear-gradient(180deg, #0f2d52 0%, #0a2a5a 100%) !important;
+    box-shadow:0 -10px 40px rgba(0,0,0,0.5) !important;
   }
   .sheet h3{
-    font-size:20px !important;
-    margin:0 0 16px !important;
+    font-size:22px !important;
+    margin:0 0 20px !important;
     line-height:1.3 !important;
   }
   
   /* Grid adjustments */
   .grid-2{
     grid-template-columns:1fr !important;
-    gap:12px !important;
+    gap:16px !important;
   }
   .grid-3{
     grid-template-columns:1fr !important;
-    gap:12px !important;
+    gap:16px !important;
   }
   
   /* List items - PERFECT edge-to-edge */
   .list{
-    gap:0 !important;
+    gap:12px !important;
     margin:0 !important;
-  }
-  .item{
-    border-radius:0 !important;
-    border-left:none !important;
-    border-right:none !important;
-    padding:16px !important;
-    margin:0 !important;
-  }
-  .item + .item{
-    border-top:none !important;
-  }
-  .item h3{
-    font-size:16px !important;
-    margin:0 0 8px !important;
-    line-height:1.3 !important;
-  }
-  .item .meta{
-    font-size:13px !important;
-    line-height:1.4 !important;
-    margin:4px 0 !important;
-  }
-  .item .actions{
-    margin-top:12px !important;
-    gap:8px !important;
-  }
-  .item .actions .btn{
-    font-size:14px !important;
+    padding:0 16px !important;
   }
   
   /* Page headers on mobile */
   .page-header-modern{
-    margin:0 0 1px 0 !important;
+    margin:0 0 16px 0 !important;
     border-radius:0 !important;
     border-left:none !important;
     border-right:none !important;
-    padding:16px !important;
+    padding:20px !important;
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
   }
   .page-title-modern{
-    font-size:22px !important;
+    font-size:26px !important;
   }
   .page-subtitle-modern{
-    font-size:14px !important;
+    font-size:15px !important;
   }
   
   /* Bottom navigation - FIXED positioning */
@@ -2127,9 +2095,9 @@ select.input:hover,select.select:hover{
   
   /* Photo gallery on mobile */
   .photo-gallery{
-    margin-left:-16px !important;
-    margin-right:-16px !important;
-    padding:12px 16px !important;
+    margin-left:-20px !important;
+    margin-right:-20px !important;
+    padding:16px 20px !important;
     background:rgba(0,0,0,.2) !important;
   }
 }
