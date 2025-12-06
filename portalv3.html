@@ -7121,67 +7121,7 @@ async function loadJobPhotos(jobId) {
   }
 }
 
-async function deletePhoto(artifactId, jobId) {
-  // ✅ ENHANCED CONFIRMATION
-  const photoToDelete = (jobPhotos[jobId] || []).find(p => p.artifact_id === artifactId);
-  const confirmMsg = photoToDelete 
-    ? `Delete this photo?\n\n"${photoToDelete.storage_url.split('/').pop()}"\n\nThis will permanently remove it from this job.`
-    : "Delete this photo? This cannot be undone.";
-    
-  if (!confirm(confirmMsg)) return;
-  
-  try {
-    loading(true);
-    console.log(`[Photo Delete] Removing artifact ${artifactId} from job ${jobId}`);
-    
-    const out = await POST("portal_delete_artifact", {token, artifact_id: artifactId});
-    
-    if (!out.ok) {
-      console.error("[Photo Delete] Failed:", out);
-      toast(`❌ ${out.error || "Failed to delete photo"}`);
-      return;
-    }
-    
-    console.log("[Photo Delete] ✅ Successfully deleted from database and storage");
-    toast("✅ Photo deleted successfully");
-    
-    // Invalidate job list cache to force fresh data on next load
-    invalidateCache('dash');
-    
-    // Refresh gallery with updated count
-    const photos = await loadJobPhotos(jobId);
-    
-    if (photos.length === 0) {
-      // No more photos - hide gallery and update button
-      const gallery = document.getElementById(`photo-gallery-${jobId}`);
-      if (gallery) gallery.style.display = "none";
-      photoOnFile[jobId] = false;
-      
-      const btn = document.getElementById(`gallery-btn-${jobId}`);
-      if (btn) {
-        btn.textContent = '📷 View photos';
-        btn.className = 'btn secondary';
-        btn.style.cssText = '';
-      }
-    } else {
-      // Re-render remaining photos and update button
-      await renderPhotoGallery(jobId, photos);
-      
-      const btn = document.getElementById(`gallery-btn-${jobId}`);
-      if (btn) {
-        btn.textContent = `✅ View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
-        btn.className = 'btn';
-        btn.style.cssText = 'background:linear-gradient(135deg,rgba(16,185,129,.2) 0%,rgba(5,150,105,.15) 100%);border-color:rgba(16,185,129,.3);color:#34d399';
-      }
-    }
-    
-  } catch(err) {
-    console.error("[Photo Delete] Error:", err);
-    toast(`❌ Failed to delete photo: ${err.message || "Unknown error"}`);
-  } finally {
-    loading(false);
-  }
-}
+
 
 async function togglePhotoGallery(jobId) {
   console.log("[Gallery] Button clicked for job:", jobId);
@@ -7327,27 +7267,70 @@ async function loadJobPhotos(jobId) {
 }
 
 async function deletePhoto(artifactId, jobId) {
+  // Prevent event bubbling if called from an event handler
+  if (window.event) {
+    window.event.stopPropagation();
+  }
+
   if(!confirm("Are you sure you want to delete this photo?")) return;
   
-  // Find the modal to show loading state inside it if possible, or just global loading
   loading(true);
   try {
+      console.log(`[Delete] Requesting delete for artifact ${artifactId} on job ${jobId}`);
       const out = await POST("portal_delete_artifact", { token, artifact_id: artifactId });
-      if(!out.ok) throw new Error(out.error);
       
-      toast("Photo deleted");
+      if(!out.ok) throw new Error(out.error || "Server returned error");
       
-      // Refresh the gallery view if it's open
+      console.log("[Delete] Success");
+      toast("✅ Photo deleted");
+      
+      // 1. Handle Modal Refresh
       const existingModal = document.querySelector('.photo-gallery-modal');
       if (existingModal) {
+          // If modal is open, we want to refresh it WITHOUT closing it if possible, 
+          // or close and reopen. Reopening is easiest to ensure state consistency.
           existingModal.remove();
           await viewPhotos(jobId);
       }
       
-      // Update job list to reflect count change
+      // 2. Handle Inline Gallery Refresh
+      // Even if modal was open, the inline gallery might be visible behind it or needs update.
+      
+      // Invalidate cache
+      invalidateCache('dash');
+      
+      // Reload photos to get fresh count
+      const photos = await loadJobPhotos(jobId);
+      
+      // Update inline gallery if it exists
+      const gallery = document.getElementById(`photo-gallery-${jobId}`);
+      if (gallery) {
+         if (photos.length === 0) {
+            gallery.style.display = "none";
+            photoOnFile[jobId] = false;
+            const btn = document.getElementById(`gallery-btn-${jobId}`);
+            if (btn) {
+                btn.textContent = '📷 View photos';
+                btn.className = 'btn secondary';
+                btn.style.cssText = '';
+            }
+         } else {
+            await renderPhotoGallery(jobId, photos);
+            const btn = document.getElementById(`gallery-btn-${jobId}`);
+            if (btn) {
+                btn.textContent = `✅ View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
+                btn.className = 'btn';
+                btn.style.cssText = 'background:linear-gradient(135deg,rgba(16,185,129,.2) 0%,rgba(5,150,105,.15) 100%);border-color:rgba(16,185,129,.3);color:#34d399';
+            }
+         }
+      }
+      
+      // Update job list counts
       loadJobs(); 
+      
   } catch(e) {
-      toast("Failed to delete: " + e.message);
+      console.error("[Delete] Failed:", e);
+      toast("❌ Failed to delete: " + e.message);
   } finally {
       loading(false);
   }
@@ -7408,7 +7391,7 @@ async function viewPhotos(jobId) {
                                       ${new Date(p.uploaded_at).toLocaleDateString()}
                                   </div>
 
-                                  <button onclick="deletePhoto('${p.artifact_id}', '${jobId}')" 
+                                  <button onclick="event.stopPropagation(); deletePhoto('${p.artifact_id}', '${jobId}')" 
                                           title="Delete Photo"
                                           style="position:absolute;top:8px;right:8px;background:rgba(220,38,38,0.9);color:white;border:1px solid rgba(255,255,255,0.3);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:all 0.2s">
                                       🗑️
