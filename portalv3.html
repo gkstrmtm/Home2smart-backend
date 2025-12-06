@@ -5806,9 +5806,14 @@ async function GET(action, payload={}) {
         
         const authToken = payload.token || globalToken;
         
+        // ⚠️ CORS FIX: Do NOT send Authorization header for Vercel endpoints
+        // The token is already sent in the query string (for GET) or body (for POST)
+        // Sending this header causes CORS preflight failures on some browsers/networks
+        /*
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
+        */
         
         // Endpoints that require POST with body (login, signup, etc)
         const requiresPost = [
