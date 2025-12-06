@@ -101,12 +101,12 @@ export default async function handler(req, res) {
 
     console.log('[portal_jobs] Tech location:', { lat: techLat, lng: techLng, radius: serviceRadius });
 
-    // Get ALL available jobs within radius (pending_assign or pending status)
-    console.log('[portal_jobs] Fetching available jobs with status pending_assign or pending');
+    // Get ALL available jobs within radius (pending OR accepted - we need both)
+    console.log('[portal_jobs] Fetching available jobs with status pending_assign, pending, OR accepted');
     const { data: availableJobs, error: availableError } = await supabase
       .from('h2s_dispatch_jobs')
       .select('*')
-      .in('status', ['pending_assign', 'pending'])
+      .in('status', ['pending_assign', 'pending', 'accepted', 'scheduled'])
       .not('geo_lat', 'is', null)
       .not('geo_lng', 'is', null);
     
@@ -310,9 +310,16 @@ export default async function handler(req, res) {
     const upcoming = [];
     const completed = [];
     
-    // First, add all available jobs in radius
+    // First, add all available jobs in radius (but check assignment state first)
     jobsWithinRadius.forEach(job => {
       const assignment = assignmentMap[job.job_id];
+      
+      // Skip if this job has an assignment and it's not 'offered' state
+      // (it will be processed in the second loop with full assignment data)
+      if (assignment && assignment.state !== 'offered') {
+        console.log('[portal_jobs] Skipping job', job.job_id, 'from jobsWithinRadius - has assignment state:', assignment.state);
+        return;
+      }
       
       console.log('[portal_jobs] Processing job', job.job_id, '- assignment:', assignment ? 'FOUND' : 'NOT FOUND', '- distance:', assignment?.distance_miles);
       
