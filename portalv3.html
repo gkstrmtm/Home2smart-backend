@@ -5844,15 +5844,9 @@ async function GET(action, payload={}) {
         
         console.log(`[GET] 📨 Response status: ${res.status} ${res.statusText}`);
         
-        if (!res.ok) {
-          console.error(`[GET] ❌ ${action} failed:`, res.status, res.statusText);
-          const errorText = await res.text();
-          console.error(`[GET] ❌ Error body:`, errorText);
-          throw new Error(`Server ${res.status}: ${errorText}`);
-        }
-        
+        // Always parse JSON response (backend sends {ok: true/false})
         const data = await res.json();
-        console.log(`[GET] ✅ ${action} completed`, data);
+        console.log(`[GET] ✅ ${action} response:`, data);
         return data;
         
       } catch (err) {
