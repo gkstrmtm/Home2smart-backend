@@ -5798,7 +5798,14 @@ async function GET(action, payload={}) {
         };
         
         // Add bearer token if available (from payload OR global)
-        const authToken = payload.token || (typeof token !== 'undefined' ? token : null);
+        // ⚠️ CRITICAL FIX: Ensure we don't access 'token' if it's not initialized yet
+        let globalToken = null;
+        try {
+          if (typeof token !== 'undefined') globalToken = token;
+        } catch (e) { /* ignore */ }
+        
+        const authToken = payload.token || globalToken;
+        
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
