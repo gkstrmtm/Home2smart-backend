@@ -7335,6 +7335,8 @@ async function deletePhoto(artifactId, jobId) {
       loading(false);
   }
 }
+// Expose to global scope for HTML onclick handlers
+window.deletePhoto = deletePhoto;
 
 async function viewPhotos(jobId) {
   console.log(`[View Photos] ==================== OPENING GALLERY ====================`);
@@ -7429,6 +7431,8 @@ async function viewPhotos(jobId) {
       loading(false);
   }
 }
+// Expose to global scope for HTML onclick handlers
+window.viewPhotos = viewPhotos;
 
 /* ============================================
    PHOTO UPLOAD PREVIEW & CONFIRMATION
