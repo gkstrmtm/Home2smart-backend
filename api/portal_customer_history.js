@@ -25,9 +25,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '').trim();
+    // Get token from query, body, OR Authorization header
+    let token = req.query?.token || req.body?.token;
+    
+    // Check Authorization header if token not in query/body
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       return res.status(401).json({ ok: false, error: 'No token provided' });

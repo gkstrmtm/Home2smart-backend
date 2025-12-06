@@ -37,16 +37,11 @@ if ('serviceWorker' in navigator) {
 <!-- DNS Prefetch for external resources -->
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-<link rel="dns-prefetch" href="https://script.google.com">
 <link rel="dns-prefetch" href="https://storage.googleapis.com">
 
 <!-- Preconnect for critical resources -->
-<link rel="preconnect" href="https://script.google.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<!-- Preload API endpoint -->
-<link rel="preconnect" href="https://script.google.com/macros/s/AKfycbxvkqZG4mCec7Pol-tlZy9o6aIfnnh7xuQWYpFayGTwPDKd2f1Px3Qj_a-D0zjM5bM_jw/" crossorigin>
 
 <!-- Preload critical font with font-display swap -->
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;900&family=Inter:wght@500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -163,237 +158,186 @@ body{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:16px clamp(20px,5vw,40px);
+  padding:12px 16px; /* Mobile optimized padding */
   position:fixed;
   top:0;
   left:0;
   right:0;
   z-index:50;
-  background:linear-gradient(180deg, rgba(10,42,90,0.95) 0%, rgba(8,32,68,0.88) 100%);
-  border-bottom:1px solid rgba(96,181,255,.12); /* Subtle line, not choppy */
-  box-shadow:0 2px 16px rgba(0,0,0,.2); /* Softer shadow */
-  backdrop-filter:blur(20px) saturate(180%); /* iPhone-style blur */
-  -webkit-backdrop-filter:blur(20px) saturate(180%);
-  transform:translateY(0) translateZ(0);
-  transition:transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
-  will-change:transform;
+  background:rgba(15, 23, 42, 0.95); /* Darker, cleaner background */
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  height:64px; /* Fixed height for consistency */
 }
 .header.header-hidden{
-  transform:translateY(-100%) translateZ(0);
-}
-.header:hover{
-  background:linear-gradient(180deg, rgba(10,42,90,0.98) 0%, rgba(8,32,68,0.92) 100%);
-  border-bottom-color:rgba(96,181,255,.18);
+  transform:translateY(-100%);
 }
 .header img{
-  height:48px;
+  height:32px; /* Smaller logo for mobile */
   width:auto;
   display:block;
-  filter:drop-shadow(0 2px 8px rgba(0,0,0,.4)) brightness(1.05);
-  transition:all 0.2s ease;
-}
-.header img:hover{
-  filter:drop-shadow(0 2px 12px rgba(96,181,255,.3)) brightness(1.1);
-  transform:translateY(-1px);
 }
 .header-right{
   display:flex;
   align-items:center;
-  gap:16px;
-  transition:opacity 0.3s ease; /* Smooth fade in/out */
+  gap:12px;
 }
 .support{
-  color:#60b5ff;
+  color:#fff;
   text-decoration:none;
-  font-weight:700;
-  font-size:15px;
-  padding:10px 20px;
-  border-radius:10px;
-  background:rgba(96,181,255,.08);
-  border:1px solid rgba(96,181,255,.2);
+  font-weight:600;
+  font-size:14px;
+  padding:8px 16px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.1);
   transition:all .2s ease;
   display:inline-flex;
   align-items:center;
   gap:6px;
 }
-.support::before{
-  content:"";
-  font-size:16px;
-}
 .support:hover{
-  color:#9bc8ff;
-  background:rgba(96,181,255,.15);
-  border-color:rgba(96,181,255,.4);
-  transform:translateY(-2px);
-  box-shadow:0 4px 12px rgba(96,181,255,.2);
+  background:rgba(255,255,255,0.15);
 }
-.menu-btn{
-  appearance:none;
-  border:2px solid rgba(255,255,255,.3);
-  background:linear-gradient(135deg, rgba(96,181,255,.15) 0%, rgba(59,130,246,.15) 100%);
-  color:#e7f1ff;
-  border-radius:14px;
-  padding:12px 16px;
-  display:none;
-  align-items:center;
-  gap:8px;
-  cursor:pointer;
-  transition:all .25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:0 2px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.1);
-  position:relative;
-  overflow:hidden;
-}
-.menu-btn::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(135deg, rgba(255,255,255,.1) 0%, transparent 100%);
-  opacity:0;
-  transition:opacity .2s ease;
-}
-.menu-btn:hover::before{
-  opacity:1;
-}
-.menu-btn:hover{
-  border-color:rgba(96,181,255,.5);
-  transform:translateY(-2px) scale(1.02);
-  box-shadow:0 6px 20px rgba(96,181,255,.25), inset 0 1px 0 rgba(255,255,255,.15);
-}
-.menu-btn:active{
-  transform:translateY(0) scale(0.98);
-}
-.menu-ic{width:24px;height:2px;background:#e7f1ff;position:relative;display:block;transition:all .2s}
-.menu-ic::before,.menu-ic::after{content:"";position:absolute;left:0;right:0;height:2px;background:#e7f1ff;transition:all .2s}
-.menu-ic::before{top:-8px}
-.menu-ic::after{top:8px}
 
-/* Menu overlay */
+/* Menu Overlay & Sheet */
 .menu-overlay{
   position:fixed;
   inset:0;
+  background:rgba(10,42,90,0.97);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
   z-index:100;
   display:none;
   place-items:center;
-  background:rgba(10,42,90,.93);
-  backdrop-filter:blur(10px);
-  animation:fadeIn .3s ease
+  padding:20px;
+  animation:fadeIn 0.2s ease;
 }
-@keyframes fadeIn{
-  from{opacity:0}
-  to{opacity:1}
+.menu-overlay[aria-hidden="false"]{
+  display:grid;
 }
 .menu-sheet{
-  width:min(520px,92vw);
-  background:var(--gradient-dark);
-  border:1px solid rgba(255,255,255,.16);
-  border-radius:var(--br-lg);
-  box-shadow:var(--e3);
-  padding:24px;
-  animation:slideUp .3s ease
+  background:rgba(30,41,59,0.95);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:20px;
+  padding:32px;
+  width:100%;
+  max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
 }
-@keyframes slideUp{
-  from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:translateY(0)}
+.menu-row{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-bottom:24px;
 }
-.menu-row{display:grid;gap:14px}
 .menu-item{
-  appearance:none;
-  border:2px solid rgba(255,255,255,.25);
-  background:var(--gradient-card);
-  color:#e7f1ff;
-  border-radius:14px;
-  padding:1.2rem 1.5rem;
-  font-weight:900;
-  font-size:18px;
-  text-align:center;
+  background:rgba(59,130,246,0.1);
+  border:1px solid rgba(59,130,246,0.2);
+  border-radius:12px;
+  padding:16px 20px;
+  font-size:16px;
+  font-weight:600;
+  color:#e0f2fe;
   cursor:pointer;
-  transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
-  position:relative;
-  overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.08);
-}
-.menu-item::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 100%);
-  opacity:0;
-  transition:opacity .3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:all 0.2s ease;
+  text-align:left;
 }
 .menu-item:hover{
-  border-color:rgba(96,181,255,.5);
-  transform:translateX(6px) scale(1.02);
-  box-shadow:0 6px 20px rgba(96,181,255,.25), 0 2px 8px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.12);
+  background:rgba(59,130,246,0.2);
+  border-color:rgba(59,130,246,0.4);
+  transform:translateX(4px);
 }
-.menu-item:hover::before{opacity:1}
-.menu-close{margin-top:12px;display:flex;justify-content:center}
-.menu-close .btn{min-width:140px}
+.menu-item:active{
+  transform:translateX(2px) scale(0.98);
+}
+.menu-close{
+  display:flex;
+  justify-content:center;
+}
+.menu-btn{
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:8px;
+  padding:8px 16px;
+  color:#fff;
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+  display:none;
+}
+.menu-btn:hover{
+  background:rgba(255,255,255,0.15);
+}
+.menu-ic{
+  display:block;
+  width:18px;
+  height:2px;
+  background:#fff;
+  position:relative;
+}
+.menu-ic::before,
+.menu-ic::after{
+  content:'';
+  display:block;
+  width:18px;
+  height:2px;
+  background:#fff;
+  position:absolute;
+  left:0;
+}
+.menu-ic::before{
+  top:-6px;
+}
+.menu-ic::after{
+  top:6px;
+}
 
 /* Main + container */
 .main{
   flex:1;
   display:block;
-  padding:clamp(20px,4vw,32px);
-  padding-top:clamp(20px,4vw,32px); /* Normal padding, NOT adding header height */
-  background:linear-gradient(180deg, 
-    var(--blue) 0%, 
-    rgba(8,32,68,0.98) 50%, 
-    var(--blue) 100%); /* Subtle flow state gradient */
-  min-height:100vh; /* Full viewport height so content can scroll */
-  transform:translateZ(0); /* GPU acceleration */
-  will-change:scroll-position;
+  padding:16px; /* Standard mobile padding */
+  padding-top:80px; /* Clear fixed header */
+  background:#0f172a; /* Clean dark background */
+  min-height:100vh;
 }
 .container{
-  max-width:1200px;
+  max-width:100%;
   width:100%;
   margin:0 auto;
-  padding:0 clamp(12px,4vw,24px)
+  padding:0; /* Remove double padding */
 }
 
 /* Titles */
 .h1{
-  font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:'Inter', sans-serif;
   font-weight:700;
-  font-size:clamp(32px,6vw,52px);
-  margin:90px 0 18px; /* Large top margin to clear fixed header */
-  background:linear-gradient(135deg,#fff 0%,#9bc8ff 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-  line-height:1.1;
-  letter-spacing:-0.03em; /* Tighter, more premium look */
-  transition:all 0.3s ease; /* Smooth transitions */
+  font-size:28px; /* Better mobile size */
+  margin:0 0 24px;
+  color:#fff;
+  line-height:1.2;
+  letter-spacing:-0.02em;
 }
 
 /* Cards & inputs */
 .card{
-  background:var(--gradient-card);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:var(--br-lg);
-  box-shadow:var(--e2);
-  padding:24px;
-  margin:10px auto 22px;
-  position:relative;
-  overflow:visible; /* Allow content to scroll naturally */
+  background:#1e293b;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
-.card::before{
-  content:"";
-  position:absolute;
-  top:0;
-  left:0;
-  right:0;
-  height:3px;
-  background:var(--gradient-primary);
-  opacity:.6
-}
+.card::before{display:none} /* Remove gradient border top */
+
 .card h2{
-  margin:6px 0 16px;
-  font-weight:900;
-  font-size:clamp(20px,4.5vw,28px);
-  background:linear-gradient(135deg,#fff 0%,#b8d9ff 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text
+  margin:0 0 16px;
+  font-weight:700;
+  font-size:20px;
+  color:#fff;
 }
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
@@ -490,7 +434,33 @@ select.input:hover,select.select:hover{
     transform:scale(0.96);
     transition:transform 0.1s;
   }
+  .btn {
+    width: 100%;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .actions-grid button {
+    grid-column: auto !important; /* Override any grid-column spans */
+    width: 100%;
+  }
 }
+
+/* Desktop Grid for Actions */
+@media (min-width: 641px) {
+  .actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+}
+
 .btn.secondary{
   background:linear-gradient(135deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.05) 100%);
   border-color:rgba(255,255,255,.35);
@@ -1161,13 +1131,13 @@ select.input:hover,select.select:hover{
   padding:4px 0
 }
 .filter-tab{
-  background:rgba(10,42,90,.55);
-  border:1.5px solid rgba(255,255,255,.14);
+  background:rgba(30,41,59,0.6);
+  border:1.5px solid rgba(59,130,246,0.25);
   border-radius:11px;
   padding:11px 22px;
   font-size:14px;
-  font-weight:700;
-  color:rgba(255,255,255,.75);
+  font-weight:600;
+  color:rgba(226,232,240,0.85);
   cursor:pointer;
   transition:all .25s cubic-bezier(.4,0,.2,1);
   white-space:nowrap;
@@ -1177,17 +1147,17 @@ select.input:hover,select.select:hover{
   gap:7px
 }
 .filter-tab:hover{
-  background:rgba(20,147,255,.2);
-  border-color:rgba(20,147,255,.4);
-  color:#fff;
+  background:rgba(59,130,246,.18);
+  border-color:rgba(59,130,246,.5);
+  color:#e0f2fe;
   transform:translateY(-2px);
-  box-shadow:0 4px 12px rgba(20,147,255,.15)
+  box-shadow:0 4px 12px rgba(59,130,246,.2)
 }
 .filter-tab.active{
-  background:linear-gradient(135deg,rgba(59,130,246,.32),rgba(37,99,235,.3));
-  border-color:rgba(59,130,246,.65);
+  background:linear-gradient(135deg,rgba(59,130,246,.28),rgba(37,99,235,.25));
+  border-color:rgba(96,165,250,.7);
   color:#60a5fa;
-  box-shadow:0 0 0 3px rgba(59,130,246,.14),0 6px 16px rgba(59,130,246,.25);
+  box-shadow:0 0 0 3px rgba(59,130,246,.12),0 6px 16px rgba(59,130,246,.3);
   transform:translateY(-2px)
 }
 
@@ -1769,10 +1739,32 @@ select.input:hover,select.select:hover{
     gap:8px;
   }
   .menu-btn{
-    padding:6px 12px !important;
-    min-height:32px !important;
+    padding:8px !important;
+    min-height:36px !important;
     font-size:13px !important;
     font-weight:600 !important;
+    width:auto !important;
+    min-width:44px !important;
+  }
+  .menu-ic{
+    width:20px !important;
+  }
+  .menu-ic::before,
+  .menu-ic::after{
+    width:20px !important;
+  }
+  .menu-sheet{
+    max-width:100% !important;
+    border-radius:0 !important;
+    padding:24px !important;
+    min-height:100vh !important;
+  }
+  .menu-item{
+    padding:16px !important;
+    font-size:16px !important;
+    min-height:56px !important;
+    display:flex !important;
+    align-items:center !important;
   }
   
   /* Compact typography - REFINED */
@@ -3492,7 +3484,7 @@ a:focus-visible{
         if(currentItem && typeof currentItem.onDelete==='function'){
           await currentItem.onDelete(currentItem.id);
         }
-        showToast('🗑️ Media removed','success');
+        showToast('Media removed','success');
       }catch(err){ console.error('Delete media failed', err); showToast('Delete failed','error'); }
       finally{ closeDeleteConfirm(); }
     };
@@ -3687,7 +3679,6 @@ a:focus-visible{
           
           <!-- Default Culture Message (shows when no announcements) -->
           <div id="cultureSloganSection" style="display:none;text-align:center">
-            <div style="font-size:28px;margin-bottom:12px">🏡✨</div>
             <h3 style="margin:0 0 10px 0;font-size:22px;font-weight:700;color:#e0f2fe;letter-spacing:-0.02em">Excellence in Every Service</h3>
             <p style="margin:0;font-size:15px;color:#94a3b8;line-height:1.6;max-width:600px;margin:0 auto">Home2Smart pros deliver premium service with professionalism, integrity, and care. Every job is an opportunity to exceed expectations.</p>
           </div>
@@ -3696,7 +3687,9 @@ a:focus-visible{
           <div id="activeAnnouncementsSection" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
               <div style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openAnnouncementsModal()" class="announcement-header-clickable">
-                <div style="width:44px;height:44px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(59,130,246,0.3)" class="announcement-icon">📢</div>
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(59,130,246,0.3);color:white" class="announcement-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V2.54a.5.5 0 0 0-.74-.43l-8.55 5.03a2 2 0 0 1-.97.25H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.5a2 2 0 0 1 .8.17l3.7 1.48a2 2 0 0 0 1.6.04l6.66-2.66a.5.5 0 0 0 .74-.43V8.35z"></path><path d="M22 8.35A5.5 5.5 0 0 1 22 18.5"></path></svg>
+                </div>
                 <div>
                   <h3 style="margin:0;font-size:19px;font-weight:700;color:#f1f5f9;letter-spacing:-0.01em" class="announcement-title">Team Updates</h3>
                   <p style="margin:0;font-size:13px;color:#94a3b8;margin-top:2px" id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
@@ -3732,7 +3725,7 @@ a:focus-visible{
         <!-- Tab Switcher -->
         <div style="display:flex;gap:12px;margin-bottom:32px;border-bottom:2px solid rgba(148,163,184,.1);padding-bottom:0">
           <button id="btnCustomersToCall" class="customer-tab-btn active" onclick="switchCustomerTab('to-call')" type="button" style="background:none;border:none;padding:16px 24px;font-size:15px;font-weight:700;color:#60a5fa;cursor:pointer;position:relative;transition:all .2s;border-bottom:3px solid #3b82f6">
-            📞 To Call
+            To Call
           </button>
           <button id="btnCustomersHistory" class="customer-tab-btn" onclick="switchCustomerTab('history')" type="button" style="background:none;border:none;padding:16px 24px;font-size:15px;font-weight:700;color:#64748b;cursor:pointer;position:relative;transition:all .2s;border-bottom:3px solid transparent">
             📋 Customer History
@@ -3752,7 +3745,6 @@ a:focus-visible{
           </div>
 
           <div id="customers-empty" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8">
-            <div style="font-size:64px;margin-bottom:16px;opacity:.4">✅</div>
             <div style="font-size:18px;font-weight:600;margin-bottom:8px">All caught up!</div>
             <div style="font-size:14px;opacity:.8">No upcoming appointments to call about right now</div>
           </div>
@@ -3782,7 +3774,7 @@ a:focus-visible{
       <div id="tab-payouts" class="card" style="display:none">
         <div style="margin-bottom:32px">
           <h2 style="margin:0 0 8px;display:flex;align-items:center;gap:12px">
-            💰 Earnings Dashboard
+            Earnings Dashboard
           </h2>
           <p class="muted" style="margin:0;font-size:15px">Track your earnings, view payout history, and withdraw funds</p>
         </div>
@@ -3899,7 +3891,7 @@ a:focus-visible{
                     Choose Photo
                   </button>
                   <p class="muted" style="margin:0;font-size:13px;line-height:1.5">
-                    📸 Tap to select from camera roll or take a new photo<br>
+                    Tap to select from camera roll or take a new photo<br>
                     Customers see this when you're assigned to their job
                   </p>
                   <div id="pfPhotoUploading" style="display:none;margin-top:12px;padding:10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:8px;font-size:13px">
@@ -4391,7 +4383,9 @@ a:focus-visible{
     <!-- Header -->
     <div style="padding:28px 32px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center;background:rgba(30,41,59,0.5)">
       <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(59,130,246,0.2) 0%,rgba(37,99,235,0.1) 100%);display:flex;align-items:center;justify-content:center;font-size:22px">📢</div>
+        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(59,130,246,0.2) 0%,rgba(37,99,235,0.1) 100%);display:flex;align-items:center;justify-content:center;color:#60a5fa">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V2.54a.5.5 0 0 0-.74-.43l-8.55 5.03a2 2 0 0 1-.97.25H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.5a2 2 0 0 1 .8.17l3.7 1.48a2 2 0 0 0 1.6.04l6.66-2.66a.5.5 0 0 0 .74-.43V8.35z"></path><path d="M22 8.35A5.5 5.5 0 0 1 22 18.5"></path></svg>
+        </div>
         <h2 style="margin:0;font-size:26px;font-weight:700;background:linear-gradient(135deg,#60a5fa 0%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">All Announcements</h2>
       </div>
       <button onclick="closeAnnouncementsModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;width:40px;height:40px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:20px;font-weight:300" onmouseover="this.style.background='rgba(239,68,68,0.2)';this.style.borderColor='rgba(239,68,68,0.4)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='rgba(255,255,255,0.12)';this.style.color='#cbd5e1'">&times;</button>
@@ -4413,7 +4407,9 @@ a:focus-visible{
     <!-- Header -->
     <div style="padding:24px 28px;background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(220,38,38,0.1) 100%);border-bottom:1px solid rgba(239,68,68,0.2)">
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;font-size:26px">⚠️</div>
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
         <h3 id="confirmModalTitle" style="margin:0;font-size:22px;font-weight:700;color:#f87171">Confirm Action</h3>
       </div>
     </div>
@@ -4751,7 +4747,7 @@ a:focus-visible{
         <!-- Quick pick chips -->
       </div>
       <div id="dateRangeHint" style="margin-top:20px;padding:16px;background:rgba(59,130,246,0.1);border-left:4px solid rgba(59,130,246,0.6);border-radius:8px;color:#93c5fd;font-size:14px;line-height:1.6">
-        📅 You can request time off up to 12 months in advance
+        You can request time off up to 12 months in advance
       </div>
     </div>
     
@@ -4902,7 +4898,7 @@ a:focus-visible{
 <div id="payoutHistoryModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="historyModalTitle">
   <div class="sheet" style="max-width:900px;padding:32px;background:linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.98) 100%);border:2px solid rgba(59,130,246,0.2);box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
     <div style="background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);padding:32px;border-radius:16px;margin-bottom:32px;box-shadow:0 10px 30px rgba(59,130,246,0.3)">
-      <h3 id="historyModalTitle" style="font-size:32px;font-weight:800;color:#fff;margin:0 0 8px 0;letter-spacing:-0.02em">💰 Payout History</h3>
+      <h3 id="historyModalTitle" style="font-size:32px;font-weight:800;color:#fff;margin:0 0 8px 0;letter-spacing:-0.02em">Payout History</h3>
       <p style="font-size:15px;color:rgba(255,255,255,0.9);margin:0">View all your earnings and withdrawals</p>
     </div>
     
@@ -5052,6 +5048,9 @@ a:focus-visible{
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
+// Global function declarations (needed for inline onclick handlers)
+window.switchCustomerTab = function() { console.warn('switchCustomerTab not ready yet'); };
+
 document.addEventListener("DOMContentLoaded", function() {
 
 // ===== MOBILE HEADER AUTO-HIDE ON SCROLL =====
@@ -5085,12 +5084,9 @@ if (header && window.innerWidth <= 640) {
 /* ===== CONFIG ===== */
 // API Configuration - Use h2s-backend.vercel.app (auto-aliases to latest production)
 const VERCEL_API = "https://h2s-backend.vercel.app/api";
-const APPS_SCRIPT_API = "https://script.google.com/macros/s/AKfycbxvkqZG4mCec7Pol-tlZy9o6aIfnnh7xuQWYpFayGTwPDKd2f1Px3Qj_a-D0zjM5bM_jw/exec";
 
-// Dual mode: Vercel for portal (pros), Apps Script for admin
-const USE_VERCEL_FOR_PORTAL = true;
-// Backwards-compatible global API variable used in a few legacy helpers/logs
-const API = USE_VERCEL_FOR_PORTAL ? VERCEL_API : APPS_SCRIPT_API;
+// Unified API Endpoint (Vercel Only)
+const API = VERCEL_API;
 const LS_TOKEN = "h2s_portal_token";
 const LS_ADMIN_TOKEN = "h2s_admin_token";
 
@@ -5734,13 +5730,8 @@ async function GET(action, payload={}) {
   ];
   
   // Check if this action should use Vercel
-  const useVercel = USE_VERCEL_FOR_PORTAL && (
-    action.startsWith('portal_') || 
-    action.startsWith('admin_') || 
-    VERCEL_ENDPOINTS.includes(action)
-  );
-  
-  const apiBase = useVercel ? VERCEL_API : APPS_SCRIPT_API;
+  const useVercel = true;
+  const apiBase = VERCEL_API;
   
   console.log(`[GET] Using ${useVercel ? 'VERCEL' : 'APPS_SCRIPT'} for ${action}`);
   console.log(`[GET] 🌐 Endpoint: ${useVercel ? apiBase + '/' + action : 'query string'}`);
@@ -5929,10 +5920,9 @@ async function POST(action, payload={}) {
   console.log("POST request:", action, payload);
   
   // Dual-mode routing: portal_* actions → Vercel, admin_* actions → Apps Script
-  const isPortalAction = action.startsWith('portal_');
-  const useVercel = USE_VERCEL_FOR_PORTAL && isPortalAction;
-  const apiBase = useVercel ? VERCEL_API : APPS_SCRIPT_API;
-  const endpoint = useVercel ? `${apiBase}/${action}` : apiBase;
+  const useVercel = true;
+  const apiBase = VERCEL_API;
+  const endpoint = `${apiBase}/${action}`;
   
   console.log(`[POST] Using ${useVercel ? 'VERCEL' : 'APPS_SCRIPT'} for ${action}`);
   
@@ -6409,6 +6399,7 @@ async function hydrateMe() {
     document.getElementById("pfMax").value = me.max_jobs_per_day || "";
     document.getElementById("pfPhoto").value = me.photo_url || "";
     document.getElementById("pfBio").value = me.bio_short || "";
+    loadProfilePhotoPreview();
     return true;
   }
   
@@ -6503,6 +6494,9 @@ function switchTab(which) {
     // Default to "To Call" tab
     currentCustomerTab = 'to-call';
     switchCustomerTab('to-call');
+  }
+  if (which === "profile") {
+    loadProfilePhotoPreview();
   }
   if (which === "payouts") loadPayouts();
   if (which === "reviews") loadReviews();
@@ -6752,7 +6746,9 @@ function showJobDetails(job) {
       <div class="subl">Team Job Information</div>
       <div style="background:linear-gradient(135deg, rgba(139,92,246,.15) 0%, rgba(99,102,241,.15) 100%);padding:16px;border-radius:10px;border:2px solid rgba(139,92,246,.3)">
         <div style="display:flex;align-items:start;gap:12px;margin-bottom:12px">
-          <div style="font-size:32px;line-height:1">👥</div>
+          <div style="color:#8b5cf6">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
           <div style="flex:1">
             <div style="font-weight:800;color:#8b5cf6;margin-bottom:6px;font-size:16px">Two-Tech Service</div>
             <div style="font-size:14px;line-height:1.5;margin-bottom:8px">
@@ -6768,7 +6764,7 @@ function showJobDetails(job) {
         </div>
         
         <div style="background:rgba(255,255,255,.9);padding:12px;border-radius:8px;margin-top:12px">
-          <div style="font-weight:700;color:#6b21a8;margin-bottom:8px;font-size:14px">💰 Payout Split: ${esc(split)}</div>
+          <div style="font-weight:700;color:#6b21a8;margin-bottom:8px;font-size:14px">Payout Split: ${esc(split)}</div>
           <div style="font-size:13px;color:#581c87;line-height:1.4">
             Base payout is split evenly between both technicians. Fair compensation, faster completion, safer installation.
           </div>
@@ -6776,7 +6772,7 @@ function showJobDetails(job) {
         
         ${!job.teammate_name ? `
           <div style="margin-top:12px;padding:10px;background:rgba(59,130,246,.1);border-radius:6px;font-size:13px;color:#1e40af">
-            <strong>ℹ️ Note:</strong> Both techs must accept before the job is confirmed. You'll be notified when your teammate accepts.
+            <strong>Note:</strong> Both techs must accept before the job is confirmed. You'll be notified when your teammate accepts.
           </div>
         ` : ''}
       </div>
@@ -6794,7 +6790,7 @@ function showJobDetails(job) {
           class="btn secondary" 
           onclick="requestTeammate('${esc(job.job_id)}')"
           style="width:100%;font-size:14px;padding:10px">
-          👥 Request Second Tech (Split 50/50)
+          Request Second Tech (Split 50/50)
         </button>
         <div style="font-size:12px;opacity:.7;margin-top:8px;text-align:center">
           Note: Requesting help will reduce your payout to 50% but makes the job safer and faster
@@ -7240,7 +7236,39 @@ async function deletePhoto(artifactId, jobId) {
     window.event.stopPropagation();
   }
 
-  if(!confirm("Are you sure you want to delete this photo?")) return;
+  // Custom Modal
+  const confirmed = await new Promise(resolve => {
+    const modal = document.createElement('div');
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)";
+    modal.innerHTML = `
+      <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;width:100%;max-width:320px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5)">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="width:48px;height:48px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#ef4444">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </div>
+          <h3 style="margin:0 0 8px;color:#fff;font-size:18px">Delete Photo?</h3>
+          <p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.5">This action cannot be undone.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <button id="cancel-delete" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#fff;font-weight:600;cursor:pointer">Cancel</button>
+          <button id="confirm-delete" style="padding:12px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-weight:600;cursor:pointer">Delete</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('#cancel-delete').onclick = () => {
+      modal.remove();
+      resolve(false);
+    };
+    
+    modal.querySelector('#confirm-delete').onclick = () => {
+      modal.remove();
+      resolve(true);
+    };
+  });
+
+  if (!confirmed) return;
   
   loading(true);
   try {
@@ -7250,7 +7278,7 @@ async function deletePhoto(artifactId, jobId) {
       if(!out.ok) throw new Error(out.error || "Server returned error");
       
       console.log("[Delete] Success");
-      toast("✅ Photo deleted");
+      toast("Photo deleted successfully");
       
       // 1. Handle Modal Refresh
       const existingModal = document.querySelector('.photo-gallery-modal');
@@ -7278,7 +7306,7 @@ async function deletePhoto(artifactId, jobId) {
             photoOnFile[jobId] = false;
             const btn = document.getElementById(`gallery-btn-${jobId}`);
             if (btn) {
-                btn.textContent = '📷 View photos';
+                btn.textContent = 'View photos';
                 btn.className = 'btn secondary';
                 btn.style.cssText = '';
             }
@@ -7286,7 +7314,7 @@ async function deletePhoto(artifactId, jobId) {
             await renderPhotoGallery(jobId, photos);
             const btn = document.getElementById(`gallery-btn-${jobId}`);
             if (btn) {
-                btn.textContent = `✅ View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
+                btn.textContent = `View ${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
                 btn.className = 'btn';
                 btn.style.cssText = 'background:linear-gradient(135deg,rgba(16,185,129,.2) 0%,rgba(5,150,105,.15) 100%);border-color:rgba(16,185,129,.3);color:#34d399';
             }
@@ -7326,46 +7354,47 @@ async function viewPhotos(jobId) {
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.96);backdrop-filter:blur(12px);z-index:30000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease';
       
       modal.innerHTML = `
-          <div class="sheet" style="max-width:800px;width:100%;max-height:90vh;display:flex;flex-direction:column;background:linear-gradient(135deg,rgba(10,42,90,.98) 0%,rgba(8,32,68,.95) 100%);border:1px solid rgba(255,255,255,0.15)">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1)">
-                  <div style="display:flex;align-items:center;gap:12px">
-                      <span style="font-size:24px">📸</span>
-                      <div>
-                          <h3 style="margin:0;font-size:20px;color:#fff">Job Photos</h3>
-                          <div style="font-size:13px;opacity:0.7">${photos.length} photo${photos.length !== 1 ? 's' : ''} on file</div>
-                      </div>
+          <div class="sheet" style="width:100%;height:100%;display:flex;flex-direction:column;background:#0f172a;">
+              <!-- Header -->
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#1e293b;border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0">
+                  <div>
+                      <h3 style="margin:0;font-size:18px;font-weight:700;color:#fff">Job Photos</h3>
+                      <div style="font-size:13px;color:#94a3b8;margin-top:2px">${photos.length} photo${photos.length !== 1 ? 's' : ''}</div>
                   </div>
-                  <button class="btn ghost" onclick="this.closest('.modal').remove()" style="padding:8px 16px">Close</button>
+                  <button class="btn ghost" onclick="this.closest('.modal').remove()" style="padding:8px;height:36px;width:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.1);color:#fff;border:none">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                  </button>
               </div>
               
-              <div style="flex:1;overflow-y:auto;min-height:200px;padding-right:8px">
+              <!-- Content -->
+              <div style="flex:1;overflow-y:auto;padding:16px;">
                   ${photos.length === 0 ? `
                       <div style="text-align:center;padding:60px 20px;opacity:0.6;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
-                          <div style="font-size:64px;margin-bottom:16px;opacity:0.5">🖼️</div>
-                          <div style="font-size:18px;font-weight:600">No photos uploaded yet</div>
-                          <div style="font-size:14px;margin-top:8px">Upload photos to document your work</div>
-                          <button onclick="viewPhotos('${jobId}')" class="btn ghost" style="margin-top:20px;font-size:13px;border:1px solid rgba(255,255,255,0.2)">
-                            🔄 Refresh Gallery
+                          <div style="width:64px;height:64px;background:rgba(255,255,255,0.05);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:#94a3b8">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                          </div>
+                          <div style="font-size:16px;font-weight:600;color:#fff">No photos yet</div>
+                          <div style="font-size:14px;color:#94a3b8;margin-top:8px">Upload photos to document your work</div>
+                          <button onclick="viewPhotos('${jobId}')" class="btn ghost" style="margin-top:24px;font-size:14px;border:1px solid rgba(255,255,255,0.2);color:#fff">
+                            Refresh Gallery
                           </button>
                       </div>
                   ` : `
-                      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:16px">
+                      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:12px">
                           ${photos.map(p => `
-                              <div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.3);group">
-                                  <img src="${p.storage_url}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s" 
-                                       onclick="window.open('${p.storage_url}', '_blank')"
-                                       onmouseover="this.style.transform='scale(1.05)'"
-                                       onmouseout="this.style.transform='scale(1)'">
+                              <div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);border:1px solid rgba(255,255,255,0.1)">
+                                  <img src="${p.storage_url}" style="width:100%;height:100%;object-fit:cover;" 
+                                       onclick="window.open('${p.storage_url}', '_blank')">
                                   
-                                  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px;background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);font-size:11px;color:white;opacity:0.8">
+                                  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px;background:linear-gradient(to top, rgba(0,0,0,0.8), transparent);font-size:11px;color:rgba(255,255,255,0.9);">
                                       ${new Date(p.uploaded_at).toLocaleDateString()}
                                   </div>
 
                                   <button onclick="event.stopPropagation(); deletePhoto('${esc(p.artifact_id)}', '${esc(jobId)}')" 
                                           title="Delete Photo"
                                           type="button"
-                                          style="position:absolute;top:8px;right:8px;background:rgba(220,38,38,0.9);color:white;border:1px solid rgba(255,255,255,0.3);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:all 0.2s;z-index:100">
-                                      🗑️
+                                          style="position:absolute;top:8px;right:8px;background:rgba(239,68,68,0.9);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                   </button>
                               </div>
                           `).join('')}
@@ -7838,6 +7867,12 @@ function renderOffers(list) {
 function renderOffersSync(list, box) {
   // ✅ PERFORMANCE: Use DocumentFragment to batch DOM updates (1 reflow instead of N)
   const fragment = document.createDocumentFragment();
+  
+  if (!Array.isArray(list)) {
+    console.warn('renderOffersSync: list is not an array', list);
+    return;
+  }
+
   list.forEach((j, index) => {
     const el = document.createElement("div");
     el.className = "item";
@@ -7993,10 +8028,10 @@ function renderOffersSync(list, box) {
       </div>
       ${serviceDetails}
       <div class="payout"><div class="num">${fmtMoney(payoutAmount)}</div><div class="subl">${esc(payoutLabel)}</div></div>
-      <div class="actions">
+      <div class="actions-grid">
         <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button">Accept${isOutOfRange ? ' Anyway' : ''}</button>
         <button class="btn ghost" data-act="decline" data-job="${esc(j.job_id)}" type="button">Decline</button>
-        <button class="btn secondary" data-act="details" data-job="${esc(j.job_id)}" type="button">Details</button>
+        <button class="btn secondary" style="grid-column: span 2" data-act="details" data-job="${esc(j.job_id)}" type="button">Details</button>
       </div>`;
     fragment.appendChild(el);
   });
@@ -8054,9 +8089,9 @@ function renderOffersSync(list, box) {
       // ✅ TEAM JOB FEEDBACK
       if (act === "accept" && out.is_team_job) {
         if (out.team_confirmed) {
-          toast("✅ Team confirmed! Both pros accepted");
+          toast("Team confirmed! Both pros accepted");
         } else {
-          toast("✓ Accepted - Waiting for teammate to accept...");
+          toast("Accepted - Waiting for teammate to accept...");
         }
       } else {
         toast(act === "accept" ? "Accepted" : "Declined");
@@ -8155,7 +8190,7 @@ function renderUpcoming(list) {
       const teammateName = j.teammate_name || 'Partner';
       const split = j.payout_split || '50/50';
       teamIndicator = `<div style="margin-top:8px;padding:8px;background:rgba(139,92,246,.1);border-left:3px solid #8b5cf6;border-radius:6px;font-size:13px">
-        <strong>👥 Team Job</strong> • Working with: ${esc(teammateName)} • Split: ${esc(split)}
+        <strong>Team Job</strong> • Working with: ${esc(teammateName)} • Split: ${esc(split)}
       </div>`;
     }
     
@@ -8176,12 +8211,12 @@ function renderUpcoming(list) {
     const hasSignature = signatureOnFile[j.job_id];
     
     // Button States
-    const photoBtnLabel = hasPhotos ? "View Photos" : "📸 Upload Photos";
+    const photoBtnLabel = hasPhotos ? "View Photos" : "Upload Photos";
     const photoBtnStyle = hasPhotos ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" : "background:rgba(245,158,11,.08);color:#f59e0b;border-color:rgba(245,158,11,.2)";
     
     // Signature enabled only if photos uploaded (or override)
     const sigBtnClass = "btn secondary"; 
-    const sigBtnLabel = hasSignature ? "✓ Signature" : "✍️ Get Signature";
+    const sigBtnLabel = hasSignature ? "Signature Saved" : "Get Signature";
     const sigBtnStyle = hasSignature 
       ? "background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.2)" 
       : (!hasPhotos ? "opacity:.5" : "background:rgba(245,158,11,.08);color:#f59e0b;border-color:rgba(245,158,11,.2)");
@@ -8192,9 +8227,9 @@ function renderUpcoming(list) {
       ? "grid-column:span 2;background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;box-shadow:0 4px 14px rgba(16,185,129,.3)" 
       : "grid-column:span 2;opacity:.5;cursor:not-allowed";
     const doneBtnTitle = (!hasPhotos || !hasSignature) 
-      ? `⚠️ ${!hasPhotos ? 'Upload photos' : 'Get signature'} first` 
-      : "✅ Complete & Submit Job";
-    const doneBtnLabel = (hasPhotos && hasSignature) ? "✅ Complete Job" : "🔒 Complete Job";
+      ? `${!hasPhotos ? 'Upload photos' : 'Get signature'} first` 
+      : "Complete & Submit Job";
+    const doneBtnLabel = (hasPhotos && hasSignature) ? "Complete Job" : "Complete Job (Locked)";
 
     // ✅ DATE DISPLAY (ROBUST)
     let dateDisplay = '';
@@ -8226,11 +8261,11 @@ function renderUpcoming(list) {
     el.className = "item";
     el.innerHTML = `
       ${dateDisplay}
-      <div class="actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div class="actions-grid">
         <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
         <button class="btn secondary" data-onway="${esc(j.job_id)}" type="button">On My Way</button>
         
-        <button class="btn secondary" onclick="handleCallClick(event, '${esc(j.job_id)}', '${esc(j.customer_phone||"")}')" type="button" style="background:rgba(59,130,246,.1);color:#2563eb;border-color:rgba(59,130,246,.2)">Call Customer</button>
+        <button class="btn secondary" onclick="handleCallClick(event, '${esc(j.job_id)}', '${esc(j.customer_phone||"")}')" type="button" style="grid-column:span 2;background:rgba(59,130,246,.1);color:#60a5fa;border-color:rgba(59,130,246,.2)">Call Customer</button>
         
         <button class="btn secondary" data-photos="${esc(j.job_id)}" style="${photoBtnStyle}" type="button">${photoBtnLabel}</button>
         <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="${sigBtnStyle}" type="button">${sigBtnLabel}</button>
@@ -8314,7 +8349,7 @@ function renderUpcoming(list) {
         if (!out.ok) {
           const errorMsg = out.error || "Failed to update status";
           console.error("[On My Way] Error:", out);
-          toast(`❌ ${errorMsg}`);
+          toast(`Error: ${errorMsg}`);
           return;
         }
         
@@ -8331,7 +8366,7 @@ function renderUpcoming(list) {
         
       } catch(err) {
         console.error("[On My Way] Exception:", err);
-        toast(`❌ Error: ${err.message || "Failed to update status"}`);
+        toast(`Error: ${err.message || "Failed to update status"}`);
       } finally {
         loading(false);
       }
@@ -8354,7 +8389,7 @@ function renderUpcoming(list) {
       const jobId = sigBtn.dataset.sign;
       // UX: Warn if photos not uploaded yet
       if (!photoOnFile[jobId]) {
-        if (!confirm("⚠️ You haven't uploaded photos yet.\n\nIt's recommended to upload photos of the completed work BEFORE getting the customer's signature.\n\nContinue to signature anyway?")) {
+        if (!confirm("Warning: You haven't uploaded photos yet.\n\nIt's recommended to upload photos of the completed work BEFORE getting the customer's signature.\n\nContinue to signature anyway?")) {
           return;
         }
       }
@@ -8373,7 +8408,9 @@ function renderUpcoming(list) {
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
         modal.innerHTML = `
           <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(245,158,11,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
-            <div style="font-size:72px;margin-bottom:16px">📸</div>
+            <div style="margin-bottom:16px;color:#fbbf24">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </div>
             <h2 style="margin:0 0 12px;font-size:22px;color:#fbbf24">Upload Photos First</h2>
             <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
               Before completing this job, you must upload photos of the completed work.
@@ -8382,9 +8419,9 @@ function renderUpcoming(list) {
             <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
               <div style="font-weight:700;color:#fbbf24;margin-bottom:10px;font-size:14px">Required Steps:</div>
               <div style="font-size:14px;opacity:.9;line-height:1.8">
-                <div>1. 📸 Upload photos of completed work</div>
-                <div>2. ✍️ Get customer signature</div>
-                <div>3. ✅ Complete job</div>
+                <div>1. Upload photos of completed work</div>
+                <div>2. Get customer signature</div>
+                <div>3. Complete job</div>
               </div>
             </div>
             <button onclick="this.closest('.modal').remove()" class="btn" style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);padding:14px;font-size:15px">
@@ -8516,7 +8553,10 @@ function renderUpcoming(list) {
           invalidateCache('payouts');
           
           // Refresh in background (don't block UI)
-          setTimeout(() => loadJobs(), 1000);
+          setTimeout(() => {
+            loadJobs();
+            loadPayouts();
+          }, 1000);
           
         } catch(err) { 
           toast(err.message || "Could not mark done");
@@ -8553,8 +8593,8 @@ function renderCompleted(list) {
     el.innerHTML = `
       <h3>${esc(j.service_name||"Service")} : ${esc(fmtWindow(j))}</h3>
       <div class="meta">${esc(j.address||"")} ${j.city ? ("• "+esc(j.city)+" "+esc(j.state||"")+" "+esc(j.zip||"")) : ""} • ${esc(j.completed_label||"Completed")}</div>
-      <div class="actions">
-        <button class="btn secondary" onclick="viewPhotos('${esc(j.job_id)}')" type="button">📷 View Photos</button>
+      <div class="actions-grid">
+        <button class="btn secondary" onclick="viewPhotos('${esc(j.job_id)}')" type="button">View Photos</button>
         <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
       </div>`;
     fragment.appendChild(el);
@@ -8750,6 +8790,100 @@ function stopJobPolling() {
 }
 
 /* ===== PAYOUTS ===== */
+function renderPayoutsDashboard(data) {
+  const {rows, availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount} = data;
+  
+  // Update dashboard stats
+  $("available-balance").textContent = fmtMoney(availableBalance);
+  $("lifetime-earnings").textContent = fmtMoney(lifetimeEarnings);
+  $("week-earnings").textContent = fmtMoney(weekEarnings);
+  $("week-jobs").textContent = `${weekJobCount} job${weekJobCount !== 1 ? 's' : ''} completed`;
+  $("pending-earnings").textContent = fmtMoney(pendingEarnings);
+  
+  // Render recent payouts list
+  const recentList = $("recent-payouts-list");
+  recentList.innerHTML = "";
+  
+  // Sort by earned_at or created_at, most recent first
+  const sorted = [...rows].sort((a, b) => {
+    const aDate = new Date(a.earned_at || a.created_at);
+    const bDate = new Date(b.earned_at || b.created_at);
+    return bDate - aDate;
+  });
+  
+  const recent = sorted.slice(0, 10); // Show last 10
+  
+  if (recent.length === 0) {
+    recentList.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:#94a3b8">
+        <div style="font-size:15px">No earnings yet. Accept jobs to start earning!</div>
+      </div>
+    `;
+  } else {
+    recent.forEach(r => {
+      const amount = asNum(r.total_amount || r.amount || 0);
+      const earnedDate = r.earned_at ? new Date(r.earned_at) : new Date(r.created_at);
+      const dateStr = earnedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
+      // State badge styling
+      let stateBadge = '';
+      if (r.state === 'approved') {
+        stateBadge = '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">✓ Approved</span>';
+      } else if (r.state === 'pending') {
+        stateBadge = '<span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">⏳ Pending</span>';
+      } else if (r.state === 'paid') {
+        stateBadge = '<span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">💰 Paid</span>';
+      }
+      
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)";
+      row.innerHTML = `
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600;color:#e0f2fe;margin-bottom:4px">${esc(r.service_name || 'Job Payout')}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:13px;color:#94a3b8">${dateStr}</span>
+            ${stateBadge}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:24px;font-weight:800;color:#10b981">${fmtMoney(amount)}</div>
+          ${r.job_id ? `<button class="btn-link" data-job="${esc(r.job_id)}" style="font-size:12px;color:#60a5fa;background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline" type="button">View Job</button>` : ''}
+        </div>
+      `;
+      recentList.appendChild(row);
+    });
+    
+    // Add click handler for "View Job" links
+    recentList.onclick = async e => {
+      const btn = e.target.closest("button[data-job]");
+      if (!btn) return;
+      const jobId = btn.dataset.job;
+      
+      try {
+        loading(true);
+        const out = await GET("portal_jobs", {token});
+        if (!out.ok) { toast(out.error || "Could not load jobs"); return; }
+        
+        // Find the job in all lists
+        const allJobs = [...(out.offers || []), ...(out.upcoming || []), ...(out.completed || [])];
+        const job = allJobs.find(j => j.job_id === jobId);
+        
+        if (!job) { 
+          toast("Job details not found"); 
+          return; 
+        }
+        
+        showOfferDetails(job);
+        
+      } catch(err) { 
+        console.error("Job lookup error:", err);
+        toast(err.message || "Failed to load job details"); 
+      }
+      finally { loading(false); }
+    };
+  }
+}
+
 async function loadPayouts() {
   // Check cache first
   const cached = getCache('payouts');
@@ -8804,99 +8938,13 @@ async function loadPayouts() {
       }
     });
     
-    // Update dashboard stats
-    $("available-balance").textContent = fmtMoney(availableBalance);
-    $("lifetime-earnings").textContent = fmtMoney(lifetimeEarnings);
-    $("week-earnings").textContent = fmtMoney(weekEarnings);
-    $("week-jobs").textContent = `${weekJobCount} job${weekJobCount !== 1 ? 's' : ''} completed`;
-    $("pending-earnings").textContent = fmtMoney(pendingEarnings);
-    
-    // Render recent payouts list
-    const recentList = $("recent-payouts-list");
-    recentList.innerHTML = "";
-    
-    // Sort by earned_at or created_at, most recent first
-    const sorted = [...rows].sort((a, b) => {
-      const aDate = new Date(a.earned_at || a.created_at);
-      const bDate = new Date(b.earned_at || b.created_at);
-      return bDate - aDate;
-    });
-    
-    const recent = sorted.slice(0, 10); // Show last 10
-    
-    if (recent.length === 0) {
-      recentList.innerHTML = `
-        <div style="text-align:center;padding:40px 20px;color:#94a3b8">
-          <div style="font-size:48px;margin-bottom:12px;opacity:.5">💸</div>
-          <div style="font-size:15px">No earnings yet. Accept jobs to start earning!</div>
-        </div>
-      `;
-    } else {
-      recent.forEach(r => {
-        const amount = asNum(r.total_amount || r.amount || 0);
-        const earnedDate = r.earned_at ? new Date(r.earned_at) : new Date(r.created_at);
-        const dateStr = earnedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        
-        // State badge styling
-        let stateBadge = '';
-        if (r.state === 'approved') {
-          stateBadge = '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">✓ Approved</span>';
-        } else if (r.state === 'pending') {
-          stateBadge = '<span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">⏳ Pending</span>';
-        } else if (r.state === 'paid') {
-          stateBadge = '<span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">💰 Paid</span>';
-        }
-        
-        const row = document.createElement("div");
-        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)";
-        row.innerHTML = `
-          <div style="flex:1">
-            <div style="font-size:15px;font-weight:600;color:#e0f2fe;margin-bottom:4px">${esc(r.service_name || 'Job Payout')}</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:13px;color:#94a3b8">${dateStr}</span>
-              ${stateBadge}
-            </div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:24px;font-weight:800;color:#10b981">${fmtMoney(amount)}</div>
-            ${r.job_id ? `<button class="btn-link" data-job="${esc(r.job_id)}" style="font-size:12px;color:#60a5fa;background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline" type="button">View Job</button>` : ''}
-          </div>
-        `;
-        recentList.appendChild(row);
-      });
-      
-      // Add click handler for "View Job" links
-      recentList.onclick = async e => {
-        const btn = e.target.closest("button[data-job]");
-        if (!btn) return;
-        const jobId = btn.dataset.job;
-        
-        try {
-          loading(true);
-          const out = await GET("portal_jobs", {token});
-          if (!out.ok) { toast(out.error || "Could not load jobs"); return; }
-          
-          // Find the job in all lists
-          const allJobs = [...(out.offers || []), ...(out.upcoming || []), ...(out.completed || [])];
-          const job = allJobs.find(j => j.job_id === jobId);
-          
-          if (!job) { 
-            toast("Job details not found"); 
-            return; 
-          }
-          
-          showOfferDetails(job);
-          
-        } catch(err) { 
-          console.error("Job lookup error:", err);
-          toast(err.message || "Failed to load job details"); 
-        }
-        finally { loading(false); }
-      };
-    }
+    const data = {rows, availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount};
     
     // Cache the processed data
-    setCache('payouts', {rows, availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount});
+    setCache('payouts', data);
+    
+    // Render
+    renderPayoutsDashboard(data);
     
   } catch(err) { 
     console.error("Payouts error:", err);
@@ -8949,6 +8997,17 @@ async function loadCustomers() {
   const customersList = $('customers-list');
   const customersEmpty = $('customers-empty');
   
+  if (!token) {
+    customersList.style.display = 'none';
+    customersEmpty.style.display = 'block';
+    customersEmpty.innerHTML = `
+      <div style="font-size:64px;margin-bottom:16px;opacity:.4">🔒</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px">Please log in</div>
+      <div style="font-size:14px;opacity:.8">You need to be logged in to view customers</div>
+    `;
+    return;
+  }
+  
   try {
     loading(true);
     const out = await GET("portal_customers", {token});
@@ -8956,12 +9015,11 @@ async function loadCustomers() {
       customersList.style.display = 'none';
       customersEmpty.style.display = 'block';
       customersEmpty.innerHTML = `
-        <div style="font-size:64px;margin-bottom:16px;opacity:.4">⚠️</div>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">System Error</div>
-        <div style="font-size:14px;opacity:.8;color:#f87171;margin-bottom:12px">${esc(out.error || 'Unknown error')}</div>
-        <div style="font-size:13px;opacity:.6">Please contact support if this persists.</div>
+        <div style="font-size:64px;margin-bottom:16px;opacity:.4">❌</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#f87171">Failed to load</div>
+        <div style="font-size:14px;opacity:.8">${esc(out.error || 'API error')}</div>
       `;
-      console.log('[Customers] No data available:', out.error);
+      loading(false);
       return; 
     }
     
@@ -9231,7 +9289,7 @@ function createModal() {
 /* ===== CUSTOMER HISTORY ===== */
 let currentCustomerTab = 'to-call';
 
-function switchCustomerTab(tab) {
+window.switchCustomerTab = function(tab) {
   currentCustomerTab = tab;
   
   // Update button styles
@@ -9265,6 +9323,17 @@ async function loadCustomerHistory() {
   const historyList = $('customers-history-list');
   const historyEmpty = $('customers-history-empty');
   
+  if (!token) {
+    historyList.style.display = 'none';
+    historyEmpty.style.display = 'block';
+    historyEmpty.innerHTML = `
+      <div style="font-size:64px;margin-bottom:16px;opacity:.4">🔒</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px">Please log in</div>
+      <div style="font-size:14px;opacity:.8">You need to be logged in to view customer history</div>
+    `;
+    return;
+  }
+  
   try {
     loading(true);
     const out = await GET("portal_customer_history", {token});
@@ -9272,11 +9341,11 @@ async function loadCustomerHistory() {
       historyList.style.display = 'none';
       historyEmpty.style.display = 'block';
       historyEmpty.innerHTML = `
-        <div style="font-size:64px;margin-bottom:16px;opacity:.4">👥</div>
-        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#e0f2fe">No customer history yet</div>
-        <div style="font-size:14px;opacity:.8">Complete jobs to build your customer base</div>
+        <div style="font-size:64px;margin-bottom:16px;opacity:.4">❌</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:8px;color:#f87171">Failed to load</div>
+        <div style="font-size:14px;opacity:.8">${esc(out.error || 'API error')}</div>
       `;
-      console.log('[CustomerHistory] No data available:', out.error);
+      loading(false);
       return; 
     }
     
@@ -10020,6 +10089,10 @@ $("btnSaveProfile").addEventListener("click", async () => {
     me.max_jobs_per_day = $("pfMax").value.trim();
     me.photo_url = $("pfPhoto").value.trim();
     me.bio_short = $("pfBio").value.trim();
+    
+    // Update cache immediately
+    setCache('me', me);
+    localStorage.setItem(`h2s_me_${token}`, JSON.stringify(me));
     
     $("pf-ok").textContent = "Saved!"; $("pf-ok").style.display = "block";
     setTimeout(() => $("pf-ok").style.display = "none", 2000);

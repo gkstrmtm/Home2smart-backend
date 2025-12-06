@@ -26,13 +26,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get pro_id from Bearer token
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ ok: false, error: 'Missing auth token' });
+    // Get token from query, body, OR Authorization header
+    let token = req.query?.token || req.body?.token;
+    
+    // Check Authorization header if token not in query/body
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
     }
 
-    const token = authHeader.substring(7);
+    if (!token) {
+      return res.status(401).json({ ok: false, error: 'Missing auth token' });
+    }
     
     // Validate session and get pro_id
     const { data: session, error: sessionError } = await supabase
