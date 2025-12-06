@@ -9591,7 +9591,10 @@ document.getElementById("btnSignIn").addEventListener("click", async function() 
     }
     
     // Pro login
+    token = ""; // Ensure no stale token is sent
+    console.log(`[LOGIN] Attempting login for ${email}...`);
     const out = await GET("portal_login", {email, zip});
+    console.log(`[LOGIN] Response:`, out);
     
     if (!out.ok) { 
       loading(false);
