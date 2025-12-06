@@ -185,6 +185,7 @@ export default async function handler(req, res) {
     // Get full job details for assigned jobs
     const jobIds = assignments.map(a => a.job_id);
     console.log('[portal_jobs] Fetching details for', jobIds.length, 'jobs');
+    console.log('[portal_jobs] Job IDs from assignments:', jobIds);
     
     const { data: jobs, error: jobsError } = await supabase
       .from('h2s_dispatch_jobs')
@@ -197,6 +198,8 @@ export default async function handler(req, res) {
       hasError: !!jobsError,
       errorMsg: jobsError?.message 
     });
+    
+    console.log('[portal_jobs] Fetched jobs with statuses:', (jobs || []).map(j => `${j.job_id}: ${j.status}`).join(', '));
 
     if (jobsError) {
       console.error('[portal_jobs] Job fetch failed:', jobsError);
@@ -366,6 +369,8 @@ export default async function handler(req, res) {
     (jobs || []).forEach(job => {
       const assignment = assignmentMap[job.job_id];
       const state = assignment?.state || '';
+      
+      console.log(`[portal_jobs] Processing assigned job ${job.job_id}: status=${job.status}, assignment_state=${state}`);
       
       // INTELLIGENT: Calculate distance from assignment OR pro location OR job metadata
       let finalDistance = null;
