@@ -4039,6 +4039,18 @@ a:focus-visible{
         </div>
       </div>
 
+      <div id="tab-reviews" class="card" style="display:none">
+        <div style="margin-bottom:32px">
+          <h2 style="margin:0 0 8px">Customer Reviews</h2>
+          <p class="muted" style="margin:0;font-size:15px">See what customers are saying about your work</p>
+        </div>
+        <div id="reviews-list">
+           <div style="text-align:center;padding:40px 20px;color:#475569">
+              <div style="font-size:15px">No reviews yet.</div>
+           </div>
+        </div>
+      </div>
+
       <div id="tab-profile" class="card" style="display:none">
         <div style="margin-bottom:32px">
           <h2 style="margin:0 0 8px">Account Settings</h2>
@@ -4355,12 +4367,6 @@ a:focus-visible{
         <!-- Requested Time Off List -->
         <div class="modern-section">
           <div class="section-header-modern">
-            <div class="section-icon-modern" style="background:rgba(16,185,129,.15);color:var(--green-light)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 11 12 14 22 4"></polyline>
-        <!-- Requested Time Off List -->
-        <div class="modern-section">
-          <div class="section-header-modern">
             <div class="section-icon-modern" style="background:rgba(26,155,255,.1);color:#1A9BFF">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -4369,9 +4375,16 @@ a:focus-visible{
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
             </div>
-            <div>Will be populated by JavaScript -->
+            <div>
+              <h3 class="section-title-modern">My Requests</h3>
+              <p class="section-subtitle-modern">Status of your time off requests</p>
+            </div>
+          </div>
+          <div id="time-off-list">
+             <!-- Populated by JS -->
           </div>
         </div>
+      </div>
       </div>
     </section>
 
@@ -6668,7 +6681,12 @@ function switchTab(which) {
   if (typeof saveViewState === 'function') saveViewState();
   
   ["dash","customers","payouts","reviews","training","profile","schedule"].forEach(k => {
-    document.getElementById("tab-" + k).style.display = (k === which) ? "block" : "none";
+    const el = document.getElementById("tab-" + k);
+    if (el) {
+      el.style.display = (k === which) ? "block" : "none";
+    } else {
+      console.warn(`[TAB] ⚠️ Tab element not found: tab-${k}`);
+    }
   });
   closeMenu();
   
@@ -14842,7 +14860,7 @@ function updateAnnouncementBanner() {
   // Legacy banner - may not exist on all views, so check first
   const banner = $("announcementBanner");
   if (!banner) {
-    console.log('[Banner] Old announcement banner element not found (OK - using Communication Hub instead)');
+    // console.log('[Banner] Old announcement banner element not found (OK - using Communication Hub instead)');
     return; // Exit gracefully if banner doesn't exist
   }
   
