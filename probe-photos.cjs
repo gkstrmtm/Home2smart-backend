@@ -56,36 +56,74 @@ const supabase = createClient(
     const testJobId = artifacts[0].job_id;
     console.log(`\n[3] Testing portal_get_artifacts endpoint for job: ${testJobId}`);
     
-    // Login first to get token
-    const { data: pros } = await supabase
-      .from('h2s_pros')
-      .select('email, service_zip')
+    // Get a pro with an active session
+    const { data: sessions } = await supabase
+      .from('h2s_sessions')
+      .select('session_id, pro_id, expires_at')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
       .limit(1);
     
-    if (pros && pros.length > 0) {
-      const loginRes = await fetch('http://localhost:3000/api/portal_login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: pros[0].email,
-          zip: pros[0].service_zip
-        })
-      });
+    let token = null;
+    
+    if (sessions && sessions.length > 0) {
+      token = sessions[0].session_id;
+      console.log(`   ✅ Using existing session token: ${token.substring(0, 20)}...`);
+    } else {
+      // Create test session if none exist
+      console.log(`   ⚠️  No active sessions found, creating test session...`);
       
-      const loginData = await loginRes.json();
+      const { data: pros } = await supabase
+        .from('h2s_pros')
+        .select('pro_id, email')
+        .limit(1);
       
-      if (loginData.ok) {
-        const token = loginData.token;
-        console.log(`   ✅ Got token: ${token.substring(0, 20)}...`);
+      if (pros && pros.length > 0) {
+        const testToken = `test_${Date.now()}_${Math.random().toString(36).substr(2)}`;
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         
-        // Now test get artifacts
-        const getUrl = `http://localhost:3000/api/portal_get_artifacts?token=${token}&job_id=${testJobId}&type=photo`;
-        console.log(`   Fetching: ${getUrl}`);
+        const { error: sessionError } = await supabase
+          .from('h2s_sessions')
+          .insert({
+            session_id: testToken,
+            pro_id: pros[0].pro_id,
+            expires_at: expiresAt,
+            created_at: new Date().toISOString()
+          });
         
-        const getRes = await fetch(getUrl);
+        if (!sessionError) {
+          token = testToken;
+          console.log(`   ✅ Created test session: ${token.substring(0, 20)}...`);
+        }
+      }
+    }
+    
+    if (token) {
+      // Now test get artifacts via Vercel
+      const VERCEL_API = 'https://h2s-backend.vercel.app/api';
+      const getUrl = `${VERCEL_API}/portal_get_artifacts?token=${token}&job_id=${testJobId}&type=photo`;
+      console.log(`   📡 Fetching: ${getUrl.replace(token, token.substring(0, 20) + '...')}`);
+      
+      try {
+        const getRes = await fetch(getUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        console.log(`   📨 Response status: ${getRes.status} ${getRes.statusText}`);
+        console.log(`   📨 CORS headers:`, {
+          'access-control-allow-origin': getRes.headers.get('access-control-allow-origin'),
+          'access-control-allow-headers': getRes.headers.get('access-control-allow-headers'),
+          'access-control-allow-methods': getRes.headers.get('access-control-allow-methods')
+        });
+        
         const getData = await getRes.json();
         
-        console.log(`\n   Response:`, JSON.stringify(getData, null, 2));
+        console.log(`\n   📦 Response:`, JSON.stringify(getData, null, 2));
         
         if (getData.ok && getData.artifacts) {
           console.log(`\n   ✅ Endpoint returned ${getData.artifacts.length} artifact(s)`);
@@ -97,8 +135,14 @@ const supabase = createClient(
           });
         } else {
           console.log(`   ❌ Endpoint returned no artifacts or error`);
+          console.log(`   Error code: ${getData.error_code}`);
+          console.log(`   Error message: ${getData.error}`);
         }
+      } catch (err) {
+        console.error(`   ❌ Fetch failed:`, err.message);
       }
+    } else {
+      console.log(`   ❌ Could not get or create session token`);
     }
   }
   

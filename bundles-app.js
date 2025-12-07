@@ -2,9 +2,9 @@
 'use strict';
 
 // === API CONFIG ===
-const API = 'https://h2s-backend-5o9147lik-tabari-ropers-projects-6f2e090b.vercel.app/api/shop';
-const APIV1 = 'https://script.google.com/macros/s/AKfycbzN7912CA8vCLEGRhnOqz6tA2KOAhlHDqZxEgxOh_n3_aDvDRfYvgqyW4LUxQNqnEgu/exec'; // Shopbackend.js for appointments
-const DASH_URL = 'https://script.google.com/macros/s/AKfycbxVsGP8EeAZmfRcW9LjY3fm1F9iWvXMO7RlT4VP7Tj1BV0BOkeBi6GAkASQhEZJ7h9Y/exec';
+const API = 'https://h2s-backend.vercel.app/api/shop';
+// APIV1 (GAS) removed - migrated to Vercel
+const DASH_URL = 'https://h2s-backend.vercel.app/api/track';
 const CAL_FORM_URL = 'https://api.leadconnectorhq.com/widget/booking/RjwOQacM3FAjRNCfm6uU';
 const PIXEL_ID = '2384221445259822';
 

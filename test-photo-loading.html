@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Photo Loading Diagnostic</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { background: #2a2a2a; padding: 20px; margin: 10px 0; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #2563eb; }
+        pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        input { padding: 8px; margin: 5px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; width: 400px; }
+    </style>
+</head>
+<body>
+    <h1>Photo Loading Diagnostic Tool</h1>
+    
+    <div class="section">
+        <h2>Step 1: Login</h2>
+        <input type="email" id="email" placeholder="Email" value="">
+        <input type="password" id="password" placeholder="Password" value="">
+        <button onclick="testLogin()">Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Get Jobs</h2>
+        <button onclick="testGetJobs()">Fetch Jobs</button>
+        <div id="jobs-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 3: Test Photo Loading</h2>
+        <input type="text" id="job-id" placeholder="Job ID" value="">
+        <button onclick="testPhotoLoading()">Load Photos</button>
+        <div id="photos-result"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 4: Upload Test Photo</h2>
+        <input type="file" id="photo-file" accept="image/*">
+        <button onclick="testPhotoUpload()">Upload Photo</button>
+        <div id="upload-result"></div>
+    </div>
+
+    <script>
+        const VERCEL_API = 'https://home2smart-backend.vercel.app/api';
+        let token = null;
+        let currentJobId = null;
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('login-result');
+            
+            resultDiv.innerHTML = '<p>Logging in...</p>';
+            
+            try {
+                const res = await fetch(`${VERCEL_API}/portal_login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                
+                if (data.ok && data.token) {
+                    token = data.token;
+                    resultDiv.innerHTML = `<p class="success">✅ Login successful!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Login failed</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+
+        async function testGetJobs() {
+            const resultDiv = document.getElementById('jobs-result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please login first</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Fetching jobs...</p>';
+            
+            try {
+                const res = await fetch(`${VERCEL_API}/portal_jobs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const data = await res.json();
+                
+                if (data.ok && data.jobs) {
+                    const jobsWithPhotos = data.jobs.filter(j => j.photo_count > 0);
+                    if (jobsWithPhotos.length > 0) {
+                        currentJobId = jobsWithPhotos[0].job_id;
+                        document.getElementById('job-id').value = currentJobId;
+                    }
+                    resultDiv.innerHTML = `<p class="success">✅ Found ${data.jobs.length} jobs (${jobsWithPhotos.length} with photos)</p><pre>${JSON.stringify(data.jobs.slice(0, 3), null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Failed to fetch jobs</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+
+        async function testPhotoLoading() {
+            const resultDiv = document.getElementById('photos-result');
+            const jobId = document.getElementById('job-id').value;
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please login first</p>';
+                return;
+            }
+            
+            if (!jobId) {
+                resultDiv.innerHTML = '<p class="error">❌ Please enter a job ID</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Loading photos...</p>';
+            
+            try {
+                // Test with query string approach (matching GET helper)
+                const queryParams = new URLSearchParams({
+                    token: token,
+                    job_id: jobId,
+                    type: 'photo'
+                });
+                
+                const url = `${VERCEL_API}/portal_get_artifacts?${queryParams.toString()}`;
+                
+                console.log('Fetching:', url);
+                
+                const res = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log('Response status:', res.status, res.statusText);
+                console.log('Response headers:', [...res.headers.entries()]);
+
+                const data = await res.json();
+                
+                console.log('Response data:', data);
+                
+                if (data.ok) {
+                    const html = `<p class="success">✅ Loaded ${data.count} photo(s)</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    if (data.artifacts && data.artifacts.length > 0) {
+                        const imgs = data.artifacts.map(p => `<img src="${p.storage_url}" style="max-width:200px;margin:10px;border:1px solid #555">`).join('');
+                        resultDiv.innerHTML = html + '<div>' + imgs + '</div>';
+                    } else {
+                        resultDiv.innerHTML = html;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Failed to load photos</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p><pre>${err.stack}</pre>`;
+            }
+        }
+
+        async function testPhotoUpload() {
+            const resultDiv = document.getElementById('upload-result');
+            const fileInput = document.getElementById('photo-file');
+            const jobId = document.getElementById('job-id').value;
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please login first</p>';
+                return;
+            }
+            
+            if (!jobId) {
+                resultDiv.innerHTML = '<p class="error">❌ Please enter a job ID</p>';
+                return;
+            }
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '<p class="error">❌ Please select a photo</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Uploading photo...</p>';
+            
+            try {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    const base64 = e.target.result;
+                    
+                    const res = await fetch(`${VERCEL_API}/portal_upload_artifact`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            token: token,
+                            job_id: jobId,
+                            type: 'photo',
+                            data: base64,
+                            filename: file.name,
+                            mimetype: file.type
+                        })
+                    });
+
+                    const data = await res.json();
+                    
+                    if (data.ok) {
+                        resultDiv.innerHTML = `<p class="success">✅ Upload successful!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                        // Auto-reload photos
+                        setTimeout(testPhotoLoading, 1000);
+                    } else {
+                        resultDiv.innerHTML = `<p class="error">❌ Upload failed</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

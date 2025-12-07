@@ -26,9 +26,8 @@ export default async function handler(req, res) {
     // Log to console (Vercel logs)
     console.log('[Analytics]', JSON.stringify(event));
 
-    // Optional: Fire and forget insert to Supabase if table exists
+    // Fire and forget insert to Supabase
     // We don't await this to keep response fast
-    /*
     supabase.from('analytics_events').insert({
       event_name: event.event,
       session_id: event.session_id,
@@ -38,7 +37,6 @@ export default async function handler(req, res) {
     }).then(({ error }) => {
       if (error) console.error('[Analytics] DB Error:', error);
     });
-    */
 
     return res.status(200).json({ ok: true });
   } catch (error) {
