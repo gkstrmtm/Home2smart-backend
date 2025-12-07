@@ -1881,22 +1881,25 @@ select.input:hover,select.select:hover{
   
   /* Login screen - ensure it's scrollable */
   #view-auth{
-    min-height:auto !important;
+    min-height:100vh !important;
     max-height:none !important;
-    overflow-y:visible !important;
+    overflow-y:auto !important;
     -webkit-overflow-scrolling:touch !important;
-    padding:20px !important;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
+    padding:40px 20px !important;
+    display:flex !important;
+    justify-content:center !important;
+    align-items:center !important;
   }
   #view-auth .card {
-    max-width:360px;
-    width:100%;
+    max-width:420px !important;
+    width:100% !important;
     border-radius:16px !important;
-    border:1px solid rgba(255,255,255,.1) !important;
-    margin:40px auto 20px !important;
-    padding:40px 32px !important;
+    border:1px solid rgba(96,165,250,0.15) !important;
+    background:rgba(15,30,61,0.6) !important;
+    backdrop-filter:blur(20px) !important;
+    margin:0 !important;
+    padding:48px 40px !important;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4), 0 0 1px rgba(96,165,250,0.2) !important;
   }
   
   /* TEAM UPDATES MOBILE - PREMIUM FEEL */
@@ -3150,6 +3153,16 @@ a:focus-visible{
   .menu-btn{display:none} /* Hidden by default */
   .menu-btn[data-on="1"]{display:flex !important} /* Only show when logged in */
   
+  /* Login screen mobile optimization */
+  #view-auth{
+    padding:20px 16px !important;
+    align-items:flex-start !important;
+  }
+  #view-auth .card{
+    padding:32px 24px !important;
+    margin-top:20px !important;
+  }
+  
   /* Modern Page Headers */
   .page-header-content{flex-direction:column;text-align:center}
   .page-icon-circle{width:64px;height:64px;margin:0 auto}
@@ -3688,9 +3701,15 @@ a:focus-visible{
     <section id="view-auth" class="view card" aria-hidden="false">
       <div id="step-signin">
         <h2 style="font-size:32px;font-weight:600;margin:0 0 32px 0;text-align:center">Sign in</h2>
-        <div class="grid-2">flex;flex-direction:column;gap:20px">
-          <div><label class="label" for="siEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
-          <div><label class="label" for="siZip" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">ZIP code</label><input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div>
+            <label class="label" for="siEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label>
+            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px">
+          </div>
+          <div>
+            <label class="label" for="siZip" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">ZIP code</label>
+            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px">
+          </div>
         </div>
         <div style="margin:12px 0;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:#3b82f6">
