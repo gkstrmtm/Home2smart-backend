@@ -272,27 +272,33 @@ body{
 .header-right{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:14px;
 }
 .support{
-  color:var(--slate-100);
+  color:var(--h2s-text-main);
   text-decoration:none;
-  font-weight:600;
+  font-weight:500;
   font-size:14px;
   padding:10px 18px;
-  border-radius:var(--br);
-  background:rgba(20,184,166,0.12);
-  border:1px solid rgba(20,184,166,0.25);
-  transition:all .25s ease;
+  border-radius:9999px;
+  background:var(--h2s-bg-card-gradient);
+  border:1px solid var(--h2s-border-subtle);
+  transition:transform 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out;
   display:inline-flex;
   align-items:center;
   gap:6px;
+  height:40px;
 }
 .support:hover{
-  background:rgba(20,184,166,0.18);
-  border-color:rgba(20,184,166,0.4);
+  background:var(--h2s-accent-soft);
+  border-color:rgba(148,163,184,0.3);
   transform:translateY(-1px);
-  box-shadow:var(--shadow-md);
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+.support:active{
+  transform:translateY(0);
+  background:var(--h2s-bg-card);
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
 }
 
 /* Menu Overlay & Sheet */
@@ -327,67 +333,80 @@ body{
   margin-bottom:24px;
 }
 .menu-item{
-  background:rgba(20,184,166,0.08);
-  border:1px solid rgba(20,184,166,0.2);
+  background:var(--h2s-bg-card-gradient);
+  border:1px solid var(--h2s-border-subtle);
   border-radius:var(--br);
   padding:18px 24px;
   font-size:16px;
-  font-weight:600;
-  color:var(--slate-100);
+  font-weight:500;
+  color:var(--h2s-text-main);
   cursor:pointer;
-  transition:all 0.25s ease;
+  transition:transform 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out;
   text-align:left;
 }
 .menu-item:hover{
-  background:rgba(20,184,166,0.15);
-  border-color:rgba(20,184,166,0.4);
-  transform:translateX(6px);
-  box-shadow:var(--shadow-md);
+  background:var(--h2s-accent-soft);
+  border-color:rgba(148,163,184,0.25);
+  transform:translateX(4px);
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
 }
 .menu-item:active{
-  transform:translateX(3px) scale(0.98);
+  transform:translateX(2px);
 }
 .menu-close{
   display:flex;
   justify-content:center;
 }
 .menu-btn{
-  background:rgba(255,255,255,0.1);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:8px;
-  padding:8px 16px;
-  color:#fff;
-  font-weight:600;
+  background:var(--h2s-bg-card-gradient);
+  border:1px solid var(--h2s-border-subtle);
+  border-radius:9999px;
+  padding:10px 14px;
+  color:var(--h2s-text-main);
+  font-weight:500;
   font-size:14px;
   cursor:pointer;
-  transition:all 0.2s ease;
+  transition:transform 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out;
   display:none;
+  align-items:center;
+  justify-content:center;
+  height:40px;
+  width:40px;
 }
 .menu-btn:hover{
-  background:rgba(255,255,255,0.15);
+  background:var(--h2s-accent-soft);
+  border-color:rgba(148,163,184,0.3);
+  transform:translateY(-1px);
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+.menu-btn:active{
+  transform:translateY(0);
+  background:var(--h2s-bg-card);
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
 }
 .menu-ic{
   display:block;
-  width:18px;
+  width:16px;
   height:2px;
-  background:#fff;
+  background:var(--h2s-text-main);
   position:relative;
 }
 .menu-ic::before,
 .menu-ic::after{
   content:'';
   display:block;
-  width:18px;
+  width:16px;
   height:2px;
-  background:#fff;
+  background:var(--h2s-text-main);
   position:absolute;
   left:0;
+  transition:transform 160ms ease-out;
 }
 .menu-ic::before{
-  top:-6px;
+  top:-5px;
 }
 .menu-ic::after{
-  top:6px;
+  top:5px;
 }
 
 /* Main + container */
@@ -609,13 +628,17 @@ select.input:hover,select.select:hover{
 .modal-actions .btn-modern{flex:1;min-height:56px;font-size:16px;font-weight:700;border-radius:var(--br-lg)}
 .btn.ghost{
   background:transparent;
-  border-color:rgba(255,255,255,.3);
-  color:#d6eaff;
-  box-shadow:none
+  border:1px solid var(--h2s-border-subtle);
+  color:var(--h2s-text-muted);
+  box-shadow:none;
+  font-weight:400;
 }
 .btn.ghost:hover{
-  border-color:rgba(255,255,255,.3);
-  background:rgba(255,255,255,.03)
+  background:rgba(148,163,184,0.05);
+  border-color:var(--h2s-border-subtle);
+  color:var(--h2s-text-main);
+  transform:translateY(-1px);
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
 }
 .btn.warn{
   background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);
@@ -805,21 +828,31 @@ select.input:hover,select.select:hover{
   inset:0;
   display:none;
   place-items:center;
-  background:rgba(10,42,90,.75);
-  backdrop-filter:blur(6px);
-  z-index:20000
+  background:var(--h2s-bg-root);
+  z-index:20000;
+  animation:loaderFadeIn 180ms ease-out;
+}
+.loader::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.35);
 }
 .spin{
-  width:72px;
-  height:72px;
+  width:40px;
+  height:40px;
   border-radius:50%;
-  border:6px solid rgba(255,255,255,.15);
-  border-top-color:#1493ff;
-  border-right-color:#60b5ff;
-  animation:sp .8s linear infinite;
-  box-shadow:0 0 20px rgba(20,147,255,.3)
+  border:3px solid rgba(26,155,255,0.15);
+  border-top-color:#1A9BFF;
+  animation:sp 900ms ease-in-out infinite;
+  position:relative;
+  z-index:1;
 }
 @keyframes sp{to{transform:rotate(360deg)}}
+@keyframes loaderFadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
 .toast{
   position:fixed;
   left:50%;
@@ -8216,9 +8249,9 @@ function renderOffersSync(list, box) {
       ${serviceDetails}
       <div class="payout"><div class="num">${fmtMoney(payoutAmount)}</div><div class="subl">${esc(payoutLabel)}</div></div>
       <div class="actions-grid">
-        <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button">Accept${isOutOfRange ? ' Anyway' : ''}</button>
-        <button class="btn ghost" data-act="decline" data-job="${esc(j.job_id)}" type="button">Decline</button>
-        <button class="btn secondary" style="grid-column: span 2" data-act="details" data-job="${esc(j.job_id)}" type="button">Details</button>
+        <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button" style="background:var(--h2s-accent-primary);border:none;color:#fff;font-weight:600;font-size:14px;border-radius:9999px;box-shadow:0 3px 10px rgba(26,155,255,0.3)">Accept${isOutOfRange ? ' Anyway' : ''}</button>
+        <button class="btn secondary" data-act="decline" data-job="${esc(j.job_id)}" type="button" style="background:var(--h2s-bg-card-gradient);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);font-weight:400;font-size:14px;border-radius:14px">Decline</button>
+        <button class="btn" data-act="details" data-job="${esc(j.job_id)}" type="button" style="grid-column:span 2;background:transparent;border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);font-weight:400;font-size:14px;border-radius:14px">Details</button>
       </div>`;
     fragment.appendChild(el);
   });
