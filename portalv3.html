@@ -7935,10 +7935,12 @@ async function requestTeammate(jobId) {
 }
 
 async function loadJobs() {
+  console.log('[DEBUG] 🚀 loadJobs() called');
   const loadStart = performance.now(); // Track total load time
   
   // Check cache first (5-min TTL)
   const cached = getCache('dash');
+  console.log('[DEBUG] Cache check:', cached ? 'HIT' : 'MISS');
   const cacheAge = cached ? Date.now() - (cached._timestamp || 0) : Infinity;
   const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
   
@@ -7957,8 +7959,10 @@ async function loadJobs() {
   try {
     const apiStart = performance.now();
     console.log('[Dashboard] 🔄 Loading fresh data from backend...');
+    console.log('[DEBUG] 📡 Calling GET("portal_jobs") with token:', token ? token.substring(0,15)+'...' : 'MISSING');
     
     const out = await GET("portal_jobs", {token});
+    console.log('[DEBUG] 📥 API Response:', out);
     const apiTime = Math.round(performance.now() - apiStart);
     recordMetric('api', apiTime);
     console.log(`[Dashboard] 📡 API response time: ${apiTime}ms`);
@@ -7972,6 +7976,7 @@ async function loadJobs() {
     const offers = out.offers || out.pending || [];
     const upcoming = out.upcoming || [];
     const completed = out.completed || out.past || [];
+    console.log('[DEBUG] 📊 Extracted data - Offers:', offers.length, 'Upcoming:', upcoming.length, 'Completed:', completed.length);
     
     // Backend already filters by radius - no need for client-side filtering
     const filteredOffers = offers;
@@ -8018,8 +8023,11 @@ async function loadJobs() {
     });
 
     const renderStart = performance.now();
+    console.log('[DEBUG] 🎨 Calling renderOffers with', filteredOffers.length, 'jobs');
     renderOffers(filteredOffers);
+    console.log('[DEBUG] 🎨 Calling renderUpcoming with', upcoming.length, 'jobs');
     renderUpcoming(upcoming);
+    console.log('[DEBUG] 🎨 Calling renderCompleted with', completed.length, 'jobs');
     renderCompleted(completed);
     const renderTime = Math.round(performance.now() - renderStart);
     
@@ -8043,8 +8051,10 @@ async function loadJobs() {
 function fmtWindow(row) { return row.window || row.start_iso || ""; }
 
 function renderOffers(list) {
+  console.log('[DEBUG] 📝 renderOffers() called with', list.length, 'items');
   const renderStart = performance.now(); // ✅ PERFORMANCE: Track render timing
   const box = $("list-offers");
+  console.log('[DEBUG] Found list-offers element:', box ? 'YES' : 'NO');
   $("offers-empty").style.display = list.length ? "none" : "block";
   box.onclick = null;
   
@@ -8333,7 +8343,9 @@ function renderOffersSync(list, box) {
 }
 
 function renderUpcoming(list) {
+  console.log('[DEBUG] 📝 renderUpcoming() called with', list.length, 'items');
   const box = $("list-upcoming");
+  console.log('[DEBUG] Found list-upcoming element:', box ? 'YES' : 'NO');
   $("upcoming-empty").style.display = list.length ? "none" : "block";
   box.onclick = null;
   
