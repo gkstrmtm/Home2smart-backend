@@ -50,56 +50,80 @@ if ('serviceWorker' in navigator) {
 <!-- Inline critical CSS for above-the-fold content -->
 <style>
 :root{
-  /* 🎨 MODERN CLEAN THEME */
-  /* Base - Soft dark slate instead of harsh blue */
-  --slate-950:#020617;
-  --slate-900:#0f172a;
-  --slate-800:#1e293b;
-  --slate-700:#334155;
-  --slate-600:#475569;
-  --slate-500:#64748b;
-  --slate-400:#94a3b8;
-  --slate-300:#cbd5e1;
+  /* 🚀 ELECTRIC VIBRANT THEME */
+  /* Base - Deep rich navy with energy */
+  --navy-950:#050a1f;
+  --navy-900:#0a1633;
+  --navy-800:#0f1f47;
+  --navy-700:#1a2d5c;
+  --navy-600:#264078;
+  
+  /* Baby Blue (Logo Color) */
+  --baby-blue:#60a5fa;
+  --baby-blue-light:#93c5fd;
+  --baby-blue-dark:#3b82f6;
+  
+  /* Grays (Subtle Depth) */
+  --gray-300:#cbd5e1;
+  --gray-400:#94a3b8;
+  --gray-500:#64748b;
+  
+  /* Legacy aliases */
+  --blue:var(--navy-900);
+  --blue-2:var(--navy-800);
+  --blue-3:var(--navy-700);
+  --azure:var(--baby-blue);
+  --azure-dark:var(--baby-blue-dark);
+  --azure-light:var(--baby-blue-light);
+  --teal-500:var(--baby-blue);
+  --teal-600:var(--baby-blue-dark);
+  --teal-400:var(--baby-blue-light);
+  --slate-950:var(--navy-950);
+  --slate-900:var(--navy-900);
+  --slate-800:var(--navy-800);
+  --slate-700:var(--navy-700);
+  --slate-600:var(--navy-600);
+  --slate-500:var(--gray-500);
+  --slate-400:var(--gray-400);
+  --slate-300:var(--gray-300);
   --slate-200:#e2e8f0;
   --slate-100:#f1f5f9;
   
-  /* Primary Accent - Professional Teal */
-  --teal-600:#0d9488;
-  --teal-500:#14b8a6;
-  --teal-400:#2dd4bf;
-  --teal-300:#5eead4;
+  /* Functional Colors - Clean & Clear */
+  --success:#10b981;
+  --success-light:#34d399;
+  --success-dark:#059669;
+  --warning:#f59e0b;
+  --warning-light:#fbbf24;
+  --warning-dark:#d97706;
+  --danger:#ef4444;
+  --danger-light:#f87171;
+  --danger-dark:#dc2626;
   
-  /* Legacy aliases for compatibility */
-  --blue:var(--slate-900);
-  --blue-2:var(--slate-800);
-  --blue-3:var(--slate-700);
-  --azure:var(--teal-500);
-  --azure-dark:var(--teal-600);
-  --azure-light:var(--teal-400);
-  
-  /* Secondary Accents - Muted & Professional */
-  --green:#10b981;
-  --green-light:#34d399;
-  --green-dark:#059669;
-  --amber:#f59e0b;
-  --amber-light:#fbbf24;
-  --amber-dark:#d97706;
-  --red:#ef4444;
-  --red-light:#f87171;
-  --red-dark:#dc2626;
-  --violet:#8b5cf6;
-  --violet-light:#a78bfa;
-  --violet-dark:#7c3aed;
-  --cyan:#06b6d4;
-  --cyan-light:#22d3ee;
-  
-  /* Legacy */
-  --orange:var(--amber);
-  --orange-light:var(--amber-light);
-  --orange-dark:var(--amber-dark);
-  --purple:var(--violet);
-  --purple-light:var(--violet-light);
-  --purple-dark:var(--violet-dark);
+  /* Legacy aliases */
+  --green:var(--success);
+  --green-light:var(--success-light);
+  --green-dark:var(--success-dark);
+  --amber:var(--warning);
+  --amber-light:var(--warning-light);
+  --amber-dark:var(--warning-dark);
+  --orange:var(--warning);
+  --orange-light:var(--warning-light);
+  --orange-dark:var(--warning-dark);
+  --red:var(--danger);
+  --red-light:var(--danger-light);
+  --red-dark:var(--danger-dark);
+  --violet:var(--baby-blue);
+  --violet-light:var(--baby-blue-light);
+  --violet-dark:var(--baby-blue-dark);
+  --purple:var(--baby-blue);
+  --purple-light:var(--baby-blue-light);
+  --purple-dark:var(--baby-blue-dark);
+  --cyan:var(--baby-blue);
+  --cyan-light:var(--baby-blue-light);
+  --lime-500:var(--success);
+  --lime-400:var(--success-light);
+  --lime-300:var(--success-light);
   
   /* Neutrals */
   --white:#fff;
@@ -125,44 +149,44 @@ if ('serviceWorker' in navigator) {
   --spacing-xl:32px;
   --spacing-2xl:48px;
   
-  /* Border Radius - Softer curves */
+  /* Gradients - Clean & On-Brand */
+  --gradient-primary:linear-gradient(135deg,var(--baby-blue) 0%,var(--baby-blue-dark) 100%);
+  --gradient-primary-vibrant:var(--gradient-primary);
+  --gradient-success:linear-gradient(135deg,var(--success) 0%,var(--success-dark) 100%);
+  --gradient-warning:linear-gradient(135deg,var(--warning) 0%,var(--warning-dark) 100%);
+  --gradient-danger:linear-gradient(135deg,var(--danger) 0%,var(--danger-dark) 100%);
+  --gradient-violet:var(--gradient-primary);
+  --gradient-card:linear-gradient(135deg,var(--navy-800) 0%,var(--navy-900) 100%);
+  --gradient-dark:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-950) 100%);
+  --gradient-surface:linear-gradient(135deg,var(--navy-800) 0%,var(--navy-900) 100%);
+  --gradient-mesh:none;
+  --gradient-purple:var(--gradient-primary);
+  
+  /* Border Radius - Clean & Consistent */
   --br:12px;
   --br-sm:8px;
   --br-lg:16px;
   --br-xl:20px;
   --br-full:9999px;
   
-  /* Shadows - Subtle & layered */
+  /* Shadows - Subtle & Professional (NO GLOW) */
   --shadow-sm:0 1px 2px 0 rgba(0,0,0,.05);
   --shadow-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);
   --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
   --shadow-xl:0 20px 25px -5px rgba(0,0,0,.1),0 10px 10px -5px rgba(0,0,0,.04);
   --shadow-2xl:0 25px 50px -12px rgba(0,0,0,.25);
-  --shadow-glow-teal:0 0 24px rgba(20,184,166,.3),0 0 8px rgba(20,184,166,.2);
-  --shadow-glow-green:0 0 24px rgba(16,185,129,.3),0 0 8px rgba(16,185,129,.2);
-  --shadow-glow-amber:0 0 24px rgba(245,158,11,.3),0 0 8px rgba(245,158,11,.2);
-  --shadow-glow-red:0 0 24px rgba(239,68,68,.3),0 0 8px rgba(239,68,68,.2);
   
   /* Legacy aliases */
   --e1:var(--shadow-md);
   --e2:var(--shadow-lg);
   --e3:var(--shadow-xl);
-  --shadow-success:var(--shadow-glow-green);
-  --shadow-warning:var(--shadow-glow-amber);
-  --shadow-danger:var(--shadow-glow-red);
-  --shadow-info:var(--shadow-glow-teal);
-  
-  /* Gradients - Modern & Cohesive */
-  --gradient-primary:linear-gradient(135deg,var(--teal-500) 0%,var(--teal-600) 100%);
-  --gradient-success:linear-gradient(135deg,var(--green) 0%,var(--green-dark) 100%);
-  --gradient-warning:linear-gradient(135deg,var(--amber) 0%,var(--amber-dark) 100%);
-  --gradient-danger:linear-gradient(135deg,var(--red) 0%,var(--red-dark) 100%);
-  --gradient-violet:linear-gradient(135deg,var(--violet) 0%,var(--violet-dark) 100%);
-  --gradient-card:linear-gradient(135deg,var(--slate-800) 0%,var(--slate-900) 100%);
-  --gradient-dark:linear-gradient(135deg,var(--slate-900) 0%,var(--slate-950) 100%);
-  --gradient-vibrant:linear-gradient(135deg,#ec4899 0%,var(--violet) 50%,var(--teal-500) 100%);
-  --gradient-surface:linear-gradient(180deg,var(--slate-800) 0%,var(--slate-900) 100%);
-  --gradient-purple:var(--gradient-violet)
+  --shadow-success:var(--shadow-lg);
+  --shadow-warning:var(--shadow-lg);
+  --shadow-danger:var(--shadow-lg);
+  --shadow-info:var(--shadow-lg);
+  --shadow-glow-cyan:var(--shadow-md);
+  --shadow-glow-green:var(--shadow-md);
+  --shadow-glow-amber:var(--shadow-md);
 }
 *{
   box-sizing:border-box;
@@ -170,7 +194,7 @@ if ('serviceWorker' in navigator) {
 }
 html,body{
   min-height:100%;
-  background:var(--slate-950);
+  background:var(--navy-950);
   overflow-x:hidden;
   -webkit-text-size-adjust:100%;
   -ms-text-size-adjust:100%;
@@ -181,12 +205,12 @@ body{
   margin:0;
   padding-top:0;
   padding-bottom:env(safe-area-inset-bottom);
-  color:var(--slate-100);
+  color:var(--white);
   font-family:Archivo,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
   display:flex;
   flex-direction:column;
   min-height:100vh;
-  background:var(--slate-950);
+  background:var(--navy-950);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;
@@ -441,44 +465,33 @@ select.input:hover,select.select:hover{
 .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
 .btn{
   appearance:none;
-  border:2px solid var(--teal-500);
+  border:2px solid var(--baby-blue);
   background:var(--gradient-primary);
-  color:#fff;
+  color:var(--white);
   font-weight:700;
   border-radius:var(--br);
   cursor:pointer;
-  padding:16px 28px;
-  min-height:56px;
-  min-width:140px;
-  box-shadow:0 4px 12px rgba(20,184,166,.25),0 1px 3px rgba(0,0,0,.1);
+  padding:14px 24px;
+  min-height:52px;
+  min-width:120px;
+  box-shadow:var(--shadow-md);
   touch-action:manipulation;
-  transition:all .25s cubic-bezier(0.4,0,0.2,1);
+  transition:all .2s ease;
   font-family:inherit;
   font-size:15px;
-  font-weight:700;
   position:relative;
   overflow:hidden;
-  will-change:transform,box-shadow;
   letter-spacing:0.3px;
 }
-.btn::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,rgba(255,255,255,0) 100%);
-  opacity:0;
-  transition:opacity .2s
-}
 .btn:hover{
-  transform:translateY(-2px) scale(1.02);
-  box-shadow:0 8px 20px rgba(20,184,166,.35),0 4px 8px rgba(0,0,0,.15);
-  border-color:var(--teal-400);
-  background:linear-gradient(135deg,var(--teal-400) 0%,var(--teal-500) 100%);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-lg);
+  border-color:var(--baby-blue-light);
+  background:linear-gradient(135deg,var(--baby-blue-light) 0%,var(--baby-blue) 100%);
 }
-.btn:hover::before{opacity:1}
 .btn:active{
-  transform:translateY(0) scale(0.98);
-  box-shadow:0 2px 8px rgba(20,184,166,.2);
+  transform:translateY(0);
+  box-shadow:var(--shadow-sm);
 }
 /* Mobile touch feedback */
 @media (max-width:640px){
@@ -1873,11 +1886,17 @@ select.input:hover,select.select:hover{
     overflow-y:visible !important;
     -webkit-overflow-scrolling:touch !important;
     padding:20px !important;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
   }
   #view-auth .card {
+    max-width:360px;
+    width:100%;
     border-radius:16px !important;
     border:1px solid rgba(255,255,255,.1) !important;
-    margin-top:40px !important;
+    margin:40px auto 20px !important;
+    padding:40px 32px !important;
   }
   
   /* TEAM UPDATES MOBILE - PREMIUM FEEL */
@@ -3668,18 +3687,18 @@ a:focus-visible{
 
     <section id="view-auth" class="view card" aria-hidden="false">
       <div id="step-signin">
-        <h2>Sign in</h2>
-        <div class="grid-2">
-          <div><label class="label" for="siEmail">Email</label><input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email"></div>
-          <div><label class="label" for="siZip">ZIP code</label><input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code"></div>
+        <h2 style="font-size:32px;font-weight:600;margin:0 0 32px 0;text-align:center">Sign in</h2>
+        <div class="grid-2">flex;flex-direction:column;gap:20px">
+          <div><label class="label" for="siEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div><label class="label" for="siZip" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">ZIP code</label><input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
         </div>
         <div style="margin:12px 0;display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:#3b82f6">
             <label for="siRemember" style="font-size:14px;color:#cbd5e1;cursor:pointer">Remember me</label>
         </div>
-        <div class="row">
-          <button id="btnSignIn" class="btn" type="button">Sign in</button>
-          <button id="btnStartSignup" class="btn secondary" type="button">First time? Sign up</button>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:24px">
+          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:52px;font-size:16px;font-weight:600;border-radius:12px">Sign in</button>
+          <button id="btnStartSignup" class="btn secondary" type="button" style="width:100%;height:48px;font-size:15px;font-weight:500;border-radius:12px">First time? Sign up</button>
         </div>
         <div id="err" class="error" role="alert"></div>
         
@@ -3691,36 +3710,39 @@ a:focus-visible{
         </div>
       </div>
 
-      <div id="step-info" style="display:none;margin-top:8px">
-        <h2>Your info</h2>
-        <div class="grid-2">
-          <div><label class="label" for="piName">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name"></div>
-          <div><label class="label" for="piEmail">Email</label><input id="piEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email"></div>
+      <div id="step-info" style="display:none">
+        <h2 style="font-size:32px;font-weight:600;margin:0 0 32px 0;text-align:center">Your info</h2>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div><label class="label" for="piName" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div><label class="label" for="piEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="piEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div><label class="label" for="piPhone" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Phone</label><input id="piPhone" class="input" type="tel" placeholder="(###) ###-####" autocomplete="tel" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
         </div>
-        <div class="grid-2">
-          <div><label class="label" for="piPhone">Phone</label><input id="piPhone" class="input" type="tel" placeholder="(###) ###-####" autocomplete="tel"></div>
-          <div></div>
+        <div style="display:flex;gap:12px;margin-top:24px">
+          <button id="toAddress" class="btn" type="button" style="flex:1;height:52px;font-size:16px;font-weight:600;border-radius:12px">Continue</button>
+          <button id="backToSignIn" class="btn secondary" type="button" style="width:100px;height:52px;font-size:15px;font-weight:500;border-radius:12px">Back</button>
         </div>
-        <div class="row"><button id="toAddress" class="btn" type="button">Continue</button><button id="backToSignIn" class="btn secondary" type="button">Back</button></div>
         <div id="err-info" class="error" role="alert"></div>
       </div>
 
-      <div id="step-address" style="display:none;margin-top:8px">
-        <h2>Your address</h2>
-        <div class="grid-2">
+      <div id="step-address" style="display:none">
+        <h2 style="font-size:32px;font-weight:600;margin:0 0 32px 0;text-align:center">Your address</h2>
+        <div style="display:flex;flex-direction:column;gap:20px">
           <div style="position:relative">
-            <label class="label" for="adStreet">Address</label>
-            <input id="adStreet" class="input" placeholder="123 Main St" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <label class="label" for="adStreet" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Address</label>
+            <input id="adStreet" class="input" placeholder="123 Main St" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px">
             <div id="adStreetDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid rgba(59,130,246,0.3);border-radius:8px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.3)"></div>
           </div>
-          <div><label class="label" for="adCity">City</label><input id="adCity" class="input" placeholder="Charlotte" autocomplete="off"></div>
+          <div><label class="label" for="adCity" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">City</label><input id="adCity" class="input" placeholder="Charlotte" autocomplete="off" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><label class="label" for="adState" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">State</label><input id="adState" class="input" placeholder="NC" autocomplete="off" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+            <div><label class="label" for="adZip" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">ZIP</label><input id="adZip" class="input" inputmode="numeric" placeholder="28202" autocomplete="off" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          </div>
         </div>
-        <div class="grid-2">
-          <div><label class="label" for="adState">State</label><input id="adState" class="input" placeholder="NC" autocomplete="off"></div>
-          <div><label class="label" for="adZip">ZIP</label><input id="adZip" class="input" inputmode="numeric" placeholder="28202" autocomplete="off"></div>
+        <p class="muted" style="font-size:14px;color:rgba(255,255,255,0.6);margin:16px 0 24px 0;text-align:center">We use this to match you to nearby jobs.</p>
+        <div style="display:flex;gap:12px">
+          <button id="finishStep1" class="btn" type="button" style="flex:1;height:52px;font-size:16px;font-weight:600;border-radius:12px">Create account</button>
+          <button id="backToInfo" class="btn secondary" type="button" style="width:100px;height:52px;font-size:15px;font-weight:500;border-radius:12px">Back</button>
         </div>
-        <p class="muted">We use this to match you to nearby jobs.</p>
-        <div class="row"><button id="finishStep1" class="btn" type="button">Create account</button><button id="backToInfo" class="btn secondary" type="button">Back</button></div>
         <div id="err-address" class="error" role="alert"></div>
       </div>
     </section>
