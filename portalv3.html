@@ -5565,6 +5565,20 @@ function invalidateCache(cacheKey) {
     tabCache[cacheKey].data = null;
     tabCache[cacheKey].timestamp = 0;
     console.log(`[CACHE] 🗑️ Invalidated ${cacheKey}`);
+    
+    // ✅ FIX: Also remove from localStorage immediately
+    try {
+      const storageKey = `h2s_portal_cache_${token || adminToken || 'anon'}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        delete parsed[cacheKey];
+        localStorage.setItem(storageKey, JSON.stringify(parsed));
+        console.log(`[CACHE] 🗑️ Removed ${cacheKey} from localStorage`);
+      }
+    } catch (err) {
+      console.error('[CACHE] Failed to remove from localStorage:', err);
+    }
   }
 }
 
@@ -5768,11 +5782,10 @@ async function GET(action, payload={}) {
         // ⚠️ CORS FIX: Do NOT send Authorization header for Vercel endpoints
         // The token is already sent in the query string (for GET) or body (for POST)
         // Sending this header causes CORS preflight failures on some browsers/networks
-        /*
+        // UPDATE: We MUST send it for now until the backend deployment propagates
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;
         }
-        */
         
         // Endpoints that require POST with body (login, signup, etc)
         const requiresPost = [
@@ -5929,9 +5942,16 @@ async function POST(action, payload={}) {
   try {
     if (useVercel) {
       // Vercel expects JSON body
+      const headers = { "Content-Type": "application/json" };
+      
+      // Add Authorization header if token is present in payload
+      if (payload.token) {
+        headers["Authorization"] = `Bearer ${payload.token}`;
+      }
+      
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify(payload)
       });
       
