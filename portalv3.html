@@ -8733,13 +8733,40 @@ function startJobPolling() {
   jobPollInterval = setInterval(async () => {
     if (!token || isAdmin || currentTab !== "dash") return;
     
+    console.log('[Poll] ========== POLLING FOR UPDATES ==========');
+    
     try {
       const out = await GET("portal_jobs", {token});
-      if (!out.ok) return;
+      if (!out.ok) {
+        console.log('[Poll] API call failed:', out.error);
+        return;
+      }
       
       const offers = out.offers || out.pending || [];
       const upcoming = out.upcoming || [];
       const completed = out.completed || out.past || [];
+      
+      console.log('[Poll] Response counts:', {
+        offers: offers.length,
+        upcoming: upcoming.length,
+        completed: completed.length
+      });
+      
+      console.log('[Poll] Current UI counts:', {
+        offers: currentJobsData.offers.length,
+        upcoming: currentJobsData.upcoming.length,
+        completed: currentJobsData.completed.length
+      });
+      
+      // Log upcoming jobs details
+      if (upcoming.length > 0) {
+        console.log('[Poll] Upcoming jobs:');
+        upcoming.forEach((j, idx) => {
+          console.log(`  ${idx + 1}. Job ${j.job_id}: ${j.service_name} (status: ${j.status}, assign_state: ${j.assign_state || 'N/A'})`);
+        });
+      } else {
+        console.log('[Poll] ⚠️ NO UPCOMING JOBS RETURNED FROM API');
+      }
       
       // Check for new offers
       if (offers.length > lastOfferCount) {
@@ -8772,7 +8799,13 @@ function startJobPolling() {
         completed.length !== currentJobsData.completed.length;
       
       if (hasChanges) {
-        console.log('[Poll] Data changed - updating UI');
+        console.log('[Poll] ⚠️ DATA CHANGED - UPDATING UI');
+        console.log('[Poll] Changes detected:', {
+          offersDiff: offers.length - currentJobsData.offers.length,
+          upcomingDiff: upcoming.length - currentJobsData.upcoming.length,
+          completedDiff: completed.length - currentJobsData.completed.length
+        });
+        
         currentJobsData = { offers, upcoming, completed };
         
         // Update cache
