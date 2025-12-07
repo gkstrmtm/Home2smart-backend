@@ -50,131 +50,144 @@ if ('serviceWorker' in navigator) {
 <!-- Inline critical CSS for above-the-fold content -->
 <style>
 :root{
-  /* 🚀 ELECTRIC VIBRANT THEME */
-  /* Base - Deep rich navy with energy */
-  --navy-950:#050a1f;
-  --navy-900:#0a1633;
-  --navy-800:#0f1f47;
-  --navy-700:#1a2d5c;
-  --navy-600:#264078;
+  /* Apple-Minimal Theme - Home2Smart Pro Portal */
   
-  /* Baby Blue (Logo Color) */
-  --baby-blue:#60a5fa;
-  --baby-blue-light:#93c5fd;
-  --baby-blue-dark:#3b82f6;
+  /* Base Backgrounds - Darkest to lightest progression */
+  --h2s-bg-root:#030812;
+  --h2s-bg-shell:#050F1F;
+  --h2s-bg-card:#071A30;
   
-  /* Grays (Subtle Depth) */
-  --gray-300:#cbd5e1;
-  --gray-400:#94a3b8;
-  --gray-500:#64748b;
+  /* Accent Colors */
+  --h2s-accent-primary:#1493FF;
+  --h2s-accent-soft:#3FA9FF;
+  --h2s-accent-danger:#F45B5B;
+  --h2s-accent-success:#2ECC71;
+  --h2s-accent-warning:#F59E0B;
   
-  /* Legacy aliases */
-  --blue:var(--navy-900);
-  --blue-2:var(--navy-800);
-  --blue-3:var(--navy-700);
-  --azure:var(--baby-blue);
-  --azure-dark:var(--baby-blue-dark);
-  --azure-light:var(--baby-blue-light);
-  --teal-500:var(--baby-blue);
-  --teal-600:var(--baby-blue-dark);
-  --teal-400:var(--baby-blue-light);
-  --slate-950:var(--navy-950);
-  --slate-900:var(--navy-900);
-  --slate-800:var(--navy-800);
-  --slate-700:var(--navy-700);
-  --slate-600:var(--navy-600);
-  --slate-500:var(--gray-500);
-  --slate-400:var(--gray-400);
-  --slate-300:var(--gray-300);
-  --slate-200:#e2e8f0;
-  --slate-100:#f1f5f9;
+  /* Text Colors */
+  --h2s-text-main:#F4F7FB;
+  --h2s-text-muted:#9FAAC0;
+  --h2s-text-placeholder:#5F6C82;
   
-  /* Functional Colors - Clean & Clear */
-  --success:#10b981;
-  --success-light:#34d399;
-  --success-dark:#059669;
-  --warning:#f59e0b;
-  --warning-light:#fbbf24;
-  --warning-dark:#d97706;
-  --danger:#ef4444;
-  --danger-light:#f87171;
-  --danger-dark:#dc2626;
+  /* Border */
+  --h2s-border-subtle:#15243A;
   
-  /* Legacy aliases */
-  --green:var(--success);
-  --green-light:var(--success-light);
-  --green-dark:var(--success-dark);
-  --amber:var(--warning);
-  --amber-light:var(--warning-light);
-  --amber-dark:var(--warning-dark);
-  --orange:var(--warning);
-  --orange-light:var(--warning-light);
-  --orange-dark:var(--warning-dark);
-  --red:var(--danger);
-  --red-light:var(--danger-light);
-  --red-dark:var(--danger-dark);
-  --violet:var(--baby-blue);
-  --violet-light:var(--baby-blue-light);
-  --violet-dark:var(--baby-blue-dark);
-  --purple:var(--baby-blue);
-  --purple-light:var(--baby-blue-light);
-  --purple-dark:var(--baby-blue-dark);
-  --cyan:var(--baby-blue);
-  --cyan-light:var(--baby-blue-light);
-  --lime-500:var(--success);
-  --lime-400:var(--success-light);
-  --lime-300:var(--success-light);
+  /* Legacy aliases for backward compatibility */
+  --navy-950:var(--h2s-bg-root);
+  --navy-900:var(--h2s-bg-shell);
+  --navy-800:var(--h2s-bg-card);
+  --navy-700:#0A1A2E;
+  --navy-600:#0F2744;
+  
+  --baby-blue:var(--h2s-accent-primary);
+  --baby-blue-light:var(--h2s-accent-soft);
+  --baby-blue-dark:#0D7EE5;
+  
+  --gray-300:#CBD5E1;
+  --gray-400:var(--h2s-text-muted);
+  --gray-500:var(--h2s-text-placeholder);
+  
+  --blue:var(--h2s-bg-shell);
+  --blue-2:var(--h2s-bg-card);
+  --blue-3:#0A1A2E;
+  --azure:var(--h2s-accent-primary);
+  --azure-dark:#0D7EE5;
+  --azure-light:var(--h2s-accent-soft);
+  --teal-500:var(--h2s-accent-primary);
+  --teal-600:#0D7EE5;
+  --teal-400:var(--h2s-accent-soft);
+  --slate-950:var(--h2s-bg-root);
+  --slate-900:var(--h2s-bg-shell);
+  --slate-800:var(--h2s-bg-card);
+  --slate-700:#0A1A2E;
+  --slate-600:#0F2744;
+  --slate-500:var(--h2s-text-placeholder);
+  --slate-400:var(--h2s-text-muted);
+  --slate-300:#CBD5E1;
+  --slate-200:#E2E8F0;
+  --slate-100:#F1F5F9;
+  
+  /* Functional Colors */
+  --success:var(--h2s-accent-success);
+  --success-light:#50D98A;
+  --success-dark:#25A85C;
+  --warning:var(--h2s-accent-warning);
+  --warning-light:#FBBF24;
+  --warning-dark:#D97706;
+  --danger:var(--h2s-accent-danger);
+  --danger-light:#F87171;
+  --danger-dark:#DC2626;
+  
+  --green:var(--h2s-accent-success);
+  --green-light:#50D98A;
+  --green-dark:#25A85C;
+  --amber:var(--h2s-accent-warning);
+  --amber-light:#FBBF24;
+  --amber-dark:#D97706;
+  --orange:var(--h2s-accent-warning);
+  --orange-light:#FBBF24;
+  --orange-dark:#D97706;
+  --red:var(--h2s-accent-danger);
+  --red-light:#F87171;
+  --red-dark:#DC2626;
+  --violet:var(--h2s-accent-primary);
+  --violet-light:var(--h2s-accent-soft);
+  --violet-dark:#0D7EE5;
+  --purple:var(--h2s-accent-primary);
+  --purple-light:var(--h2s-accent-soft);
+  --purple-dark:#0D7EE5;
+  --cyan:var(--h2s-accent-primary);
+  --cyan-light:var(--h2s-accent-soft);
+  --lime-500:var(--h2s-accent-success);
+  --lime-400:#50D98A;
+  --lime-300:#50D98A;
   
   /* Neutrals */
   --white:#fff;
-  --gray-50:#f9fafb;
-  --gray-100:#f3f4f6;
-  --gray-200:#e5e7eb;
-  --gray-300:#d1d5db;
+  --gray-50:#F9FAFB;
+  --gray-100:#F3F4F6;
+  --gray-200:#E5E7EB;
   --gray-700:#374151;
-  --gray-800:#1f2937;
+  --gray-800:#1F2937;
   --gray-900:#111827;
   
-  /* Semantic Colors */
-  --success:#10b981;
-  --warning:#f59e0b;
-  --danger:#ef4444;
-  --info:#3b82f6;
+  --info:var(--h2s-accent-primary);
   
-  /* Spacing */
-  --spacing-xs:4px;
+  /* Spacing - 8pt grid system */
+  --spacing-xs:8px;
   --spacing-sm:8px;
   --spacing-md:16px;
   --spacing-lg:24px;
   --spacing-xl:32px;
-  --spacing-2xl:48px;
+  --spacing-2xl:40px;
   
-  /* Gradients - Clean & On-Brand */
-  --gradient-primary:linear-gradient(135deg,var(--baby-blue) 0%,var(--baby-blue-dark) 100%);
+  /* Gradients - Subtle vertical for depth */
+  --gradient-shell:linear-gradient(180deg,#060F20 0%,var(--h2s-bg-shell) 100%);
+  --gradient-card:linear-gradient(180deg,#081B32 0%,var(--h2s-bg-card) 100%);
+  --gradient-primary:linear-gradient(135deg,var(--h2s-accent-primary) 0%,#0D7EE5 100%);
+  --gradient-success:linear-gradient(135deg,var(--h2s-accent-success) 0%,#25A85C 100%);
+  --gradient-warning:linear-gradient(135deg,var(--h2s-accent-warning) 0%,#D97706 100%);
+  --gradient-danger:linear-gradient(135deg,var(--h2s-accent-danger) 0%,#DC2626 100%);
   --gradient-primary-vibrant:var(--gradient-primary);
-  --gradient-success:linear-gradient(135deg,var(--success) 0%,var(--success-dark) 100%);
-  --gradient-warning:linear-gradient(135deg,var(--warning) 0%,var(--warning-dark) 100%);
-  --gradient-danger:linear-gradient(135deg,var(--danger) 0%,var(--danger-dark) 100%);
   --gradient-violet:var(--gradient-primary);
-  --gradient-card:linear-gradient(135deg,var(--navy-800) 0%,var(--navy-900) 100%);
-  --gradient-dark:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-950) 100%);
-  --gradient-surface:linear-gradient(135deg,var(--navy-800) 0%,var(--navy-900) 100%);
+  --gradient-dark:var(--gradient-shell);
+  --gradient-surface:var(--gradient-card);
   --gradient-mesh:none;
   --gradient-purple:var(--gradient-primary);
   
-  /* Border Radius - Clean & Consistent */
-  --br:12px;
+  /* Border Radius - Apple-style consistency */
+  --br:14px;
   --br-sm:8px;
   --br-lg:16px;
-  --br-xl:20px;
+  --br-xl:24px;
   --br-full:9999px;
   
-  /* Shadows - Subtle & Professional (NO GLOW) */
-  --shadow-sm:0 1px 2px 0 rgba(0,0,0,.05);
-  --shadow-md:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);
-  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);
-  --shadow-xl:0 20px 25px -5px rgba(0,0,0,.1),0 10px 10px -5px rgba(0,0,0,.04);
-  --shadow-2xl:0 25px 50px -12px rgba(0,0,0,.25);
+  /* Shadows - Soft and subtle */
+  --shadow-sm:0 1px 2px 0 rgba(0,0,0,0.2);
+  --shadow-md:0 4px 8px -2px rgba(0,0,0,0.3);
+  --shadow-lg:0 12px 24px -4px rgba(0,0,0,0.4);
+  --shadow-xl:0 20px 40px -8px rgba(0,0,0,0.5);
+  --shadow-2xl:0 32px 64px -12px rgba(0,0,0,0.6);
   
   /* Legacy aliases */
   --e1:var(--shadow-md);
@@ -184,8 +197,6 @@ if ('serviceWorker' in navigator) {
   --shadow-warning:var(--shadow-lg);
   --shadow-danger:var(--shadow-lg);
   --shadow-info:var(--shadow-lg);
-  --shadow-glow-cyan:var(--shadow-md);
-  --shadow-glow-green:var(--shadow-md);
   --shadow-glow-amber:var(--shadow-md);
 }
 *{
@@ -194,7 +205,7 @@ if ('serviceWorker' in navigator) {
 }
 html,body{
   min-height:100%;
-  background:var(--navy-950);
+  background:var(--h2s-bg-root);
   overflow-x:hidden;
   -webkit-text-size-adjust:100%;
   -ms-text-size-adjust:100%;
@@ -205,16 +216,18 @@ body{
   margin:0;
   padding-top:0;
   padding-bottom:env(safe-area-inset-bottom);
-  color:var(--white);
-  font-family:Archivo,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--h2s-text-main);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   display:flex;
   flex-direction:column;
   min-height:100vh;
-  background:var(--navy-950);
+  background:var(--h2s-bg-root);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;
   overscroll-behavior:none;
+  font-size:15px;
+  font-weight:400;
 }
 
 /* Header */
@@ -223,18 +236,19 @@ body{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:14px 20px;
+  padding:16px 24px;
   position:fixed;
   top:0;
   left:0;
   right:0;
   z-index:50;
-  background:rgba(15,23,42,0.92);
-  border-bottom:1px solid rgba(148,163,184,0.1);
-  backdrop-filter:blur(16px) saturate(180%);
-  -webkit-backdrop-filter:blur(16px) saturate(180%);
-  height:68px;
-  box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px 0 rgba(0,0,0,.06);
+  background:rgba(5,15,31,0.95);
+  border-bottom:1px solid var(--h2s-border-subtle);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  height:72px;
+  box-shadow:var(--shadow-sm);
+  transition:background-color 160ms ease-out,border-color 160ms ease-out,box-shadow 160ms ease-out;
 }
 .header.header-hidden{
   transform:translateY(-100%);
@@ -1879,27 +1893,28 @@ select.input:hover,select.select:hover{
     background:rgba(10,42,90,0.4) !important;
   }
   
-  /* Login screen - ensure it's scrollable */
+  /* Login screen - Apple-minimal style */
   #view-auth{
     min-height:100vh !important;
     max-height:none !important;
     overflow-y:auto !important;
     -webkit-overflow-scrolling:touch !important;
-    padding:40px 20px !important;
+    padding:40px 24px !important;
     display:flex !important;
     justify-content:center !important;
     align-items:center !important;
   }
   #view-auth .card {
-    max-width:420px !important;
+    max-width:500px !important;
     width:100% !important;
-    border-radius:16px !important;
-    border:1px solid rgba(96,165,250,0.15) !important;
-    background:rgba(15,30,61,0.6) !important;
+    border-radius:24px !important;
+    border:1px solid var(--h2s-border-subtle) !important;
+    background:var(--gradient-shell) !important;
     backdrop-filter:blur(20px) !important;
     margin:0 !important;
-    padding:48px 40px !important;
-    box-shadow:0 20px 60px rgba(0,0,0,0.4), 0 0 1px rgba(96,165,250,0.2) !important;
+    padding:56px 48px !important;
+    box-shadow:var(--shadow-lg) !important;
+    transition:box-shadow 160ms ease-out !important;
   }
   
   /* TEAM UPDATES MOBILE - PREMIUM FEEL */
@@ -3155,12 +3170,13 @@ a:focus-visible{
   
   /* Login screen mobile optimization */
   #view-auth{
-    padding:20px 16px !important;
+    padding:24px 16px !important;
     align-items:flex-start !important;
   }
   #view-auth .card{
-    padding:32px 24px !important;
-    margin-top:20px !important;
+    padding:40px 32px !important;
+    margin-top:24px !important;
+    border-radius:16px !important;
   }
   
   /* Modern Page Headers */
@@ -3700,39 +3716,39 @@ a:focus-visible{
 
     <section id="view-auth" class="view card" aria-hidden="false">
       <div id="step-signin">
-        <h2 style="font-size:32px;font-weight:600;margin:0 0 40px 0;text-align:center">Sign in</h2>
+        <h2 style="font-size:28px;font-weight:500;margin:0 0 40px 0;text-align:center;color:var(--h2s-text-main);letter-spacing:-0.01em">Sign in</h2>
         <div style="display:flex;flex-direction:column;gap:24px">
           <div>
-            <label class="label" for="siEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:6px;display:block">Email</label>
-            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px">
+            <label class="label" for="siEmail" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">Email</label>
+            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out">
           </div>
           <div>
-            <label class="label" for="siZip" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:6px;display:block">ZIP code</label>
-            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px">
+            <label class="label" for="siZip" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">ZIP code</label>
+            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out">
           </div>
         </div>
-        <div style="margin:20px 0 0 0;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:#60a5fa">
-            <label for="siRemember" style="font-size:14px;color:rgba(255,255,255,0.7);cursor:pointer">Remember me</label>
+        <div style="margin:24px 0 0 0;display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:var(--h2s-accent-primary)">
+            <label for="siRemember" style="font-size:13px;color:var(--h2s-text-muted);cursor:pointer;user-select:none">Remember me</label>
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-top:28px">
-          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:52px;font-size:16px;font-weight:600;border-radius:12px">Sign in</button>
-          <button id="btnStartSignup" class="btn secondary" type="button" style="width:100%;height:48px;font-size:15px;font-weight:500;border-radius:12px">First time? Sign up</button>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
+          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:48px;font-size:15px;font-weight:500;border-radius:var(--br-full);background:var(--h2s-accent-primary);border:none;color:#fff;transition:all 160ms ease-out">Sign in</button>
+          <button id="btnStartSignup" class="btn secondary" type="button" style="width:100%;height:44px;font-size:14px;font-weight:400;border-radius:var(--br-full);background:transparent;border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);transition:all 160ms ease-out">First time? Sign up</button>
         </div>
         <div id="err" class="error" role="alert"></div>
         
         <!-- Helpful reminder about last used email -->
-        <div id="lastEmailReminder" style="display:none;margin-top:16px;padding:12px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px">
-          <p style="margin:0;font-size:13px;color:#94a3b8">
-            <strong style="color:#60a5fa">Tip:</strong> Last account created: <strong id="lastEmailUsed" style="color:#e0f2fe"></strong>
+        <div id="lastEmailReminder" style="display:none;margin-top:24px;padding:12px 16px;background:rgba(20,147,255,0.08);border:1px solid rgba(20,147,255,0.15);border-radius:var(--br)">
+          <p style="margin:0;font-size:12px;color:var(--h2s-text-muted);line-height:1.5">
+            <strong style="color:var(--h2s-accent-primary);font-weight:500">Tip:</strong> Last account created: <strong id="lastEmailUsed" style="color:var(--h2s-text-main);font-weight:500"></strong>
           </p>
         </div>
       </div>
 
       <div id="step-info" style="display:none">
-        <h2 style="font-size:32px;font-weight:600;margin:0 0 32px 0;text-align:center">Your info</h2>
-        <div style="display:flex;flex-direction:column;gap:20px">
-          <div><label class="label" for="piName" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+        <h2 style="font-size:28px;font-weight:500;margin:0 0 40px 0;text-align:center;color:var(--h2s-text-main);letter-spacing:-0.01em">Your info</h2>
+        <div style="display:flex;flex-direction:column;gap:24px">
+          <div><label class="label" for="piName" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out"></div>
           <div><label class="label" for="piEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="piEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
           <div><label class="label" for="piPhone" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Phone</label><input id="piPhone" class="input" type="tel" placeholder="(###) ###-####" autocomplete="tel" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
         </div>
