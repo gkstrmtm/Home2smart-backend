@@ -361,7 +361,7 @@ body{
   background:var(--h2s-bg-card-gradient);
   border:1px solid var(--h2s-border-subtle);
   border-radius:9999px;
-  padding:10px 14px;
+  padding:0;
   color:var(--h2s-text-main);
   font-weight:500;
   font-size:14px;
@@ -372,6 +372,7 @@ body{
   justify-content:center;
   height:40px;
   width:40px;
+  flex-shrink:0;
 }
 .menu-btn:hover{
   background:var(--h2s-accent-soft);
@@ -386,27 +387,29 @@ body{
 }
 .menu-ic{
   display:block;
-  width:16px;
+  width:18px;
   height:2px;
   background:var(--h2s-text-main);
   position:relative;
+  border-radius:1px;
 }
 .menu-ic::before,
 .menu-ic::after{
   content:'';
   display:block;
-  width:16px;
+  width:18px;
   height:2px;
   background:var(--h2s-text-main);
   position:absolute;
   left:0;
   transition:transform 160ms ease-out;
+  border-radius:1px;
 }
 .menu-ic::before{
-  top:-5px;
+  top:-6px;
 }
 .menu-ic::after{
-  top:5px;
+  top:6px;
 }
 
 /* Main + container */
