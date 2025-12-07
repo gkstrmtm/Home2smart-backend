@@ -50,19 +50,26 @@ if ('serviceWorker' in navigator) {
 <!-- Inline critical CSS for above-the-fold content -->
 <style>
 :root{
-  /* Apple-Minimal Theme - Home2Smart Pro Portal */
+  /* Stack C - Deep gradient-based depth system */
   
-  /* Base Backgrounds - Darkest to lightest progression */
-  --h2s-bg-root:#030812;
-  --h2s-bg-shell:#050F1F;
-  --h2s-bg-card:#071A30;
+  /* Base Backgrounds - Radial and diagonal gradients */
+  --h2s-bg-root:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
+  --h2s-bg-shell:linear-gradient(150deg,#050E1B,#040814);
+  --h2s-bg-card:linear-gradient(155deg,#071526,#040914);
   
-  /* Accent Colors */
-  --h2s-accent-primary:#1493FF;
-  --h2s-accent-soft:#3FA9FF;
-  --h2s-accent-danger:#F45B5B;
-  --h2s-accent-success:#2ECC71;
-  --h2s-accent-warning:#F59E0B;
+  /* Accent Gradients */
+  --h2s-accent-primary:linear-gradient(160deg,#1A9BFF,#0F7BE0);
+  --h2s-accent-soft:linear-gradient(160deg,#1F5096,#163A73);
+  --h2s-accent-danger:linear-gradient(160deg,#F45B5B,#B5323C);
+  --h2s-accent-success:linear-gradient(160deg,#2ECC71,#1F9A52);
+  --h2s-accent-warning:linear-gradient(160deg,#F59E0B,#D97706);
+  
+  /* Solid accent colors for borders, text, and non-background uses */
+  --h2s-accent-primary-solid:#1A9BFF;
+  --h2s-accent-soft-solid:#1F5096;
+  --h2s-accent-danger-solid:#F45B5B;
+  --h2s-accent-success-solid:#2ECC71;
+  --h2s-accent-warning-solid:#F59E0B;
   
   /* Text Colors */
   --h2s-text-main:#F4F7FB;
@@ -73,32 +80,32 @@ if ('serviceWorker' in navigator) {
   --h2s-border-subtle:#15243A;
   
   /* Legacy aliases for backward compatibility */
-  --navy-950:var(--h2s-bg-root);
-  --navy-900:var(--h2s-bg-shell);
-  --navy-800:var(--h2s-bg-card);
+  --navy-950:#000108;
+  --navy-900:#040814;
+  --navy-800:#040914;
   --navy-700:#0A1A2E;
   --navy-600:#0F2744;
   
-  --baby-blue:var(--h2s-accent-primary);
-  --baby-blue-light:var(--h2s-accent-soft);
-  --baby-blue-dark:#0D7EE5;
+  --baby-blue:#1A9BFF;
+  --baby-blue-light:#3FA9FF;
+  --baby-blue-dark:#0F7BE0;
   
   --gray-300:#CBD5E1;
   --gray-400:var(--h2s-text-muted);
   --gray-500:var(--h2s-text-placeholder);
   
-  --blue:var(--h2s-bg-shell);
-  --blue-2:var(--h2s-bg-card);
+  --blue:#040814;
+  --blue-2:#040914;
   --blue-3:#0A1A2E;
-  --azure:var(--h2s-accent-primary);
-  --azure-dark:#0D7EE5;
-  --azure-light:var(--h2s-accent-soft);
-  --teal-500:var(--h2s-accent-primary);
-  --teal-600:#0D7EE5;
-  --teal-400:var(--h2s-accent-soft);
-  --slate-950:var(--h2s-bg-root);
-  --slate-900:var(--h2s-bg-shell);
-  --slate-800:var(--h2s-bg-card);
+  --azure:#1A9BFF;
+  --azure-dark:#0F7BE0;
+  --azure-light:#3FA9FF;
+  --teal-500:#1A9BFF;
+  --teal-600:#0F7BE0;
+  --teal-400:#3FA9FF;
+  --slate-950:#000108;
+  --slate-900:#040814;
+  --slate-800:#040914;
   --slate-700:#0A1A2E;
   --slate-600:#0F2744;
   --slate-500:var(--h2s-text-placeholder);
@@ -108,37 +115,37 @@ if ('serviceWorker' in navigator) {
   --slate-100:#F1F5F9;
   
   /* Functional Colors */
-  --success:var(--h2s-accent-success);
+  --success:#2ECC71;
   --success-light:#50D98A;
-  --success-dark:#25A85C;
-  --warning:var(--h2s-accent-warning);
+  --success-dark:#1F9A52;
+  --warning:#F59E0B;
   --warning-light:#FBBF24;
   --warning-dark:#D97706;
-  --danger:var(--h2s-accent-danger);
+  --danger:#F45B5B;
   --danger-light:#F87171;
-  --danger-dark:#DC2626;
+  --danger-dark:#B5323C;
   
-  --green:var(--h2s-accent-success);
+  --green:#2ECC71;
   --green-light:#50D98A;
-  --green-dark:#25A85C;
-  --amber:var(--h2s-accent-warning);
+  --green-dark:#1F9A52;
+  --amber:#F59E0B;
   --amber-light:#FBBF24;
   --amber-dark:#D97706;
-  --orange:var(--h2s-accent-warning);
+  --orange:#F59E0B;
   --orange-light:#FBBF24;
   --orange-dark:#D97706;
-  --red:var(--h2s-accent-danger);
+  --red:#F45B5B;
   --red-light:#F87171;
-  --red-dark:#DC2626;
-  --violet:var(--h2s-accent-primary);
-  --violet-light:var(--h2s-accent-soft);
-  --violet-dark:#0D7EE5;
-  --purple:var(--h2s-accent-primary);
-  --purple-light:var(--h2s-accent-soft);
-  --purple-dark:#0D7EE5;
-  --cyan:var(--h2s-accent-primary);
-  --cyan-light:var(--h2s-accent-soft);
-  --lime-500:var(--h2s-accent-success);
+  --red-dark:#B5323C;
+  --violet:#1A9BFF;
+  --violet-light:#3FA9FF;
+  --violet-dark:#0F7BE0;
+  --purple:#1A9BFF;
+  --purple-light:#3FA9FF;
+  --purple-dark:#0F7BE0;
+  --cyan:#1A9BFF;
+  --cyan-light:#3FA9FF;
+  --lime-500:#2ECC71;
   --lime-400:#50D98A;
   --lime-300:#50D98A;
   
@@ -151,7 +158,7 @@ if ('serviceWorker' in navigator) {
   --gray-800:#1F2937;
   --gray-900:#111827;
   
-  --info:var(--h2s-accent-primary);
+  --info:#1A9BFF;
   
   /* Spacing - 8pt grid system */
   --spacing-xs:8px;
@@ -161,19 +168,22 @@ if ('serviceWorker' in navigator) {
   --spacing-xl:32px;
   --spacing-2xl:40px;
   
-  /* Gradients - Subtle vertical for depth */
-  --gradient-shell:linear-gradient(180deg,#060F20 0%,var(--h2s-bg-shell) 100%);
-  --gradient-card:linear-gradient(180deg,#081B32 0%,var(--h2s-bg-card) 100%);
-  --gradient-primary:linear-gradient(135deg,var(--h2s-accent-primary) 0%,#0D7EE5 100%);
-  --gradient-success:linear-gradient(135deg,var(--h2s-accent-success) 0%,#25A85C 100%);
-  --gradient-warning:linear-gradient(135deg,var(--h2s-accent-warning) 0%,#D97706 100%);
-  --gradient-danger:linear-gradient(135deg,var(--h2s-accent-danger) 0%,#DC2626 100%);
-  --gradient-primary-vibrant:var(--gradient-primary);
-  --gradient-violet:var(--gradient-primary);
-  --gradient-dark:var(--gradient-shell);
-  --gradient-surface:var(--gradient-card);
+  /* Working gradients for buttons (kept as gradients) */
+  --gradient-primary:var(--h2s-accent-primary);
+  --gradient-success:var(--h2s-accent-success);
+  --gradient-warning:var(--h2s-accent-warning);
+  --gradient-danger:var(--h2s-accent-danger);
+  --gradient-soft:var(--h2s-accent-soft);
+  
+  /* Legacy aliases */
+  --gradient-primary-vibrant:var(--h2s-accent-primary);
+  --gradient-violet:var(--h2s-accent-primary);
+  --gradient-card:var(--h2s-bg-card);
+  --gradient-shell:var(--h2s-bg-shell);
+  --gradient-dark:var(--h2s-bg-shell);
+  --gradient-surface:var(--h2s-bg-card);
   --gradient-mesh:none;
-  --gradient-purple:var(--gradient-primary);
+  --gradient-purple:var(--h2s-accent-primary);
   
   /* Border Radius - Apple-style consistency */
   --br:14px;
@@ -206,6 +216,7 @@ if ('serviceWorker' in navigator) {
 html,body{
   min-height:100%;
   background:var(--h2s-bg-root);
+  background:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
   overflow-x:hidden;
   -webkit-text-size-adjust:100%;
   -ms-text-size-adjust:100%;
@@ -221,7 +232,7 @@ body{
   display:flex;
   flex-direction:column;
   min-height:100vh;
-  background:var(--h2s-bg-root);
+  background:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;
@@ -455,9 +466,8 @@ body{
 }
 .input:focus,.textarea:focus,.select:focus{
   outline:none;
-  border-color:var(--teal-500);
-  background:var(--slate-800);
-  box-shadow:0 0 0 4px rgba(20,184,166,.1);
+  border-color:#1A9BFF;
+  box-shadow:0 0 0 3px rgba(26,155,255,0.15);
 }
 .input::placeholder,.textarea::placeholder{
   color:var(--slate-500)
@@ -498,14 +508,12 @@ select.input:hover,select.select:hover{
   letter-spacing:0.3px;
 }
 .btn:hover{
-  transform:translateY(-2px);
-  box-shadow:var(--shadow-lg);
-  border-color:var(--baby-blue-light);
-  background:linear-gradient(135deg,var(--baby-blue-light) 0%,var(--baby-blue) 100%);
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(26,155,255,0.3);
 }
 .btn:active{
   transform:translateY(0);
-  box-shadow:var(--shadow-sm);
+  box-shadow:0 1px 4px rgba(26,155,255,0.2);
 }
 /* Mobile touch feedback */
 @media (max-width:640px){
@@ -1893,7 +1901,7 @@ select.input:hover,select.select:hover{
     background:rgba(10,42,90,0.4) !important;
   }
   
-  /* Login screen - Apple-minimal style */
+  /* Login screen - Stack C visual spec */
   #view-auth{
     min-height:100vh !important;
     max-height:none !important;
@@ -1908,12 +1916,12 @@ select.input:hover,select.select:hover{
     max-width:500px !important;
     width:100% !important;
     border-radius:24px !important;
-    border:1px solid var(--h2s-border-subtle) !important;
-    background:var(--gradient-shell) !important;
+    border:1px solid rgba(21,36,58,0.4) !important;
+    background:linear-gradient(150deg,#050E1B,#040814) !important;
     backdrop-filter:blur(20px) !important;
     margin:0 !important;
     padding:56px 48px !important;
-    box-shadow:var(--shadow-lg) !important;
+    box-shadow:0 20px 50px -10px rgba(0,0,0,0.6),0 0 1px rgba(26,155,255,0.1) !important;
     transition:box-shadow 160ms ease-out !important;
   }
   
@@ -3716,31 +3724,32 @@ a:focus-visible{
 
     <section id="view-auth" class="view card" aria-hidden="false">
       <div id="step-signin">
-        <h2 style="font-size:28px;font-weight:500;margin:0 0 40px 0;text-align:center;color:var(--h2s-text-main);letter-spacing:-0.01em">Sign in</h2>
+        <div style="font-size:11px;font-weight:500;color:var(--h2s-text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:32px;text-align:center">Home2Smart Pro Portal</div>
+        <h2 style="font-size:26px;font-weight:500;margin:0 0 48px 0;text-align:center;color:var(--h2s-text-main);letter-spacing:-0.02em">Sign in</h2>
         <div style="display:flex;flex-direction:column;gap:24px">
           <div>
-            <label class="label" for="siEmail" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">Email</label>
-            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out">
+            <label class="label" for="siEmail" style="font-size:12px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.02em">Email</label>
+            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:15px;height:48px;padding:0 16px;border-radius:14px;background:linear-gradient(155deg,#071526,#040914);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,box-shadow 160ms ease-out">
           </div>
           <div>
-            <label class="label" for="siZip" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">ZIP code</label>
-            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out">
+            <label class="label" for="siZip" style="font-size:12px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.02em">ZIP code</label>
+            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:15px;height:48px;padding:0 16px;border-radius:14px;background:linear-gradient(155deg,#071526,#040914);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,box-shadow 160ms ease-out">
           </div>
         </div>
         <div style="margin:24px 0 0 0;display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:var(--h2s-accent-primary)">
+            <input type="checkbox" id="siRemember" checked style="width:16px;height:16px;accent-color:#1A9BFF">
             <label for="siRemember" style="font-size:13px;color:var(--h2s-text-muted);cursor:pointer;user-select:none">Remember me</label>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
-          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:48px;font-size:15px;font-weight:500;border-radius:var(--br-full);background:var(--h2s-accent-primary);border:none;color:#fff;transition:all 160ms ease-out">Sign in</button>
-          <button id="btnStartSignup" class="btn secondary" type="button" style="width:100%;height:44px;font-size:14px;font-weight:400;border-radius:var(--br-full);background:transparent;border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);transition:all 160ms ease-out">First time? Sign up</button>
+          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:48px;font-size:14px;font-weight:500;letter-spacing:0.03em;border-radius:9999px;background:linear-gradient(160deg,#1A9BFF,#0F7BE0);border:none;color:#fff;box-shadow:0 2px 8px rgba(26,155,255,0.2);transition:transform 120ms ease-out,box-shadow 160ms ease-out">SIGN IN</button>
+          <button id="btnStartSignup" class="btn secondary" type="button" style="width:100%;height:44px;font-size:13px;font-weight:400;border-radius:9999px;background:transparent;border:1px solid rgba(21,36,58,0.6);color:var(--h2s-text-muted);transition:all 160ms ease-out">First time? Sign up</button>
         </div>
         <div id="err" class="error" role="alert"></div>
         
         <!-- Helpful reminder about last used email -->
-        <div id="lastEmailReminder" style="display:none;margin-top:24px;padding:12px 16px;background:rgba(20,147,255,0.08);border:1px solid rgba(20,147,255,0.15);border-radius:var(--br)">
+        <div id="lastEmailReminder" style="display:none;margin-top:24px;padding:12px 16px;background:linear-gradient(155deg,rgba(7,21,38,0.5),rgba(4,9,20,0.5));border:1px solid rgba(21,36,58,0.3);border-radius:14px">
           <p style="margin:0;font-size:12px;color:var(--h2s-text-muted);line-height:1.5">
-            <strong style="color:var(--h2s-accent-primary);font-weight:500">Tip:</strong> Last account created: <strong id="lastEmailUsed" style="color:var(--h2s-text-main);font-weight:500"></strong>
+            <strong style="color:#1A9BFF;font-weight:500">Tip:</strong> Last account created: <strong id="lastEmailUsed" style="color:var(--h2s-text-main);font-weight:500"></strong>
           </p>
         </div>
       </div>
