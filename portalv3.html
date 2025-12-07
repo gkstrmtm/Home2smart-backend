@@ -3877,6 +3877,21 @@ a:focus-visible{
     <section id="view-portal" class="view" aria-hidden="true">
       <div id="tab-dash" class="card">
         
+        <!-- Legacy Announcement Banner (Restored for compatibility) -->
+        <div id="announcementBanner" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(37,99,235,0.1) 100%);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px;margin-bottom:20px;cursor:pointer" onclick="openAnnouncementsModal()">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div id="announcementIcon" style="width:32px;height:32px;background:rgba(59,130,246,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📢</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <h3 id="announcementTitle" style="margin:0;font-size:15px;font-weight:600;color:#e0f2fe">New Announcement</h3>
+                <span id="announcementBadge" style="background:#3b82f6;color:white;font-size:11px;font-weight:700;padding:2px 6px;border-radius:99px">1</span>
+              </div>
+              <p id="announcementPreview" style="margin:4px 0 0 0;font-size:13px;color:#94a3b8">Click to view updates from dispatch</p>
+            </div>
+            <div style="color:#64748b">→</div>
+          </div>
+        </div>
+
         <!-- COMMUNICATION HUB - Always visible culture/announcement section -->
         <div id="communicationHub" style="background:linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(16,185,129,0.08) 100%);border:1px solid rgba(59,130,246,0.25);border-radius:16px;padding:24px;margin-bottom:28px;position:relative;overflow:hidden">
           
@@ -14871,12 +14886,23 @@ function updateAnnouncementBanner() {
   
   const unreadCount = proAnnouncementsCache.filter(a => !viewedAnnouncementIds.has(a.announcement_id)).length;
   
-  if (unreadCount > 0) {
+  // ✅ FIX: Ensure banner only shows for ACTIVE announcements (matching Communication Hub logic)
+  const now = new Date();
+  const activeUnreadCount = proAnnouncementsCache.filter(a => 
+    !viewedAnnouncementIds.has(a.announcement_id) && 
+    (a.is_active !== false) && 
+    (!a.expires_at || new Date(a.expires_at) > now)
+  ).length;
+  
+  if (activeUnreadCount > 0) {
     banner.style.display = "block";
-    if (badge) badge.textContent = unreadCount;
+    if (badge) badge.textContent = activeUnreadCount;
     
     const urgentCount = proAnnouncementsCache.filter(a => 
-      a.type === 'urgent' && !viewedAnnouncementIds.has(a.announcement_id)
+      a.type === 'urgent' && 
+      !viewedAnnouncementIds.has(a.announcement_id) &&
+      (a.is_active !== false) && 
+      (!a.expires_at || new Date(a.expires_at) > now)
     ).length;
     
     if (urgentCount > 0) {
@@ -14896,7 +14922,7 @@ function updateAnnouncementBanner() {
         icon.textContent = "📢";
         icon.style.background = "rgba(59,130,246,0.2)";
       }
-      if (title) title.textContent = "New Announcement" + (unreadCount > 1 ? "s" : "");
+      if (title) title.textContent = "New Announcement" + (activeUnreadCount > 1 ? "s" : "");
       if (preview) preview.textContent = "Click to view updates from dispatch";
       if (badge) badge.style.background = "#3b82f6";
     }
@@ -15014,9 +15040,10 @@ function updateCommunicationHub() {
   if (!cultureSloganSection || !activeAnnouncementsSection) return;
   
   // Filter active, non-expired announcements
+  // ✅ FIX: Be permissive with is_active (treat undefined as true) to ensure announcements show up
   const now = new Date();
   const activeAnnouncements = proAnnouncementsCache.filter(a => 
-    a.is_active && (!a.expires_at || new Date(a.expires_at) > now)
+    (a.is_active !== false) && (!a.expires_at || new Date(a.expires_at) > now)
   );
   
   if (activeAnnouncements.length === 0) {
