@@ -5280,6 +5280,9 @@ const LS_ADMIN_TOKEN = "h2s_admin_token";
 /* ===== UTIL ===== */
 const $ = id => document.getElementById(id);
 
+// ✅ FIX: Declare timer at top level to avoid hoisting issues
+let proAnnouncementsRefreshTimer = null;
+
 // ✅ TECH SUPPLIES - Items techs carry in their van, NOT job-specific orders
 const TECH_SUPPLIED_ITEMS = [
   // Basic tools & hardware techs always have
@@ -14783,7 +14786,7 @@ window.customConfirm = customConfirm;
 /* ===== PRO-FACING ANNOUNCEMENTS ===== */
 let proAnnouncementsCache = [];
 let viewedAnnouncementIds = new Set();
-let proAnnouncementsRefreshTimer = null;
+// proAnnouncementsRefreshTimer moved to top of file (line ~5283)
 
 async function loadProAnnouncements() {
   if (!me || !me.email) return;
@@ -15068,7 +15071,10 @@ function updateCommunicationHub() {
 /* ===== PAYOUT ACTIONS ===== */
 
 // Instant Withdraw button handler
-$("btnInstantWithdraw").addEventListener("click", async () => {
+// ✅ FIX: Add null check since button may be disabled/commented in HTML
+const btnInstantWithdraw = $("btnInstantWithdraw");
+if (btnInstantWithdraw) {
+  btnInstantWithdraw.addEventListener("click", async () => {
   const availableBalance = parseFloat($("available-balance").textContent.replace(/[$,]/g, '')) || 0;
   
   if (availableBalance <= 0) {
@@ -15112,7 +15118,8 @@ $("btnInstantWithdraw").addEventListener("click", async () => {
   } finally {
     loading(false);
   }
-});
+  });
+}
 
 // View History button handler
 $("btnViewHistory").addEventListener("click", async () => {
