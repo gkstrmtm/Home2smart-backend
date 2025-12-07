@@ -160,6 +160,14 @@ export default async function handler(req, res) {
       hasError: !!assignError,
       errorMsg: assignError?.message 
     });
+    
+    // 🔍 DEBUG: Log all assignments and their states
+    if (assignments && assignments.length > 0) {
+      console.log('[portal_jobs] 📋 ASSIGNMENTS FETCHED:');
+      assignments.forEach((a, idx) => {
+        console.log(`  ${idx + 1}. Job: ${a.job_id}, State: ${a.state}, Accepted: ${a.accepted_at || 'N/A'}`);
+      });
+    }
 
     if (assignError) {
       console.error('[portal_jobs] Assignment fetch failed:', assignError);
@@ -298,11 +306,15 @@ export default async function handler(req, res) {
           accepted_at: a.accepted_at,
           declined_at: a.declined_at
         };
+      } else {
+        console.log(`[portal_jobs] ⚠️ DUPLICATE assignment for ${a.job_id} - keeping state: ${assignmentMap[a.job_id].state}, ignoring state: ${a.state}`);
       }
     });
 
-    console.log('[portal_jobs] assignmentMap has', Object.keys(assignmentMap).length, 'entries');
-    console.log('[portal_jobs] Sample assignment:', Object.values(assignmentMap)[0]);
+    console.log('[portal_jobs] 🗺️ assignmentMap has', Object.keys(assignmentMap).length, 'entries');
+    Object.entries(assignmentMap).forEach(([jobId, assignment]) => {
+      console.log(`  - Job ${jobId}: state=${assignment.state}, accepted_at=${assignment.accepted_at || 'N/A'}`);
+    });
 
     // Categorize jobs based on assignment state
     // SMART: Merge assignment data into ALL jobs (including those without full job records)
@@ -446,22 +458,30 @@ export default async function handler(req, res) {
       };
       
       if (state === 'offered') {
+        console.log(`[portal_jobs] ➡️ CATEGORIZED as OFFER: ${job.job_id}`);
         // Update the existing entry with assignment data (preserves distance from assignment)
         offersMap.set(job.job_id, jobWithAssignment);
       } else if (state === 'accepted') {
+        console.log(`[portal_jobs] ✅ CATEGORIZED as UPCOMING: ${job.job_id}`);
         upcoming.push(jobWithAssignment);
       } else if (state === 'completed' || state === 'paid') {
+        console.log(`[portal_jobs] ✔️ CATEGORIZED as COMPLETED: ${job.job_id}`);
         completed.push(jobWithAssignment);
+      } else {
+        console.log(`[portal_jobs] ❓ UNKNOWN state '${state}' for job ${job.job_id} - not categorized`);
       }
     });
     
     const offers = Array.from(offersMap.values());
     
-    console.log('[portal_jobs] Categorized jobs:', { 
+    console.log('[portal_jobs] 📊 FINAL CATEGORIZATION:', { 
       offersCount: offers.length, 
       upcomingCount: upcoming.length, 
       completedCount: completed.length 
     });
+    console.log('[portal_jobs] Offers:', offers.map(o => o.job_id));
+    console.log('[portal_jobs] Upcoming:', upcoming.map(u => u.job_id));
+    console.log('[portal_jobs] Completed:', completed.map(c => c.job_id));
 
     return res.json({
       ok: true,

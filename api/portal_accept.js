@@ -125,6 +125,8 @@ export default async function handler(req, res) {
 
     if (existingAssignment) {
       // Update existing assignment
+      console.log(`[portal_accept] 🔄 Updating EXISTING assignment ${existingAssignment.assign_id} from state '${existingAssignment.state}' to 'accepted'`);
+      
       const { error: updateError } = await supabase
         .from('h2s_dispatch_job_assignments')
         .update({
@@ -134,13 +136,15 @@ export default async function handler(req, res) {
         .eq('assign_id', existingAssignment.assign_id);
 
       if (updateError) {
-        console.error('Failed to update assignment:', updateError);
+        console.error('[portal_accept] ❌ Failed to update assignment:', updateError);
         return res.status(500).json({
           ok: false,
           error: 'Failed to accept offer',
           error_code: 'db_error'
         });
       }
+      
+      console.log(`[portal_accept] ✅ Assignment ${existingAssignment.assign_id} updated successfully to state='accepted'`);
     } else {
       // Create new assignment
       console.log('[portal_accept] Creating new assignment for job:', jobId, 'pro:', proId);
@@ -168,17 +172,19 @@ export default async function handler(req, res) {
     }
 
     // Update job status from pending_assign to accepted
-    console.log('[portal_accept] Updating job status to accepted');
+    console.log('[portal_accept] 🔄 Updating job status to accepted for job:', jobId);
     const { error: jobUpdateError } = await supabase
       .from('h2s_dispatch_jobs')
       .update({ status: 'accepted' })
       .eq('job_id', jobId);
 
     if (jobUpdateError) {
-      console.error('[portal_accept] Warning: Failed to update job status:', jobUpdateError);
+      console.error('[portal_accept] ⚠️ Warning: Failed to update job status:', jobUpdateError);
+    } else {
+      console.log('[portal_accept] ✅ Job status updated to accepted');
     }
 
-    console.log('[portal_accept] ✅ Job accepted successfully');
+    console.log('[portal_accept] 🎉 Job accepted successfully - Final state: assignment.state=accepted, job.status=accepted');
 
     // Send pro_assigned email to customer (with pro photo and bio)
     try {
