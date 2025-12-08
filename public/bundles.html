@@ -4660,8 +4660,19 @@ window.removeFromCart = function removeFromCart(idx){
 async function loadAIRecommendations(){
   if(!user || !user.email) return;
   
+  // Skip if already attempted and failed
+  if(window._aiRecsAttempted) return;
+  window._aiRecsAttempted = true;
+  
   try{
     const res = await fetch(`${API}?action=ai_sales&email=${encodeURIComponent(user.email)}&mode=recommendations`);
+    
+    // If endpoint not found or server error, silently skip
+    if(!res.ok) {
+      console.log('[AI Recommendations] Endpoint not available (status ' + res.status + '), skipping');
+      return;
+    }
+    
     const data = await res.json();
     
     if(!data.success || !data.ai_analysis || !data.ai_analysis.recommendations) return;
@@ -4671,7 +4682,7 @@ async function loadAIRecommendations(){
     
     renderAIRecommendations(recs);
   }catch(err){
-    console.error('Failed to load AI recommendations:', err);
+    console.log('[AI Recommendations] Feature not available:', err.message);
   }
 }
 
