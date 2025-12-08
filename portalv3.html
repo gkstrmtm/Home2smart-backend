@@ -10493,6 +10493,7 @@ async function loadPayouts() {
     if (!out.ok) { toast(out.error || "Could not load payouts"); return; }
     
     const rows = out.rows || [];
+    console.log('[Payouts] Raw rows:', rows.length, rows);
     
     // Calculate comprehensive stats
     let availableBalance = 0;
@@ -10526,12 +10527,13 @@ async function loadPayouts() {
       }
 
       // This week's earnings shown when approved/paid
-      const earnedDate = r.earned_at ? new Date(r.earned_at) : null;
+      const earnedDate = r.earned_at ? new Date(r.earned_at) : (r.completed_at ? new Date(r.completed_at) : null);
       if (earnedDate && earnedDate >= weekStart && (state === "approved" || state === "paid")) {
         weekEarnings += amount;
         weekJobCount++;
       }
     });
+    console.log('[Payouts] Computed metrics:', {availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount});
     
     const data = {rows, availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount};
     

@@ -82,6 +82,26 @@ export default async function handler(req, res) {
       });
     }
 
+    // REQUIRE: Artifacts exist (at least one photo and one signature)
+    try {
+      const { data: artifacts } = await supabase
+        .from('h2s_dispatch_job_artifacts')
+        .select('artifact_id,type,pro_id')
+        .eq('job_id', jobId)
+        .eq('pro_id', proId);
+      const photos = (artifacts||[]).filter(a => String(a.type).toLowerCase() === 'photo');
+      const signatures = (artifacts||[]).filter(a => String(a.type).toLowerCase() === 'signature');
+      if (photos.length === 0) {
+        return res.status(400).json({ ok:false, error:'At least one photo required', error_code:'needs_photo' });
+      }
+      if (signatures.length === 0) {
+        return res.status(400).json({ ok:false, error:'Signature required', error_code:'needs_signature' });
+      }
+    } catch (artErr) {
+      console.error('Artifact validation error:', artErr);
+      return res.status(500).json({ ok:false, error:'Artifact check failed', error_code:'artifact_error' });
+    }
+
     // Find the accepted assignment (with retry)
     let assignments;
     try {
@@ -131,10 +151,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Update job status
+    // Update job status and timestamp
     await supabase
       .from('h2s_dispatch_jobs')
-      .update({ status: 'completed' })
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
       .eq('job_id', jobId);
 
     // Create payout record
