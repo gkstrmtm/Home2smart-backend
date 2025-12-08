@@ -6892,13 +6892,14 @@ window.initAddressAutocomplete = function() {
 
 // Initialize everything when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init, { once: true });
+  document.addEventListener('DOMContentLoaded', initApp, { once: true });
 } else {
-  init();
+  initApp();
 }
 
-function init() {
-  console.log('[BundlesJS] Initializing...');
+function initApp() {
+  console.log('[BundlesJS] Initializing app...');
+  init(); // Call original init (checkout, etc)
   loadData();
   wireCart();
   route();
