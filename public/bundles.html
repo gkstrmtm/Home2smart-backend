@@ -3388,13 +3388,13 @@ window.closeModal = function closeModal(){
 }
 
 // === SAFE WRAPPERS FOR DEFERRED FUNCTIONS ===
-function safeRequestQuote(p){
+window.safeRequestQuote = function safeRequestQuote(p){
   const m = byId('quoteModal');
   if(m) m.style.contentVisibility = 'visible';
   if(typeof window.requestQuote === 'function') window.requestQuote(p);
-}
+};
 
-function safeCloseQuoteModal(){
+window.safeCloseQuoteModal = function safeCloseQuoteModal(){
   const m = byId('quoteModal');
   if(m) {
     m.classList.remove('show');
@@ -3752,7 +3752,7 @@ function showTVSizeModal(packageId, packageName, packagePrice) {
   };
 }
 
-function closeTVSizeModal() {
+window.closeTVSizeModal = function closeTVSizeModal() {
   const modal = byId('tvSizeModal');
   if (modal) {
     modal.classList.remove('show');
@@ -3767,7 +3767,7 @@ function closeTVSizeModal() {
   }
 }
 
-function confirmTVSize() {
+window.confirmTVSize = function confirmTVSize() {
   const modal = byId('tvSizeModal');
   const sizeSelect = byId('tvSizeSelect');
   
@@ -3872,7 +3872,7 @@ function confirmTVSize() {
   }, 100);
 }
 
-function addPackageToCart(){
+window.addPackageToCart = function addPackageToCart(){
   if(!currentPackage) return;
   
   const curKey = currentPackage.id || currentPackage.bundle_id;
@@ -3984,7 +3984,7 @@ window.addEventListener('storage', (e) => {
   }
 }, { passive: true });
 
-function updateQuantity(idx, delta){
+window.updateQuantity = function updateQuantity(idx, delta){
   if(!cart[idx]) return;
   
   const newQty = (Number(cart[idx].qty)||1) + delta;
@@ -4114,7 +4114,7 @@ function nextHeroReview() {
   showHeroReview(currentHeroReviewIndex);
 }
 
-function goToHeroReview(index) {
+window.goToHeroReview = function goToHeroReview(index) {
   // Stop propagation so clicking dots doesn't navigate away
   event?.stopPropagation();
   
@@ -4246,11 +4246,11 @@ function startCarousel() {
   }
 }
 
-function goToReview(pageIndex) {
+window.goToReview = function goToReview(pageIndex) {
   reviewIndex = pageIndex;
   updateCarousel();
   startCarousel(); // Reset timer
-}
+};
 
 function updateCarousel() {
   const track = byId('reviewTrack');
@@ -4651,7 +4651,7 @@ async function updatePromoEstimate(){
   }
 }
 
-function removeFromCart(idx){
+window.removeFromCart = function removeFromCart(idx){
   console.log('[Cart] Removing item at index:', idx);
   try {
     cart.splice(idx, 1);
