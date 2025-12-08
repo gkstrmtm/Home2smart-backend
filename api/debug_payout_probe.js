@@ -42,15 +42,43 @@ export default async function handler(req, res) {
       .select('*')
       .eq('pro_id', proId);
 
-    // 4. Check a few jobs to ensure they exist
-    let jobSamples = [];
-    if (assignments && assignments.length > 0) {
-      const jobIds = assignments.slice(0, 3).map(a => a.job_id);
-      const { data: jobs } = await supabase
+    // 4. Deep Dive into Completed Jobs
+    const completedAssignments = assignments?.filter(a => a.state === 'completed') || [];
+    const analysis = [];
+
+    for (const assign of completedAssignments) {
+      // Fetch job details
+      const { data: job } = await supabase
         .from('h2s_dispatch_jobs')
-        .select('job_id, status')
-        .in('job_id', jobIds);
-      jobSamples = jobs;
+        .select('*')
+        .eq('job_id', assign.job_id)
+        .single();
+
+      const { data: lines } = await supabase
+        .from('h2s_dispatch_job_lines')
+        .select('*')
+        .eq('job_id', assign.job_id);
+
+      const { data: teammates } = await supabase
+        .from('h2s_dispatch_job_teammates')
+        .select('*')
+        .eq('job_id', assign.job_id)
+        .maybeSingle();
+
+      // Run Calculation
+      const calc = calculatePayout(job, lines || [], teammates);
+      
+      // Check if ledger exists
+      const hasLedger = ledger?.some(l => l.job_id === assign.job_id);
+
+      analysis.push({
+        job_id: assign.job_id,
+        service: job?.resources_needed,
+        has_ledger: hasLedger,
+        calc_result: calc,
+        lines_count: lines?.length || 0,
+        metadata_payout: job?.metadata?.estimated_payout
+      });
     }
 
     return res.json({
@@ -59,16 +87,12 @@ export default async function handler(req, res) {
         pro_id: proId,
         assignments: {
           total: assignments?.length || 0,
-          completed: assignments?.filter(a => a.state === 'completed').length || 0,
-          accepted: assignments?.filter(a => a.state === 'accepted').length || 0,
-          sample: assignments?.[0] || null
+          completed: completedAssignments.length,
         },
         ledger: {
           total: ledger?.length || 0,
-          sample: ledger?.[0] || null
         },
-        jobs_check: jobSamples,
-        mismatch: (assignments?.filter(a => a.state === 'completed').length || 0) > (ledger?.length || 0)
+        analysis: analysis
       }
     });
 

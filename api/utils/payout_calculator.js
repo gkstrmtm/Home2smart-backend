@@ -57,6 +57,16 @@ export function calculatePayout(job, lines, teamSplit) {
     if (job.metadata && job.metadata.estimated_payout) {
       totalJobPayout = parseFloat(job.metadata.estimated_payout);
     }
+    
+    // LAST RESORT: Estimate based on service type if still 0
+    if (totalJobPayout === 0 && job.resources_needed) {
+      const s = String(job.resources_needed).toLowerCase();
+      if (s.includes('tv')) totalJobPayout = 65;
+      else if (s.includes('cam') || s.includes('security')) totalJobPayout = 85;
+      else if (s.includes('thermostat')) totalJobPayout = 55;
+      else if (s.includes('lock')) totalJobPayout = 60;
+      else totalJobPayout = 50; // Minimum fallback
+    }
   }
 
   // Handle Team Split
