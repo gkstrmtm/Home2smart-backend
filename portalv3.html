@@ -2220,8 +2220,8 @@ select.input:hover,select.select:hover{
     min-height:56px !important;
     backdrop-filter:blur(20px) saturate(180%) !important;
     -webkit-backdrop-filter:blur(20px) saturate(180%) !important;
-    background:rgba(10,42,90,0.95) !important;
-    border-bottom:1px solid rgba(255,255,255,.08) !important;
+    background:#0a1929 !important;
+    border-bottom:1px solid rgba(0,0,0,.3) !important;
     /* iPhone notch adaptation */
     top:env(safe-area-inset-top, 0) !important;
     padding-top:max(8px, env(safe-area-inset-top)) !important;
@@ -2351,26 +2351,41 @@ select.input:hover,select.select:hover{
   .view-all-btn{
     display:none !important;
   }
+  #communicationHub{
+    padding:20px 18px !important;
+    margin-bottom:24px !important;
+  }
   .announcement-header-clickable{
     transition:all 0.2s ease !important;
+    display:flex !important;
+    align-items:center !important;
+    gap:14px !important;
   }
   .announcement-header-clickable:active{
     opacity:0.7 !important;
     transform:scale(0.98) !important;
   }
   .announcement-icon{
-    width:32px !important;
-    height:32px !important;
-    font-size:16px !important;
+    width:24px !important;
+    height:24px !important;
+    font-size:14px !important;
+    flex-shrink:0 !important;
+    border-radius:8px !important;
+  }
+  .announcement-icon svg{
+    width:14px !important;
+    height:14px !important;
   }
   .announcement-title{
     font-size:15px !important;
     font-weight:600 !important;
     letter-spacing:-0.01em !important;
+    margin:0 !important;
   }
   .announcement-subtitle{
     font-size:12px !important;
     opacity:0.7 !important;
+    margin-top:4px !important;
   }
   .announcement-card{
     padding:16px !important;
@@ -9022,9 +9037,14 @@ async function uploadPhotos(previews, jobId) {
       // Mark state and refresh gallery/job list
       photoOnFile[jobId] = true;
       
+      // CRITICAL: Clear cache before reloading to force fresh fetch
+      delete jobPhotos[jobId];
+      console.log('[Upload Photos] ⚡ Cache cleared for job:', jobId);
+      
       // Reload photos for this job
       try {
         await loadJobPhotos(jobId);
+        console.log('[Upload Photos] ✅ Photos reloaded, cache now has:', jobPhotos[jobId]?.length || 0, 'photos');
       } catch (e) {
         console.error('[Upload Photos] Failed to reload photos:', e);
       }
