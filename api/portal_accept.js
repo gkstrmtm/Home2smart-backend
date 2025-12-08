@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check if assignment already exists (handle potential duplicates by taking newest)
+    // Check if assignment already exists for this pro
     const { data: existingAssignments } = await supabase
       .from('h2s_dispatch_job_assignments')
       .select('*')
@@ -89,6 +89,25 @@ export default async function handler(req, res) {
       .eq('pro_id', proId)
       .order('created_at', { ascending: false })
       .limit(1);
+    // Block multi-accept: if some other pro already accepted, prevent duplicate acceptance
+    const { data: anyAccepted } = await supabase
+      .from('h2s_dispatch_job_assignments')
+      .select('assign_id, pro_id, state')
+      .eq('job_id', jobId)
+      .eq('state', 'accepted')
+      .order('accepted_at', { ascending: false })
+      .limit(1);
+
+    if (anyAccepted && anyAccepted.length > 0) {
+      const acceptedBy = anyAccepted[0].pro_id;
+      if (acceptedBy && acceptedBy !== proId) {
+        return res.status(409).json({
+          ok: false,
+          error: 'Job already accepted by another technician',
+          error_code: 'already_accepted'
+        });
+      }
+    }
 
     const existingAssignment = existingAssignments && existingAssignments.length > 0 ? existingAssignments[0] : null;
 
@@ -171,12 +190,28 @@ export default async function handler(req, res) {
       console.log('[portal_accept] ✅ Assignment created successfully');
     }
 
-    // Update job status from pending_assign to accepted
+    // Update job status from pending_assign to accepted (idempotent)
     console.log('[portal_accept] 🔄 Updating job status to accepted for job:', jobId);
-    const { error: jobUpdateError } = await supabase
+    const { data: jobStatusRow } = await supabase
       .from('h2s_dispatch_jobs')
-      .update({ status: 'accepted' })
-      .eq('job_id', jobId);
+      .select('status')
+      .eq('job_id', jobId)
+      .single();
+
+    if (!jobStatusRow || jobStatusRow.status !== 'accepted') {
+      const { error: jobUpdateError } = await supabase
+        .from('h2s_dispatch_jobs')
+        .update({ status: 'accepted' })
+        .eq('job_id', jobId);
+
+      if (jobUpdateError) {
+        console.error('[portal_accept] ⚠️ Warning: Failed to update job status:', jobUpdateError);
+      } else {
+        console.log('[portal_accept] ✅ Job status updated to accepted');
+      }
+    } else {
+      console.log('[portal_accept] ℹ️ Job already in accepted status');
+    }
 
     if (jobUpdateError) {
       console.error('[portal_accept] ⚠️ Warning: Failed to update job status:', jobUpdateError);
