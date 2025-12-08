@@ -10414,11 +10414,11 @@ function renderPayoutsDashboard(data) {
       
       // State badge styling
       let stateBadge = '';
-      if (r.state === 'approved') {
+      if (String(r.state).toLowerCase() === 'approved') {
         stateBadge = '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">✓ Approved</span>';
-      } else if (r.state === 'pending') {
+      } else if (String(r.state).toLowerCase() === 'pending') {
         stateBadge = '<span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">⏳ Pending</span>';
-      } else if (r.state === 'paid') {
+      } else if (String(r.state).toLowerCase() === 'paid') {
         stateBadge = '<span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">💰 Paid</span>';
       }
       
@@ -10501,25 +10501,26 @@ async function loadPayouts() {
     
     rows.forEach(r => {
       const amount = asNum(r.total_amount || r.amount || 0);
-      
-      // Lifetime earnings = all approved or paid
-      if (r.state === "approved" || r.state === "paid") {
+      const state = String(r.state || '').toLowerCase();
+
+      // Lifetime earnings = all approved or paid (and optionally pending if policy changes)
+      if (state === "approved" || state === "paid") {
         lifetimeEarnings += amount;
       }
-      
-      // Available balance = approved but not yet withdrawn
-      if (r.state === "approved") {
+
+      // Available balance = approved but not yet routed (no self-withdraw)
+      if (state === "approved") {
         availableBalance += amount;
       }
-      
-      // Pending = awaiting approval
-      if (r.state === "pending") {
+
+      // Pending = awaiting review/approval
+      if (state === "pending") {
         pendingEarnings += amount;
       }
-      
-      // This week's earnings
+
+      // This week's earnings shown when approved/paid
       const earnedDate = r.earned_at ? new Date(r.earned_at) : null;
-      if (earnedDate && earnedDate >= weekStart && (r.state === "approved" || r.state === "paid")) {
+      if (earnedDate && earnedDate >= weekStart && (state === "approved" || state === "paid")) {
         weekEarnings += amount;
         weekJobCount++;
       }

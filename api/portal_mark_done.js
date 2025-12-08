@@ -205,7 +205,7 @@ export default async function handler(req, res) {
             base_amount: p.amount,
             service_name: job.resources_needed || 'Service',
             variant_code: job.variant_code || 'STANDARD',
-            state: 'pending', // Pending admin approval
+            state: 'approved', // Immediately approved for routing/payment
             earned_at: new Date().toISOString(),
             customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
             note: p.note

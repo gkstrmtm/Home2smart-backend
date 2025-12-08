@@ -1,0 +1,4060 @@
+﻿// ============================================================================
+// BUNDLES-APP.JS: Full application logic (loaded with defer attribute)
+// This file contains all the heavy JavaScript that was blocking FCP
+// ============================================================================
+
+'use strict';
+
+console.log('[BundlesJS] Script executing');
+
+function byId(id){ return document.getElementById(id); }
+
+// === UTILITY FUNCTIONS ===
+function money(cents) {
+  if(typeof cents === 'number') {
+    return '$' + cents.toFixed(2);
+  }
+  return '$0.00';
+}
+
+function escapeHtml(text) {
+  if(!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// === API CONFIG ===
+// NEW: Single aggregated endpoint (eliminates waterfall loading)
+const BUNDLES_DATA_API = 'https://h2s-backend.vercel.app/api/bundles-data';
+const API = 'https://h2s-backend.vercel.app/api/shop';
+// MIGRATED: Booking now goes to Vercel (native scheduling)
+const APIV1 = 'https://h2s-backend.vercel.app/api/schedule-appointment';
+// MIGRATED: Analytics now goes to Vercel (was GAS DASH_URL)
+const DASH_URL = 'https://h2s-backend.vercel.app/api/track';
+const CAL_FORM_URL = 'https://api.leadconnectorhq.com/widget/booking/RjwOQacM3FAjRNCfm6uU';
+const PIXEL_ID = '2384221445259822';
+
+// === PERFORMANCE: Start Data Fetch Early (Parallel to DOM Parse) ===
+// Fetch starts immediately but doesn't block rendering
+const bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
+  cache: 'default',
+  headers: { 'Accept': 'application/json' },
+  priority: 'high'
+}).then(res => res.json()).catch(err => {
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+  return null;
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+  return null;
+});
+
+// Session ID for tracking (defer generation if needed)
+let SESSION_ID = sessionStorage.getItem('h2s_session_id');
+if(!SESSION_ID){
+  SESSION_ID = 'tmp_' + Date.now();
+  requestIdleCallback(() => {
+    SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    sessionStorage.setItem('h2s_session_id', SESSION_ID);
+  }, { timeout: 1000 });
+}
+
+// === STATE ===
+let catalog = { services:[], serviceOptions:[], priceTiers:[], bundles:[], bundleItems:[], recommendations:[], memberships:[], membershipPrices:[] };
+// cart is already declared in critical shell as window.cart - use it
+let cart = window.cart || [];
+let user = {};
+let lastSearch = '';
+let lastCat = '';
+let allReviews = [];
+let reviewsLoadedFromAPI = false;
+
+// Defer cart/user loading to avoid blocking initial render
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    cart = loadCart();
+    window.cart = cart; // Keep window.cart in sync
+    user = loadUser();
+    updateCartBadge();
+  }, { once: true });
+} else {
+  cart = loadCart();
+  window.cart = cart; // Keep window.cart in sync
+  user = loadUser();
+}
+
+// === EXTRA DEFERRED LOADER (Recommendations) ===
+let _extraDeferredPromise = null;
+const loadExtraDeferred = () => _extraDeferredPromise || (_extraDeferredPromise = new Promise((resolve, reject) => {
+  const s = document.createElement('script');
+  s.src = 'bundles-extra-deferred.js';
+  s.async = true;
+  s.onload = resolve;
+  s.onerror = reject;
+  document.body.appendChild(s);
+}));
+
+// === BUNDLES DEFERRED LOADER (Checkout, Success, Auth) ===
+let _bundlesDeferredPromise = null;
+const loadBundlesDeferred = () => _bundlesDeferredPromise || (_bundlesDeferredPromise = new Promise((resolve, reject)=>{
+  const s = document.createElement('script');
+  s.src = 'bundles-deferred.js';
+  s.onload = resolve;
+  s.onerror = reject;
+  document.body.appendChild(s);
+}));
+
+const queueRenderRecsPanel = () => {
+  if(window._queuedRecs) return;
+  window._queuedRecs = true;
+  const invoke = ()=> loadExtraDeferred().then(()=>{
+    if(window.renderRecsPanel) window.renderRecsPanel();
+    window._queuedRecs = false;
+  });
+  if('requestIdleCallback' in window) {
+    requestIdleCallback(invoke, {timeout:2000});
+  } else {
+    setTimeout(invoke, 50);
+  }
+};
+
+// === LOADER ===
+let loaderBuilt = false;
+function buildLoader(){
+  if(loaderBuilt) return;
+  const slices = byId('h2sLoaderSlices');
+  if(!slices) return;
+  const c1 = '#1493ff', c2 = '#0a2a5a', c3 = '#6b778c';
+  const colors = [c1, c2, c3, c1, c2, c3, c1, c2];
+  slices.innerHTML = colors.map((col, i)=>`<div class="h2s-loader-slice" style="background:${col};animation-delay:${i*0.05}s"></div>`).join('');
+  loaderBuilt = true;
+}
+function showLoader(){ 
+  const el=byId('h2s-loader'); 
+  if(el){ 
+    el.style.contentVisibility='visible';
+    el.classList.remove('hidden');
+    el.style.display=''; 
+  } 
+}
+function hideLoader(){ 
+  const el=byId('h2s-loader'); 
+  if(el){ 
+    el.classList.add('hidden');
+    // Remove from DOM after transition with RAF for better performance
+    requestAnimationFrame(() => {
+      setTimeout(() => { 
+        if(el.classList.contains('hidden')) {
+          el.style.display='none';
+          el.style.contentVisibility='hidden';
+        }
+      }, 400);
+    });
+  } 
+}
+
+// Show skeleton loading state while content loads
+function showSkeleton(){
+  byId('outlet').innerHTML = `
+    <div class="skeleton skeleton-hero"></div>
+    <div class="skeleton skeleton-trust"></div>
+    <div class="skeleton-grid">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>
+  `;
+}
+
+// === META PIXEL + TRACKING ===
+function h2sTrack(event, data={}){
+  const payload = {
+    event,
+    timestamp: new Date().toISOString(),
+    session_id: SESSION_ID,
+    user_email: user?.email||'',
+    url: location.href,
+    ...data
+  };
+  
+  // Send to Meta Pixel if loaded
+  if(typeof fbq !== 'undefined'){
+    const params = buildAdvancedParams();
+    fbq('track', event, data, params);
+  }
+  
+  // Send to dashboard webhook (use Beacon if available for non-blocking)
+  const blob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
+  if(navigator.sendBeacon){
+    navigator.sendBeacon(DASH_URL, blob);
+  } else {
+    fetch(DASH_URL, {
+      method:'POST',
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(err => console.warn('Dashboard track failed:', err));
+  }
+}
+
+async function sha256(text){
+  if(!crypto || !crypto.subtle) return '';
+  try{
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }catch(_){ return ''; }
+}
+
+function buildAdvancedParams(){
+  const params = {};
+  if(user && user.email){
+    sha256(user.email.trim().toLowerCase()).then(h => { if(h) params.em = h; });
+    if(user.phone){
+      const digits = user.phone.replace(/\D/g,'');
+      sha256(digits).then(h => { if(h) params.ph = h; });
+    }
+    if(user.name){
+      const parts = user.name.trim().toLowerCase().split(' ');
+      if(parts[0]) sha256(parts[0]).then(h => { if(h) params.fn = h; });
+      if(parts[parts.length-1]) sha256(parts[parts.length-1]).then(h => { if(h) params.ln = h; });
+    }
+  }
+  return params;
+}
+
+// === INIT ===
+async function init(){
+  // Keep init minimal and fast
+  
+  // CRITICAL: Attach checkout button event listener
+  const checkoutBtn = byId('checkoutBtn');
+  if(checkoutBtn) {
+    checkoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      checkout();
+    }, { once: false }); // Not passive since we preventDefault
+  }
+  
+  try {
+    // PHASE 1: INSTANT - Minimal critical setup
+    // Mark page as ready immediately for static content
+    document.body.classList.add('app-ready');
+    
+    // OPTIMIZATION: Capture static shop HTML to avoid duplication in JS
+    const outlet = byId('outlet');
+    if(outlet && outlet.querySelector('.hero')) {
+      window.shopHTML = outlet.innerHTML;
+    }
+    
+    // PHASE 2: Essential UI setup (synchronous for immediate render)
+    wireCart();
+    // Defer badge update - not visible above fold
+    if('requestIdleCallback' in window){
+      requestIdleCallback(() => updateCartBadge(), {timeout: 1000});
+    } else {
+      setTimeout(() => updateCartBadge(), 250);
+    }
+    
+    // PHASE 3: DETERMINE VIEW - Quick routing decision
+    const view = getParam('view');
+    const isSpecialView = view && view !== 'shop';
+    
+    // PHASE 4: RENDER IMMEDIATELY - Don't wait for anything
+    route(); // Shows static content instantly for shop view
+    
+    
+    // PHASE 5: BACKGROUND LOADS - Use pre-started fetch
+    // We use the promise started at the top of the script
+    
+    // Process immediately after route (no setTimeout) to minimize delays
+    bundlesFetchPromise.then(data => {        if (data) {
+          // === SUCCESS PATH ===
+          if(data.catalog){
+            catalog = data.catalog;
+            // Re-render only if needed (not on shop view with static content)
+            if (isSpecialView) route();
+          }
+          
+          if(data.reviews){
+            allReviews = data.reviews;
+            reviewsLoadedFromAPI = true;
+            
+            // Populate heroReviews from allReviews
+            heroReviews = allReviews.slice(0, 5).map(r => ({
+              text: r.text && r.text.trim() ? r.text.trim() : '',
+              author: r.name || 'Customer',
+              stars: r.rating || 5
+            })).filter(r => r.text.length > 0);
+
+            // Initialize hero reviews immediately for real names/words
+            if(!isSpecialView){
+              try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
+              // Defer renderReviews to idle to avoid blocking main thread
+              if('requestIdleCallback' in window){
+                requestIdleCallback(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, {timeout: 2000});
+              } else {
+                setTimeout(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, 1500);
+              }
+            }
+          }
+        } else {
+          // === FALLBACK PATH ===
+          console.warn('[Bundles] Aggregated data missing, using fallback');
+          fetch(API + '?action=catalog').then(r => r.json()).then(d => {
+            if(d.ok) catalog = d.catalog || catalog;
+          });
+          // Also try to load reviews separately since aggregation failed
+          try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
+        }
+      });
+    
+    // Handle cart from URL
+    const urlCart = getParam('cart');
+    if(urlCart){
+      const decoded = decodeCartFromUrl(urlCart);
+      if(decoded.length){
+        cart = decoded;
+        saveCart();
+        updateCartBadge();
+        paintCart();
+      }
+    }
+    
+    // Clean URL - remove cart parameter
+    const url = new URL(location.href);
+    if(url.searchParams.has('cart')){
+      url.searchParams.delete('cart');
+      history.replaceState({}, '', url.toString());
+    }
+    
+    // PHASE 6: DEFERRED FEATURES - Load after page is interactive
+    // AI recommendations (only if signed in)
+    if(user && user.email){
+      requestIdleCallback(() => loadAIRecommendations(), { timeout: 3000 });
+    }
+    
+    // Meta Pixel (deferred, low priority)
+    if('requestIdleCallback' in window){
+      requestIdleCallback(() => {
+        try {
+          // Only load pixel if user interacts or after 5s
+          const loadPixel = () => {
+            if(window.fbq) return;
+            const script = document.createElement('script');
+            script.innerHTML = `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '${PIXEL_ID}');
+              fbq('track', 'PageView');
+            `;
+            document.head.appendChild(script);
+            
+            const noscript = document.createElement('noscript');
+            noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1"/>`;
+            document.body.appendChild(noscript);
+          };
+          
+          // Delay pixel load to ensure LCP is done
+          setTimeout(loadPixel, 6000);
+        } catch(e) { console.warn('Pixel init failed', e); }
+      }, { timeout: 8000 });
+    }
+    
+    // PHASE 7: ANALYTICS - Track page view (lowest priority)
+    if('requestIdleCallback' in window){
+      requestIdleCallback(() => h2sTrack('PageView'), {timeout: 4000});
+    } else {
+      setTimeout(() => h2sTrack('PageView'), 2500);
+    }
+    
+    performance.mark('init-end');
+    performance.measure('Total Init Time', 'init-start', 'init-end');
+  } catch (err) {
+    // Fallback: show content anyway
+    document.body.classList.add('app-ready');
+  }
+}
+
+// Ensure init runs after DOM is ready
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', () => { try{ init(); }catch(e){ console.error('[Init] Failed:', e); } });
+} else {
+  try{ init(); }catch(e){ console.error('[Init] Failed:', e); }
+}
+
+// Fetch latest catalog from backend. If cacheBust is true, append a timestamp to force bypass.
+async function fetchCatalogFromAPI(cacheBust = false){
+  try{
+    const url = API + '?action=catalog' + (cacheBust ? '&cb=' + Date.now() : '');
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok){
+      console.warn('[Catalog] HTTP', res.status);
+      return false;
+    }
+    const data = await res.json();
+    if(data && data.ok && data.catalog){
+      catalog = data.catalog;
+      return true;
+    }
+    console.warn('[Catalog] Unexpected response while fetching catalog', data);
+    return false;
+  }catch(err){
+    console.warn('[Catalog] Fetch failed:', err);
+    return false;
+  }
+}
+
+// === ROUTING ===
+function route(){
+  const view = getParam('view');
+  console.log('[ROUTE] View parameter:', view);
+  
+  // CRITICAL: If redirecting to success page, hide outlet immediately to prevent flicker
+  if(view === 'shopsuccess'){
+    const outlet = byId('outlet');
+    if(outlet){
+      outlet.style.opacity = '0';
+      outlet.style.visibility = 'hidden';
+    }
+    console.log('[ROUTE] Calling renderShopSuccess()'); 
+    renderShopSuccess(); 
+    return; 
+  }
+  
+  // Close any open modals/drawers when navigating
+  closeAll();
+  
+  if(view === 'signin'){ renderSignIn(); return; }
+  if(view === 'signup'){ renderSignUp(); return; }
+  if(view === 'account'){ renderAccount(); return; }
+  if(view === 'forgot'){ renderForgot(); return; }
+  if(view === 'reset'){ renderReset(getParam('token')); return; }
+  if(view === 'calreturn' || view === 'apptreturn'){ handleCalReturn(); return; }
+  
+  // Default: show shop
+  const outlet = byId('outlet');
+  if (!outlet) return;
+  
+  const hasShopContent = outlet.querySelector('.hero');
+  
+  if (!hasShopContent) {
+    renderShop();
+  } else {
+    // Static shop content already loaded, ensure it's visible
+    outlet.style.opacity = '1';
+    outlet.style.transition = '';
+    document.body.classList.add('app-ready');
+    
+    // Re-initialize hero reviews if they haven't loaded
+    const heroReviews = document.getElementById('heroReviews');
+    if (heroReviews && !heroReviews.querySelector('.hero-review-slide')) {
+      // Wait for BUNDLES_DATA_API to return
+    }
+  }
+}
+
+function renderShop(){
+  // OPTIMIZATION: If static content exists, do not re-render
+  const outlet = byId('outlet');
+  if(!outlet) return;
+  if(outlet.querySelector('.hero')) return;
+
+  const isFirstRender = !window.__shopRenderedOnce;
+  
+  // OPTIMIZATION: Use captured static HTML instead of huge string
+  let html = window.shopHTML || '';
+  
+  if(!html){
+    console.warn('[Shop] Static HTML missing, reloading...');
+    location.reload();
+    return;
+  }
+
+  if (isFirstRender) {
+    // Render immediately without transition
+    outlet.style.opacity = '';
+    outlet.style.transition = '';
+    outlet.innerHTML = html;
+    document.body.classList.add('app-ready');
+    
+    // Initialize reviews immediately after DOM update
+    try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+    window.__shopRenderedOnce = true;
+    
+    // Update signin state
+    renderSigninState();
+  } else {
+    // Transition out, then render, then transition in
+    outlet.style.opacity = '0';
+    outlet.style.transition = 'opacity 0.3s ease';
+    
+    setTimeout(() => {
+      outlet.innerHTML = html;
+      
+      // Fade back in
+      requestAnimationFrame(() => {
+        outlet.style.opacity = '1';
+        document.body.classList.add('app-ready');
+      });
+      
+      // Initialize reviews
+      try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
+      
+      // Update signin state
+      renderSigninState();
+      
+      // Scroll to top
+      window.scrollTo(0, 0);
+      window.__shopRenderedOnce = true;
+    }, 300); // Wait for fade out
+  }
+}
+
+window.navSet = function(params){
+  const u = new URL(location.href);
+  Object.entries(params||{}).forEach(([k,v])=>{
+    if(v==null) u.searchParams.delete(k); else u.searchParams.set(k,v);
+  });
+  history.pushState({}, '', u.toString());
+  route();
+};
+
+// Connect route handler for navSet
+window._routeHandler = route;
+
+function getParam(k){
+  const u = new URL(location.href);
+  return u.searchParams.get(k);
+}
+
+function wireCart(){
+  const acctBtn = byId('accountBtn');
+  if(acctBtn){
+    acctBtn.onclick = ()=> {
+      closeAll();
+      if(user && user.email){
+        navSet({view:'account'});
+      } else {
+        navSet({view:'signin'});
+      }
+    };
+  }
+  
+  const bsi = byId('bannerSignIn');
+  if(bsi){
+    bsi.onclick = ()=> {
+      closeAll();
+      navSet({view: user?.email ? 'account' : 'signin'});
+    };
+  }
+}
+
+function renderSigninState(){
+  const btn = byId('accountBtn');
+  if(!btn) return;
+  
+  if(user && user.email){
+    btn.textContent = 'Account';
+  } else {
+    btn.textContent = 'Sign in';
+  }
+}
+
+window.scrollToSection = function scrollToSection(id){
+  const el = document.getElementById(id);
+  if(el){
+    el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+};
+
+// === MENU / CART / MODAL TOGGLES ===
+window.toggleMenu = function toggleMenu(){
+  const menu = document.getElementById('menuDrawer');
+  const backdrop = document.getElementById('backdrop');
+  if(!menu || !backdrop) return;
+  
+  // OPTIMIZATION: content-visibility
+  if(!menu.classList.contains('open')) menu.style.contentVisibility = 'visible';
+  
+  const isOpen = menu.classList.contains('open');
+  
+  if(isOpen){
+    menu.classList.remove('open');
+    backdrop.classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
+    setTimeout(()=>{ if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden'; }, 300);
+  }else{
+    closeAll();
+    menu.classList.add('open');
+    backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Lock scroll
+  }
+}
+
+window.toggleCart = function toggleCart(){
+  console.log('[Cart] toggleCart() called');
+  const drawer = document.getElementById('cartDrawer');
+  const backdrop = document.getElementById('backdrop');
+  
+  // OPTIMIZATION: content-visibility
+  if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'visible';
+
+  const isOpen = drawer.classList.contains('open');
+  
+  if(isOpen){
+    drawer.classList.remove('open');
+    backdrop.classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
+    setTimeout(()=>{ if(!drawer.classList.contains('open')) drawer.style.contentVisibility = 'hidden'; }, 300);
+  }else{
+    closeAll();
+    drawer.classList.add('open');
+    backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden'; // Lock scroll
+    paintCart();
+  }
+}
+
+window.closeAll = function closeAll(){
+  const menu = document.getElementById('menuDrawer');
+  const cart = document.getElementById('cartDrawer');
+  
+  menu.classList.remove('open');
+  cart.classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+  document.body.style.overflow = ''; // Unlock scroll
+  
+  setTimeout(()=>{ 
+    if(!menu.classList.contains('open')) menu.style.contentVisibility = 'hidden';
+    if(!cart.classList.contains('open')) cart.style.contentVisibility = 'hidden';
+  }, 300);
+
+  closeModal();
+  safeCloseQuoteModal();
+  if(typeof closeTVSizeModal === 'function') closeTVSizeModal();
+}
+
+function showModal(){
+  closeAll();
+  const m = byId('modal');
+  m.style.contentVisibility = 'visible';
+  m.classList.add('show');
+  byId('backdrop').classList.add('show');
+  document.body.style.overflow = 'hidden'; // Lock scroll
+}
+
+window.closeModal = function closeModal(){
+  const m = byId('modal');
+  m.classList.remove('show');
+  setTimeout(()=>{ if(!m.classList.contains('show')) m.style.contentVisibility = 'hidden'; }, 300);
+
+  if(!byId('menuDrawer').classList.contains('open') && !byId('cartDrawer').classList.contains('open')){
+    byId('backdrop').classList.remove('show');
+    document.body.style.overflow = ''; // Unlock scroll
+  }
+}
+
+// === SAFE WRAPPERS FOR DEFERRED FUNCTIONS ===
+window.safeRequestQuote = function safeRequestQuote(p){
+  const m = byId('quoteModal');
+  if(m) m.style.contentVisibility = 'visible';
+  if(typeof window.requestQuote === 'function') window.requestQuote(p);
+};
+
+window.safeCloseQuoteModal = function safeCloseQuoteModal(){
+  const m = byId('quoteModal');
+  if(m) {
+    m.classList.remove('show');
+    setTimeout(() => { if(!m.classList.contains('show')) m.style.contentVisibility = 'hidden'; }, 300);
+  }
+  byId('backdrop').classList.remove('show');
+  if(typeof window.closeQuoteModal === 'function') window.closeQuoteModal();
+}
+
+async function submitQuoteRequest(){
+  const name = document.getElementById('quoteName')?.value.trim() || '';
+  const email = document.getElementById('quoteEmail')?.value.trim() || '';
+  const phone = document.getElementById('quotePhone')?.value.trim() || '';
+  const details = document.getElementById('quoteDetails')?.value.trim() || '';
+  const msg = document.getElementById('quoteMessage');
+  const btn = document.getElementById('submitQuoteBtn');
+  const modal = document.getElementById('quoteModal');
+  const packageId = modal?.dataset.packageId || 'unknown';
+  
+  if (!msg || !btn) return;
+  
+  // Validation
+  if (!name) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your name';
+    return;
+  }
+  
+  if (!email || !email.includes('@')) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter a valid email address';
+    return;
+  }
+  
+  if (!phone) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your phone number';
+    return;
+  }
+  
+  // Disable button
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  msg.textContent = '';
+  
+  try {
+    // Send to Vercel backend (saves to Supabase + sends notifications)
+    const quoteEndpoint = API.replace('/api/shop', '/api/quote');
+    
+    const response = await fetch(quoteEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        details,
+        package_type: packageId,
+        source: '/shop',
+        timestamp: new Date().toISOString()
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.ok) {
+      // Success
+      msg.style.color = '#2e7d32';
+      msg.textContent = '✓ Request sent! We\'ll contact you within 1 hour.';
+      
+      // Track event
+      h2sTrack('QuoteRequested', {
+        package_type: packageId,
+        customer_email: email,
+        quote_id: data.quote_id
+      });
+      
+      console.log('[Quote] Successfully submitted:', data.quote_id);
+      
+      // Close after 2 seconds
+      setTimeout(() => {
+        safeCloseQuoteModal();
+      }, 2000);
+    } else {
+      throw new Error(data.error || 'Server error');
+    }
+  } catch (error) {
+    console.error('Quote request failed:', error);
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Failed to send. Please call us at (864) 528-1475';
+    btn.disabled = false;
+    btn.textContent = 'Send Request';
+  }
+}
+
+// === PACKAGE SELECTION ===
+let currentPackage = null;
+
+window.selectPackage = function selectPackage(id, name, price){
+  // Check if this is a TV mounting package - if so, show TV size modal
+  if (id.includes('tv_') || name.toLowerCase().includes('tv')) {
+    showTVSizeModal(id, name, price);
+    return;
+  }
+  
+  // For non-TV packages, add directly to cart
+  addPackageDirectToCart(id, name, price);
+};
+
+function addPackageDirectToCart(id, name, price, metadata = {}){
+  // OPTIMIZATION: Direct Add-to-Cart (Fast Path)
+  // Ensure price is a number
+  const numPrice = Number(price);
+  
+  // Check for existing item (handle both id and bundle_id)
+  const existing = cart.find(item => (item.type === 'bundle' || item.type === 'package') && (item.id === id || item.bundle_id === id));
+  
+  if(existing){
+    existing.qty++;
+    // Merge metadata if provided
+    if (Object.keys(metadata).length > 0) {
+      existing.metadata = { ...existing.metadata, ...metadata };
+    }
+  }else{
+    const newItem = { 
+      type: 'bundle', // Correct type for backend
+      bundle_id: id,  // Correct ID field for backend
+      id,             // Keep for frontend compatibility
+      name, 
+      price: numPrice, 
+      qty: 1,
+      metadata: metadata 
+    };
+    cart.push(newItem);
+  }
+  
+  // Track add to cart
+  h2sTrack('AddToCart', {
+    product_id: id,
+    product_name: name,
+    quantity: 1,
+    price: numPrice,
+    currency: 'USD',
+    ...metadata
+  });
+  
+  saveCart();
+  
+  // Force open cart to show success
+  const drawer = byId('cartDrawer');
+  console.log('[Cart] Opening cart drawer. Currently open:', drawer?.classList.contains('open'));
+  if(drawer && !drawer.classList.contains('open')) {
+    toggleCart();
+    console.log('[Cart] Cart drawer toggled open');
+  } else {
+    console.log('[Cart] Cart drawer already open');
+  }
+}
+
+function showTVSizeModal(packageId, packageName, packagePrice) {
+  // Create modal if it doesn't exist
+  let modal = byId('tvSizeModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'tvSizeModal';
+    modal.className = 'modal';
+    modal.style.contentVisibility = 'hidden'; // Optimization: Hide until needed
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-header">
+          <h3 style="margin:0;font-size:20px;font-weight:800;">Customize Your Setup</h3>
+          <button class="close-btn" onclick="closeTVSizeModal()" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 32px 24px;">
+          
+          <!-- TV Size Selection -->
+          <div style="margin-bottom:24px;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
+              TV Screen Size
+            </label>
+            <p style="margin:0 0 12px 0;color:#6b778c;font-size:13px;">
+              Select the size of your largest TV for an accurate quote.
+            </p>
+            <div class="custom-select-wrapper" style="position:relative;">
+              <select id="tvSizeSelect" class="inp" style="
+                width:100%;
+                font-size:16px;
+                padding:14px 16px;
+                border:2px solid #e5e7eb;
+                border-radius:12px;
+                background:linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
+                cursor:pointer;
+                transition:all 0.2s ease;
+                appearance:none;
+                -webkit-appearance:none;
+                -moz-appearance:none;
+                background-image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234b5563%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3e%3cpolyline points=%226 9 12 15 18 9%22%3e%3c/polyline%3e%3c/svg%3e');
+                background-repeat:no-repeat;
+                background-position:right 12px center;
+                background-size:20px;
+                padding-right:44px;
+              ">
+                <option value="">Select your TV size...</option>
+                <option value="32-43">32" - 43"</option>
+                <option value="44-54">44" - 54"</option>
+                <option value="55-64">55" - 64"</option>
+                <option value="65-74">65" - 74"</option>
+                <option value="75-85">75" - 85"</option>
+                <option value="86+">86" and larger</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Multi-Room Count Selection (Dynamic) -->
+          <div id="multiRoomCountSection" style="margin-bottom:24px; display:none;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
+              How many TVs?
+            </label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="multiRoomCount" value="3" style="margin-bottom:8px; accent-color:var(--azure);" checked>
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">3 TVs</span>
+              </label>
+              
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="multiRoomCount" value="4" style="margin-bottom:8px; accent-color:var(--azure);">
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">4 TVs</span>
+                <span style="font-size:12px; color:var(--muted);">+$100</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Mount Provider Selection -->
+          <div style="margin-bottom:24px;">
+            <label style="display:block;font-weight:700;margin-bottom:8px;color:var(--cobalt);font-size:15px;">
+              Do you have the TV mount?
+            </label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="mountProvider" value="customer" style="margin-bottom:8px; accent-color:var(--azure);" checked>
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">I have my own</span>
+                <span style="font-size:12px; color:var(--muted);">No extra cost</span>
+              </label>
+              
+              <label style="
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                padding:16px; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer;
+                transition:all 0.2s ease; text-align:center;
+              " class="mount-option">
+                <input type="radio" name="mountProvider" value="h2s" style="margin-bottom:8px; accent-color:var(--azure);">
+                <span style="font-weight:600; color:var(--ink); font-size:14px;">Provide one for me</span>
+                <span style="font-size:12px; color:var(--muted);">+$39 - $89 / mount</span>
+              </label>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="confirmTVSizeBtn" onclick="confirmTVSize()" style="
+            width:100%;
+            font-size:16px;
+            padding:16px;
+            font-weight:700;
+            background:linear-gradient(135deg, var(--cobalt) 0%, #1e40af 100%);
+            border:none;
+            border-radius:12px;
+            box-shadow:0 4px 12px rgba(37, 99, 235, 0.25);
+            transition:all 0.2s ease;
+          ">
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Add focus styles and radio selection logic
+    const style = document.createElement('style');
+    style.textContent = `
+      .mount-option:has(input:checked) {
+        border-color: var(--azure) !important;
+        background-color: #eff6ff !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    style.textContent = `
+      #tvSizeSelect:hover {
+        border-color: var(--cobalt) !important;
+        background: #ffffff !important;
+      }
+      #tvSizeSelect:focus {
+        outline: none !important;
+        border-color: var(--cobalt) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+        background: #ffffff !important;
+      }
+      #confirmTVSizeBtn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      }
+      #confirmTVSizeBtn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      #confirmTVSizeBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Store package info in modal dataset
+  modal.dataset.packageId = packageId;
+  modal.dataset.packageName = packageName;
+  modal.dataset.packagePrice = packagePrice;
+
+  // Reset form
+  byId('tvSizeSelect').value = '';
+  byId('confirmTVSizeBtn').disabled = true;
+
+  // Show modal
+  modal.style.contentVisibility = 'visible';
+  modal.classList.add('show');
+  byId('backdrop').classList.add('show');
+
+  // Show/Hide Multi-Room Count
+  const countSection = byId('multiRoomCountSection');
+  if(countSection){
+    countSection.style.display = (packageId === 'tv_multi') ? 'block' : 'none';
+  }
+
+  // Set up change listener for TV size
+  const sizeSelect = byId('tvSizeSelect');
+  sizeSelect.onchange = () => {
+    const size = sizeSelect.value;
+    const confirmBtn = byId('confirmTVSizeBtn');
+
+    if (!size) {
+      confirmBtn.disabled = true;
+      return;
+    }
+
+    confirmBtn.disabled = false;
+  };
+}
+
+window.closeTVSizeModal = function closeTVSizeModal() {
+  const modal = byId('tvSizeModal');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => { if(!modal.classList.contains('show')) modal.style.contentVisibility = 'hidden'; }, 300);
+  }
+  
+  // Only hide backdrop if no other modals are open
+  if (!byId('modal')?.classList.contains('show') && 
+      !byId('cartDrawer')?.classList.contains('open') &&
+      !byId('menuDrawer')?.classList.contains('open')) {
+    byId('backdrop').classList.remove('show');
+  }
+}
+
+window.confirmTVSize = function confirmTVSize() {
+  const modal = byId('tvSizeModal');
+  const sizeSelect = byId('tvSizeSelect');
+  
+  // New: Get mount provider
+  const mountProvider = document.querySelector('input[name="mountProvider"]:checked')?.value || 'customer';
+
+  const packageId = modal.dataset.packageId;
+  const packageName = modal.dataset.packageName;
+  const packagePrice = modal.dataset.packagePrice;
+  const tvSize = sizeSelect.value;
+
+  if (!tvSize) {
+    alert('Please select a TV size');
+    return;
+  }
+
+  // Determine team requirements (backend logic - hidden from customer)
+  let requiresTeam = false;
+  let teamRecommended = false;
+  let teamReason = '';
+
+  // Auto-assign team for large TVs (75"+)
+  if (tvSize === '75-85' || tvSize === '86+') {
+    requiresTeam = true;
+    teamReason = `Large TV (${tvSize}) - safety requirement`;
+  }
+  // Recommend team for heavy TVs (65-74")
+  else if (tvSize === '65-74') {
+    teamRecommended = true;
+    teamReason = `Heavy TV (${tvSize}) - team recommended`;
+  }
+  
+  // Determine mount quantity based on package ID
+  let mountsNeeded = 1;
+  if (packageId.includes('2pack') || packageId.includes('2-tv')) mountsNeeded = 2;
+  else if (packageId.includes('3pack') || packageId.includes('3-tv')) mountsNeeded = 3;
+  else if (packageId.includes('4pack') || packageId.includes('4-tv')) mountsNeeded = 4;
+  else if (packageId === 'tv_multi') {
+    // Read from dynamic selector
+    const countInput = document.querySelector('input[name="multiRoomCount"]:checked');
+    mountsNeeded = countInput ? parseInt(countInput.value) : 3;
+  }
+
+  // Build metadata object
+  const metadata = {
+    tv_size: tvSize,
+    requires_team: requiresTeam,
+    team_recommended: teamRecommended,
+    team_reason: teamReason,
+    min_team_size: requiresTeam ? 2 : 1,
+    mount_provider: mountProvider,
+    mounts_needed: mountsNeeded,
+    mount_source: mountProvider === 'h2s' ? 'H2S Provided (Billable)' : 'Customer Provided'
+  };
+  console.log('[TV Modal] Confirming size:', tvSize, 'with metadata:', metadata);
+
+  // Close modal FIRST
+  closeTVSizeModal();
+  
+  // Add to cart with metadata AFTER modal closes (slight delay to ensure clean state)
+  setTimeout(() => {
+    addPackageDirectToCart(packageId, packageName, packagePrice, metadata);
+
+    // Add mounts if requested (Hardware)
+    if (mountProvider === 'h2s') {
+      const mountPrice = 39; // Base hardware price
+      const existingMounts = cart.find(i => i.id === 'mount_hardware');
+      if(existingMounts){
+        existingMounts.qty += mountsNeeded;
+      } else {
+        cart.push({
+          type: 'product',
+          id: 'mount_hardware',
+          name: 'TV Wall Mount (Hardware)',
+          price: mountPrice,
+          qty: mountsNeeded,
+          metadata: { size: tvSize }
+        });
+      }
+    }
+
+    // LOGIC: 4th TV Service Upcharge (Margin Protection)
+    // Stacking 2x "2-TV Packages" ($428x2) = $856.
+    // If Multi-Room (4 TVs) is flat $699, we lose $157.
+    // Adding $100 upcharge makes it $799. Customer saves $57 vs stacking, we keep $100 margin.
+    if (packageId === 'tv_multi' && mountsNeeded === 4) {
+      const upchargeId = 'tv_multi_4th';
+      const existingUpcharge = cart.find(i => i.id === upchargeId);
+      if(!existingUpcharge){
+        cart.push({
+          type: 'service',
+          id: upchargeId,
+          name: '4th TV Add-on (Service)',
+          price: 100,
+          qty: 1,
+          metadata: { parent_package: packageId }
+        });
+      }
+    }
+
+    saveCart(); // Persist and update UI
+  }, 100);
+}
+
+window.addPackageToCart = function addPackageToCart(){
+  if(!currentPackage) return;
+  
+  const curKey = currentPackage.id || currentPackage.bundle_id;
+  const existing = cart.find(item => {
+    const itemKey = item.id || item.bundle_id;
+    return (item.type === 'package' || item.type === 'bundle') && itemKey === curKey;
+  });
+  if(existing){
+    existing.qty++;
+  }else{
+    const normalized = { ...currentPackage };
+    if(!normalized.id && normalized.bundle_id) normalized.id = normalized.bundle_id;
+    if(!normalized.bundle_id && normalized.id) normalized.bundle_id = normalized.id;
+    
+    // Use 'bundle' type for backend compatibility
+    cart.push({ type:'bundle', ...normalized, qty:1 });
+  }
+  
+  // Track add to cart
+  h2sTrack('AddToCart', {
+    product_id: currentPackage.id,
+    product_name: currentPackage.name,
+    quantity: 1,
+    price: currentPackage.price,
+    currency: 'USD'
+  });
+  
+  saveCart();
+  closeModal();
+  toggleCart();
+}
+
+// === CART MODEL ===
+function saveCart(){
+  console.log('[Cart] Saving cart with', cart.length, 'items:', cart);
+  try {
+    localStorage.setItem('h2s_cart', JSON.stringify(cart));
+    console.log('[Cart] Successfully saved to localStorage');
+  } catch(err) {
+    console.warn('Failed to save cart to localStorage (may be in private mode):', err);
+    // Cart still works in memory, just won't persist across page reloads
+  }
+  updateCartBadge();
+  paintCart();
+  syncCartToUrl();
+}
+
+function loadCart(){
+  try{ 
+    const raw = localStorage.getItem('h2s_cart');
+    console.log('[Cart] Raw localStorage data:', raw);
+    if(!raw) return [];
+    
+    const loaded = JSON.parse(raw);
+    console.log('[Cart] Parsed cart data:', loaded);
+    if(!Array.isArray(loaded)) {
+      console.warn('[Cart] Cart data is not an array, returning empty');
+      return [];
+    }
+    
+    // Migration: Fix legacy 'package' types to 'bundle'
+    loaded.forEach(item => {
+      if(item.type === 'package'){
+        item.type = 'bundle';
+        if(!item.bundle_id && item.id) item.bundle_id = item.id;
+      }
+    });
+    
+    // Clean up any stale/invalid items on load
+    // NOTE: Be tolerant of missing price values &mdash; price is authoritative from server catalog.
+    const cleaned = loaded.filter(item => {
+      const hasValidQty = Number(item.qty || 0) > 0;
+      const hasId = !!(item.id || item.service_id || item.bundle_id);
+      if(!hasValidQty || !hasId){
+        console.warn('[Cart] Removing invalid item on load (bad qty or missing id):', item);
+        return false;
+      }
+      return true;
+    });
+    
+    // If we cleaned anything, save the cleaned cart
+    if(cleaned.length !== loaded.length){
+      localStorage.setItem('h2s_cart', JSON.stringify(cleaned));
+    }
+    
+    return cleaned;
+  }catch(_){ 
+    return []; 
+  }
+}
+
+// Force reload cart from storage when page becomes visible (handles Back button)
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    console.log('[PageShow] Page restored from bfcache, reloading cart...');
+    cart = loadCart();
+    updateCartBadge();
+    paintCart();
+  }
+}, { passive: true });
+
+// Also listen for storage events (if cart changes in another tab)
+window.addEventListener('storage', (e) => {
+  if (e.key === 'h2s_cart') {
+    console.log('[Storage] Cart updated in another tab, reloading...');
+    cart = loadCart();
+    updateCartBadge();
+    paintCart();
+  }
+}, { passive: true });
+
+window.updateQuantity = function updateQuantity(idx, delta){
+  if(!cart[idx]) return;
+  
+  const newQty = (Number(cart[idx].qty)||1) + delta;
+  
+  if(newQty <= 0){
+    cart.splice(idx, 1);
+  }else{
+    cart[idx].qty = newQty;
+  }
+  
+  saveCart();
+}
+
+// === HERO REVIEW CAROUSEL ===
+let heroReviewInterval;
+let currentHeroReviewIndex = 0;
+// Initialize with fallback data IMMEDIATELY so LCP is fast
+let heroReviews = [
+    {
+      text: "Professional, on-time, and clean installation.",
+      author: "Recent Customer",
+      stars: 5
+    },
+    {
+      text: "Had 4 cameras installed. The app setup was seamless and now I have total peace of mind.",
+      author: "Mike T.",
+      stars: 5
+    },
+    {
+      text: "Quick, clean, professional. They hid all the wires perfectly. Looks like it came with the house!",
+      author: "Jennifer L.",
+      stars: 5
+    },
+    {
+      text: "Same-day service saved me! TV mounted and streaming setup done in under an hour.",
+      author: "David R.",
+      stars: 5
+    },
+    {
+      text: "The whole-home security package was a game changer. Professional install, great support.",
+      author: "Amanda K.",
+      stars: 5
+    }
+];
+
+// Fetch real reviews from Vercel endpoint (Background)
+async function loadHeroReviews() {
+  try {
+    const reviewsUrl = API.replace('/shop', '/reviews') + '?limit=5&onlyVerified=true';
+    // console.log('[Hero Reviews] Fetching from:', reviewsUrl);
+    
+    const res = await fetch(reviewsUrl, {
+      cache: 'default' // Use CDN cache
+    });
+    const data = await res.json();
+    
+    if (data.ok && data.reviews && data.reviews.length > 0) {
+      const newReviews = data.reviews.slice(0, 5).map(r => ({
+        text: r.text && r.text.trim() ? r.text.trim() : '',
+        author: r.name || 'Customer',
+        stars: r.rating || 5
+      })).filter(r => r.text.length > 0);
+      
+      if(newReviews.length > 0){
+          heroReviews = newReviews;
+          // console.log('[OK] Loaded', heroReviews.length, 'REAL hero reviews from API');
+          renderHeroReviews(); // Re-render with real data
+      }
+    }
+  } catch (err) {
+    // console.warn('[Hero Reviews] Background fetch failed, keeping fallbacks:', err);
+  }
+}
+
+function renderHeroReviews(){
+  const container = byId('heroReviews');
+  if (!container || heroReviews.length === 0) return;
+  
+  // Build review slides HTML
+  const reviewsHTML = heroReviews.map((review, index) => {
+    const hasText = review.text && review.text.trim().length > 0;
+    return `
+    <div class="hero-review-slide ${index === currentHeroReviewIndex ? 'active' : ''}" data-index="${index}">
+      <div class="hero-review-stars">${'&#9733;'.repeat(review.stars)}</div>
+      ${hasText ? `<div class="hero-review-text">"${review.text}"</div>` : ''}
+      <div class="hero-review-author">&mdash; ${review.author}</div>
+    </div>
+  `;
+  }).join('');
+  
+  const dotsHTML = heroReviews.map((_, index) => `
+    <div class="hero-review-dot ${index === currentHeroReviewIndex ? 'active' : ''}" data-index="${index}" onclick="goToHeroReview(${index})"></div>
+  `).join('');
+  
+  container.innerHTML = reviewsHTML + `<div class="hero-review-dots">${dotsHTML}</div>`;
+  
+  container.onclick = () => {
+    window.location.href = 'https://home2smart.com/reviews';
+  };
+}
+
+function initHeroReviews() {
+  // OPTIMIZATION: If static content is already present (Instant Paint), do not re-render
+  const container = document.getElementById('heroReviews');
+  const hasStaticContent = container && container.querySelector('.hero-review-slide.active');
+  if (!hasStaticContent) renderHeroReviews();
+
+  // Defer auto-rotation: start only after idle or first interaction
+  const startRotation = () => {
+    if (heroReviewInterval) clearInterval(heroReviewInterval);
+    heroReviewInterval = setInterval(nextHeroReview, 5000);
+  };
+  const interactionHandler = () => { startRotation(); window.removeEventListener('pointerdown', interactionHandler, {passive:true}); };
+  window.addEventListener('pointerdown', interactionHandler, {passive:true, once:true});
+  if('requestIdleCallback' in window){
+    requestIdleCallback(startRotation, {timeout:5000});
+  } else {
+    setTimeout(startRotation, 5000);
+  }
+
+  // Delay API fetch further (6s) to reduce network contention around LCP/TBT
+  setTimeout(() => loadHeroReviews(), 6000);
+}
+
+function nextHeroReview() {
+  currentHeroReviewIndex = (currentHeroReviewIndex + 1) % heroReviews.length;
+  showHeroReview(currentHeroReviewIndex);
+}
+
+window.goToHeroReview = function goToHeroReview(index) {
+  // Stop propagation so clicking dots doesn't navigate away
+  event?.stopPropagation();
+  
+  currentHeroReviewIndex = index;
+  showHeroReview(index);
+  
+  // Reset auto-rotate timer
+  if (heroReviewInterval) clearInterval(heroReviewInterval);
+  heroReviewInterval = setInterval(nextHeroReview, 5000);
+}
+
+function showHeroReview(index) {
+  const slides = document.querySelectorAll('.hero-review-slide');
+  const dots = document.querySelectorAll('.hero-review-dot');
+  
+  slides.forEach((slide, i) => {
+    slide.classList.toggle('active', i === index);
+  });
+  
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('active', i === index);
+  });
+}
+
+function renderReviews() {
+  const track = byId('reviewTrack');
+  const nav = byId('reviewNav');
+  
+  if (!track || !nav) {
+    // console.error('[Reviews] Carousel DOM elements not found');
+    return;
+  }
+  
+  if (allReviews.length === 0) {
+    track.innerHTML = '<p style="text-align: center; color: var(--muted); padding: 40px;">No reviews available</p>';
+    return;
+  }
+  
+  track.innerHTML = allReviews.map((review, index) => {
+    // ACTUAL API FIELD NAMES: display_name, review_text, services_selected, rating, timestamp_iso
+    const displayName = review.display_name || 'Customer';
+    const initials = displayName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    
+    const rating = Number(review.rating || 5);
+    const stars = '★'.repeat(rating);
+    const greyStars = '☆'.repeat(5 - rating);
+    
+    // Escape HTML to prevent XSS
+    const escapedName = displayName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapedText = (review.review_text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // services_selected is comma-separated string
+    const services = review.services_selected ? review.services_selected.split(',')[0].trim() : 'Smart Home Service';
+    const escapedService = services.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Format date EXACTLY like reviews page: "Jan 15, 2025" format
+    let formattedDate = '';
+    if (review.timestamp_iso) {
+      try {
+        const date = new Date(review.timestamp_iso);
+        formattedDate = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch(e) {
+        formattedDate = '';
+      }
+    }
+    
+    return `
+      <div class="review-card" data-index="${index}">
+        <div class="review-header">
+          <div class="review-avatar">${initials}</div>
+          <div class="review-meta">
+            <div class="review-name">${escapedName}</div>
+            <div class="review-stars">${stars}${greyStars}</div>
+            ${formattedDate ? `<div class="review-time">${formattedDate}</div>` : ''}
+          </div>
+        </div>
+        <p class="review-text">${escapedText}</p>
+        <div class="review-footer">
+          <div class="review-service">${escapedService}</div>
+          ${review.verified ? '<div class="review-verified">Verified Customer</div>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Create dots for pages, not individual reviews
+  const slidesPerView = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+  const totalPages = Math.ceil(allReviews.length / slidesPerView);
+  
+  nav.innerHTML = Array.from({length: totalPages}, (_, i) => 
+    `<div class="review-dot ${i === 0 ? 'active' : ''}" onclick="goToReview(${i})" aria-label="Go to page ${i + 1}"></div>`
+  ).join('');
+  
+  // (reviews rendered log stripped)
+}
+
+function startCarousel() {
+  if (reviewInterval) clearInterval(reviewInterval);
+  
+  // Only auto-rotate if we have multiple pages of reviews
+  const slidesPerView = window.innerWidth >= 1024 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+  const totalPages = Math.ceil(allReviews.length / slidesPerView);
+  
+  if (totalPages <= 1) return;
+  
+  reviewInterval = setInterval(() => {
+    // Move to next page (group of 3)
+    reviewIndex++;
+    if (reviewIndex >= totalPages) {
+      reviewIndex = 0;
+    }
+    updateCarousel();
+  }, 5000);
+  
+  // Pause on hover
+  const carousel = document.querySelector('.review-carousel');
+  if (carousel) {
+    carousel.addEventListener('mouseenter', () => {
+      if (reviewInterval) clearInterval(reviewInterval);
+    });
+    carousel.addEventListener('mouseleave', () => {
+      startCarousel();
+    });
+  }
+}
+
+window.goToReview = function goToReview(pageIndex) {
+  reviewIndex = pageIndex;
+  updateCarousel();
+  startCarousel(); // Reset timer
+};
+
+function updateCarousel() {
+  const track = byId('reviewTrack');
+  if (!track || allReviews.length === 0) return;
+  // Batch DOM writes in rAF to avoid layout thrashing
+  const vw = window.innerWidth;
+  const slidesPerView = vw >= 1024 ? 3 : vw >= 768 ? 2 : 1;
+  const totalPages = Math.ceil(allReviews.length / slidesPerView);
+  const safeIndex = Math.min(reviewIndex, totalPages - 1);
+  const offset = -safeIndex * 100;
+  requestAnimationFrame(() => {
+    track.style.transform = `translateX(${offset}%)`;
+    const dots = document.querySelectorAll('.review-dot');
+    dots.forEach((dot, i) => {
+      const active = (i === safeIndex);
+      if (active !== dot.classList.contains('active')) {
+        dot.classList.toggle('active', active);
+      }
+    });
+  });
+}
+
+// Debounced resize handler for carousel
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (allReviews.length > 0) updateCarousel();
+  }, 100);
+}, { passive: true });
+
+// Extended reviews disabled for performance; hero section links to full reviews page.
+
+function encodeCartToUrl(cartItems = cart){
+  if(!cartItems || !cartItems.length) return '';
+  return cartItems.map(item => {
+    if(item.type === 'package') return `pkg:${item.id}*${item.qty}`;
+   
+    const svc = item.service_id || '';
+    const opt = item.option_id ? `:${item.option_id}` : '';
+    return `${svc}${opt}*${item.qty}`;
+  }).join(',');
+}
+
+function decodeCartFromUrl(cartParam){
+  if(!cartParam) return [];
+  const items = String(cartParam).split(',');
+  return items.map(item => {
+    const parts = item.split('*');
+    const qty = Number(parts[1]) || 1;
+    const servicePart = parts[0];
+    
+    if(servicePart.startsWith('pkg:')){
+      const bundle_id = servicePart.replace('pkg:', '');
+      
+      // Look up actual bundle from catalog to get real price
+      const bundle = catalog.bundles?.find(b => b.bundle_id === bundle_id);
+      
+      if(!bundle){
+        console.warn('[Cart] Bundle not found in catalog:', bundle_id);
+        return null;
+      }
+      
+      return { 
+        type: 'package', 
+        id: bundle_id, 
+        name: bundle.name || bundle_id,
+        price: Number(bundle.bundle_price || 0),
+        qty 
+      };
+    }
+    
+    const [service_id, option_id] = servicePart.split(':');
+    return { service_id, qty, option_id: option_id || null };
+  }).filter(item => item !== null && (item.service_id || item.id));
+}
+
+function syncCartToUrl(){
+  // DISABLED: Cart persistence via URL causes issues on refresh
+  // Cart is saved to localStorage which is more reliable
+  // If you need shareable cart links, use a different approach
+  return;
+  
+  /* OLD CODE:
+  const url = new URL(location.href);
+  if(cart.length){
+    url.searchParams.set('cart', encodeCartToUrl());
+  }else{
+    url.searchParams.delete('cart');
+  }
+  history.replaceState({}, '', url.toString());
+  */
+}
+
+function saveUser(){
+  try {
+    localStorage.setItem('h2s_user', JSON.stringify(user||{}));
+  } catch(err) {
+    console.warn('Failed to save user to localStorage:', err);
+  }
+  renderSigninState();
+}
+
+function loadUser(){
+  try{ return JSON.parse(localStorage.getItem('h2s_user')||'{}'); }catch(_){ return {}; }
+}
+
+function updateCartBadge(){
+  const count = cart.reduce((n,l)=> n + Number(l.qty||0), 0);
+  byId('cartCount').textContent = count;
+}
+
+function cartSubtotal(lines=cart){
+  return lines.reduce((sum, ln)=>{
+    if(ln.type === 'package'){
+      return sum + (Number(ln.price||0) * Number(ln.qty||1));
+    }
+    // For future service items
+    return sum;
+  }, 0);
+}
+
+// === CART PAINT ===
+function paintCart(){
+  const items = byId('cartItems');
+  const emptyState = byId('cartEmpty');
+  const subtotal = byId('cartSubtotal');
+  const itemCount = byId('cartItemCount');
+  // (log stripped)
+  
+  if(!items || !emptyState || !subtotal) return;
+  
+  // SAFETY CHECK
+  if(!cart || !Array.isArray(cart)) cart = [];
+  
+  if(!cart.length){
+    console.log('[Cart] Cart is empty, showing empty state');
+    emptyState.hidden = false;
+    items.innerHTML = '';
+    subtotal.textContent = '$0.00';
+    if(itemCount) itemCount.textContent = '0 items';
+    return;
+  }
+  
+  console.log('[Cart] Rendering', cart.length, 'items');
+  emptyState.hidden = true;
+  
+  let cartSubtotalVal = 0;
+  let totalQty = 0;
+  
+  items.innerHTML = cart.map((item, idx) => {
+    const qty = Number(item.qty||1);
+    // Prefer server catalog price for packages; fallback to stored item.price
+    let itemPrice = Number(item.price||0);
+    if(item.type === 'package'){
+      const bundle = catalog.bundles?.find(b => b.bundle_id === item.id);
+      // Skip override for tv_multi, cam_basic, cam_standard, cam_premium to respect dynamic pricing
+      const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id);
+      if(!isDynamic && bundle && bundle.bundle_price !== undefined && bundle.bundle_price !== null){
+        itemPrice = Number(bundle.bundle_price || itemPrice || 0);
+      }
+    }
+    const itemTotal = itemPrice * qty;
+    console.log('[Cart] Rendering item:', item.name, 'qty:', qty, 'price:', itemPrice, 'total:', itemTotal);
+    
+    cartSubtotalVal += itemTotal;
+    totalQty += qty;
+    
+    // Check if this item has TV size/team metadata
+    const metadata = item.metadata || {};
+    const hasMetadata = metadata.tv_size || metadata.requires_team;
+    
+    let metadataHTML = '';
+    if (hasMetadata) {
+      metadataHTML = '<div style="margin-top:8px;padding:8px;background:#f8f9fb;border-radius:6px;font-size:12px;">';
+      
+      if (metadata.tv_size) {
+        metadataHTML += `<div style="color:var(--cobalt);font-weight:600;">📺 TV Size: ${escapeHtml(metadata.tv_size)}</div>`;
+      }
+      
+      if (metadata.requires_team) {
+        metadataHTML += `<div style="color:#856404;font-weight:700;margin-top:4px;">👥 Two-Tech Service</div>`;
+        if (metadata.team_reason) {
+          metadataHTML += `<div style="color:#856404;font-size:11px;margin-top:2px;">${escapeHtml(metadata.team_reason)}</div>`;
+        }
+      } else if (metadata.team_recommended) {
+        metadataHTML += `<div style="color:#0d47a1;font-weight:600;margin-top:4px;">💡 Two techs recommended for this size</div>`;
+      }
+      
+      metadataHTML += '</div>';
+    }
+    
+    return `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(item.name||item.id||'Item')}</div>
+          <div class="cart-item-price">${money(itemPrice)} each</div>
+          ${metadataHTML}
+          
+          <div class="cart-qty-controls">
+            <button 
+              class="cart-qty-btn"
+              onclick="updateQuantity(${idx}, -1)"
+              aria-label="Decrease quantity"
+            >&minus;</button>
+            
+            <span class="cart-qty-value">${qty}</span>
+            
+            <button 
+              class="cart-qty-btn"
+              onclick="updateQuantity(${idx}, 1)"
+              aria-label="Increase quantity"
+            >+</button>
+          </div>
+        </div>
+        
+        <div class="cart-item-right">
+          <div class="cart-item-total">${money(itemTotal)}</div>
+          <button 
+            class="cart-remove-btn"
+            onclick="removeFromCart(${idx})"
+          >Remove</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // (log stripped)
+  
+  subtotal.textContent = money(cartSubtotalVal);
+  if(itemCount) itemCount.textContent = `${totalQty} item${totalQty === 1 ? '' : 's'}`;
+  
+  // Reset raw subtotal line if it exists (will be re-enabled by updatePromoEstimate if needed)
+  const rawLine = byId('rawSubtotalLine');
+  if(rawLine) rawLine.style.display = 'none';
+  
+  renderSigninState();
+
+  // Promo code wiring (validate via backend and persist)
+  try{
+    const promoInput = byId('promoCode');
+    const promoBtn = byId('applyPromo');
+    const promoMsg = byId('promoMsg');
+    if(promoInput && promoMsg){
+      const saved = localStorage.getItem('h2s_promo_code') || '';
+      if(saved && !promoInput.value){
+        promoInput.value = saved;
+        promoMsg.textContent = 'Saved code will be applied at checkout.';
+        promoMsg.style.color = '#0b6e0b';
+      }
+    }
+    if(promoBtn){
+      promoBtn.onclick = async () => {
+        const code = (byId('promoCode')?.value || '').trim();
+        if(!code){
+          if(promoMsg){ promoMsg.textContent = 'Enter a promo code'; promoMsg.style.color = '#c33'; }
+          return;
+        }
+        const prev = promoBtn.textContent;
+        promoBtn.disabled = true; promoBtn.textContent = 'Checking…';
+        try{
+          // First validate code generically
+          const baseUrl = API.replace('/api/shop','/api/promo_validate') + '?code=' + encodeURIComponent(code);
+          const resp = await fetch(baseUrl);
+          const data = await resp.json();
+          if(!(data && data.ok && data.valid)){
+            localStorage.removeItem('h2s_promo_code');
+            if(promoMsg){ promoMsg.textContent = 'Invalid or expired code'; promoMsg.style.color = '#c33'; }
+          } else {
+            // Save and then check applicability against current cart
+            localStorage.setItem('h2s_promo_code', (data.promo?.code||code));
+            if(promoMsg){
+              const c = data.promo?.coupon||{};
+              let desc = '';
+              if(c.percent_off){ desc = `${c.percent_off}% off`; }
+              else if(c.amount_off){ desc = `${money((c.amount_off||0)/100)} off`; }
+              promoMsg.textContent = `✓ Code recognized${desc?`: ${desc}`:''}. Checking cart…`;
+              promoMsg.style.color = '#0b6e0b';
+            }
+            await updatePromoEstimate();
+          }
+        }catch(e){
+          if(promoMsg){ promoMsg.textContent = 'Could not validate code. Try again.'; promoMsg.style.color = '#c33'; }
+        }finally{
+          promoBtn.disabled = false; promoBtn.textContent = prev;
+        }
+      };
+    }
+  }catch(_){ /* ignore promo wiring errors */ }
+  
+  // Update recommendation panels
+  renderBundlePanel();
+  queueRenderRecsPanel();
+
+  // Update promo estimate whenever cart repaints
+  Promise.resolve().then(()=>{ try{ updatePromoEstimate(); }catch(_){} });
+}
+
+async function updatePromoEstimate(){
+  try{
+    const promoLine = byId('promoLine');
+    const promoAmount = byId('promoAmount');
+    const promoMsg = byId('promoMsg');
+    const cartSubtotal = byId('cartSubtotal');
+    const totalLabel = byId('totalLabel');
+    const rawLine = byId('rawSubtotalLine');
+    const rawAmount = byId('rawSubtotalAmount');
+    
+    if(!promoLine || !promoAmount) return;
+    
+    // Reset to default state first
+    if(totalLabel) totalLabel.textContent = 'Subtotal';
+    if(rawLine) rawLine.style.display = 'none';
+    // We don't reset cartSubtotal here because paintCart sets it to the raw sum
+    
+    const code = localStorage.getItem('h2s_promo_code') || '';
+    if(!code){ promoLine.style.display = 'none'; return; }
+
+    // Build line_items from current cart (ALL items including hardware/addons)
+    const line_items = (cart||[]).map(item => {
+      // Include ALL cart items (packages, bundles, hardware, addons, etc.)
+      // Skip only if we can't determine a price
+      
+      // Try to find bundle info if it's a package/bundle type
+      const bundle = (item.type === 'package' || item.type === 'bundle') 
+        ? (catalog?.bundles||[]).find(b => b.bundle_id === (item.bundle_id || item.id))
+        : null;
+      
+      // Get stripe price ID (if available)
+      const priceId = bundle?.stripe_price_id || item.stripe_price_id || 'custom';
+      
+      // Calculate unit amount (cents)
+      let unitAmount = 0;
+      
+      // For packages: check for dynamic pricing override
+      const isDynamic = ['tv_multi', 'cam_basic', 'cam_standard', 'cam_premium'].includes(item.id || item.bundle_id);
+      
+      if(bundle && !isDynamic && bundle.bundle_price !== undefined && bundle.bundle_price !== null) {
+        unitAmount = Math.round(Number(bundle.bundle_price) * 100);
+      } else {
+        // Use item price for hardware, addons, or dynamic bundles
+        unitAmount = Math.round(Number(item.price || 0) * 100);
+      }
+      
+      // Skip items with no price
+      if(!unitAmount || unitAmount <= 0) return null;
+      
+      return { price: priceId, unit_amount: unitAmount, quantity: item.qty || 1 };
+    }).filter(Boolean);
+    
+    console.log('[Promo] Built line_items for promo check:', line_items);
+    console.log('[Promo] Total items in cart:', cart.length, 'Line items built:', line_items.length);
+    
+    if(!line_items.length){ promoLine.style.display = 'none'; return; }
+
+    const resp = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __action:'promo_check_cart', promotion_code: code, line_items })});
+    const data = await resp.json();
+    
+    console.log('[Promo] Backend response:', data);
+    
+    if(data && data.ok && data.applicable && data.estimate){
+      const savingsCents = Number(data.estimate.savings_cents||0);
+      const totalCents = Number(data.estimate.total_cents||0);
+      const subtotalCents = Number(data.estimate.subtotal_cents||0);
+      
+      console.log('[Promo] Discount calculation:');
+      console.log('  - Subtotal (before discount):', money(subtotalCents/100));
+      console.log('  - Savings:', money(savingsCents/100));
+      console.log('  - Total (after discount):', money(totalCents/100));
+      console.log('  - Summary:', data.estimate.summary);
+      
+      promoAmount.textContent = '-' + money(savingsCents/100);
+      const label = byId('promoLineLabel');
+      if(label) label.textContent = `Promo (${(data.promotion_code||code).toUpperCase()})`;
+      promoLine.style.display = '';
+      
+      // Show Raw Subtotal - USE BACKEND'S SUBTOTAL for consistency
+      if(rawLine && rawAmount){
+        // Use the subtotal that the backend calculated (from line_items we sent)
+        // This ensures displayed subtotal matches what discount is calculated from
+        rawAmount.textContent = money(subtotalCents/100);
+        rawLine.style.display = 'flex';
+      }
+      
+      // Update Total
+      if(cartSubtotal) cartSubtotal.textContent = money(totalCents/100);
+      if(totalLabel) totalLabel.textContent = 'Total';
+      
+      if(promoMsg){ promoMsg.textContent = '✓ Code will apply at checkout.'; promoMsg.style.color = '#0b6e0b'; }
+    } else {
+      promoLine.style.display = 'none';
+      if(rawLine) rawLine.style.display = 'none';
+      if(promoMsg){ promoMsg.textContent = 'This code does not apply to your current items.'; promoMsg.style.color = '#c33'; }
+    }
+  }catch(_){
+    const promoLine = byId('promoLine'); if(promoLine) promoLine.style.display = 'none';
+    const rawLine = byId('rawSubtotalLine'); if(rawLine) rawLine.style.display = 'none';
+  }
+}
+
+window.removeFromCart = function removeFromCart(idx){
+  console.log('[Cart] Removing item at index:', idx);
+  try {
+    cart.splice(idx, 1);
+    saveCart();
+  } catch(e) {
+    console.error('[Cart] Error removing item:', e);
+  }
+}
+
+// === AI RECOMMENDATIONS ===
+async function loadAIRecommendations(){
+  if(!user || !user.email) return;
+  
+  // Skip if already attempted and failed
+  if(window._aiRecsAttempted) return;
+  window._aiRecsAttempted = true;
+  
+  try{
+    const res = await fetch(`${API}?action=ai_sales&email=${encodeURIComponent(user.email)}&mode=recommendations`);
+    
+    // If endpoint not found or server error, silently skip
+    if(!res.ok) {
+      console.log('[AI Recommendations] Endpoint not available (status ' + res.status + '), skipping');
+      return;
+    }
+    
+    const data = await res.json();
+    
+    if(!data.success || !data.ai_analysis || !data.ai_analysis.recommendations) return;
+    
+    const recs = data.ai_analysis.recommendations.slice(0, 3);
+    if(recs.length === 0) return;
+    
+    renderAIRecommendations(recs);
+  }catch(err){
+    console.log('[AI Recommendations] Feature not available:', err.message);
+  }
+}
+
+function renderAIRecommendations(recs){
+  const panel = byId('aiRecommendationsPanel');
+  const container = byId('aiRecommendations');
+  if(!panel || !container) return;
+  
+  const html = recs.map(rec => {
+    const service = rec.service || rec.title || 'Recommended Service';
+    const reason = rec.thought_spark || rec.reason || '';
+    const price = rec.price || 0;
+    
+    return `
+      <div class="ai-rec-card">
+        <div class="ai-rec-name">${escapeHtml(service)}</div>
+        <div class="ai-rec-reason">"${escapeHtml(reason)}"</div>
+        ${price > 0 ? `<div class="ai-rec-price" style="margin-top:8px;font-size:14px;color:var(--muted);">Starting at ${money(price)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+  panel.style.display = 'block';
+}
+
+// === BUNDLE RECOMMENDATIONS (Smart Swap) ===
+function bundlesMatchingCart(){
+  const rec = [];
+  const bundles = (catalog.bundles||[]).filter(b => b.active!==false);
+  
+  for(const b of bundles){
+    const plan = calcBundlePlan(b);
+    if(plan && plan.savings > 0) rec.push(plan);
+  }
+  
+  rec.sort((a,b)=> b.savings - a.savings);
+  return rec;
+}
+
+function calcBundlePlan(bundle){
+  const recipe = (catalog.bundleItems||[]).filter(it => String(it.bundle_id)===String(bundle.bundle_id));
+  if(!recipe.length) return null;
+
+  const use = {};
+  for(const item of recipe){
+    const need = Number(item.required_qty||0);
+    const have = cart.find(l => !l.type && String(l.service_id)===String(item.service_id));
+    if(!have || Number(have.qty||0) < need) return null;
+    use[item.service_id] = need;
+  }
+
+  let requiredCost = 0;
+  for(const item of recipe){
+    const tier = pickTier(item.service_id, Number(item.required_qty||0), null) || pickTier(item.service_id, 1, null);
+    const unit = tier ? Number(tier.unit||0) : 0;
+    requiredCost += unit * Number(item.required_qty||0);
+  }
+
+  const bundlePrice = Number(bundle.bundle_price||0);
+  const savings = Math.max(0, requiredCost - bundlePrice);
+
+  const serviceMap = indexBy((catalog.services||[]), 'service_id');
+  const lineList = recipe.map(r=>{
+    const s = serviceMap[r.service_id];
+    return `${Number(r.required_qty||0)} �&mdash; ${(s && s.name) ? s.name : r.service_id}`;
+  });
+
+  return {
+    bundle_id: bundle.bundle_id,
+    name: bundle.name || bundle.bundle_id,
+    image_url: bundle.image_url || '',
+    savings,
+    requiredCost,
+    bundlePrice,
+    use,
+    recipeList: lineList
+  };
+}
+
+function applyBundleSwap(bundle_id){
+  const plan = bundlesMatchingCart().find(p=> p.bundle_id===bundle_id);
+  if(!plan) return;
+  
+  Object.entries(plan.use).forEach(([sid, reqQty])=>{
+    const ln = cart.find(l=> !l.type && l.service_id===sid);
+    if(!ln) return;
+    ln.qty = Math.max(0, Number(ln.qty||0) - Number(reqQty||0));
+  });
+  
+  cart = cart.filter(l=> !( !l.type && Number(l.qty||0)===0 ));
+  const existing = cart.find(l=> l.type==='bundle' && l.bundle_id===bundle_id);
+  if(existing) existing.qty += 1;
+  else cart.push({ type:'bundle', bundle_id, qty:1 });
+  
+  saveCart();
+}
+
+function renderBundlePanel(){
+  const panel = byId('bundlePanel');
+  if(!panel) return;
+  
+  const suggestions = bundlesMatchingCart();
+  if(!suggestions.length){ 
+    panel.style.display='none'; 
+    panel.innerHTML=''; 
+    return; 
+  }
+
+  panel.style.display='';
+  panel.innerHTML = suggestions.map(p=>`
+    <div class="bundle-card">
+      <div class="b-head">
+        <div class="b-name">${escapeHtml(p.name)}</div>
+        <div class="b-save">Save ${money(p.savings)}</div>
+      </div>
+      <div class="b-list">${p.recipeList.map(escapeHtml).join(' &bull; ')}</div>
+      <div class="b-actions">
+        <button class="btn btn-primary" data-apply="${p.bundle_id}">Swap & Save</button>
+      </div>
+    </div>
+  `).join('');
+
+  panel.querySelectorAll('[data-apply]').forEach(btn=>{
+    btn.onclick = ()=> applyBundleSwap(btn.getAttribute('data-apply'));
+  });
+}
+
+// (Rule-based recommendations moved to bundles-extra-deferred.js)
+
+// === CHECKOUT ===
+function showCheckoutError(msg){
+  const errorDiv = byId('checkoutError');
+  const errorMsg = byId('checkoutErrorMsg');
+  const dismissBtn = byId('dismissError');
+  
+  if(errorDiv && errorMsg){
+    errorMsg.textContent = msg;
+    errorDiv.hidden = false;
+    
+    if(dismissBtn){
+      dismissBtn.onclick = ()=> errorDiv.hidden = true;
+    }
+    
+    // Auto-hide after 8 seconds
+    setTimeout(()=> errorDiv.hidden = true, 8000);
+  }
+}
+
+
+// === DEFERRED HEAVY LOGIC ===
+// Loaded only when needed (Account, Checkout, Auth)
+
+// === UTILITY FUNCTIONS FOR DEFERRED BUNDLE ===
+function escapeAttr(text) {
+  if(!text) return '';
+  return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function showMsg(elId, txt, isError = true) {
+  const el = document.getElementById(elId);
+  if(el) {
+    el.textContent = txt;
+    el.style.color = isError ? '#d32f2f' : '#2e7d32';
+  }
+}
+
+// === CHECKOUT (Deferred) ===
+// Load checkout modal logic on demand
+window.checkout = function() {
+  console.log('[Checkout] Starting checkout flow...');
+  
+  // 1. Validate Cart
+  if (!cart || cart.length === 0) {
+    alert('Your cart is empty.');
+    return;
+  }
+
+  // 2. Show Checkout Modal to collect/confirm details
+  showCheckoutModal();
+};
+
+function showCheckoutModal() {
+  const modal = document.getElementById('modal');
+  const backdrop = document.getElementById('backdrop');
+  if (!modal || !backdrop) {
+    console.error('Modal elements missing!');
+    return;
+  }
+
+  // Ensure visibility
+  modal.style.contentVisibility = 'visible';
+  modal.style.display = 'flex';
+  
+  // Pre-fill data
+  const preName = user?.name || '';
+  const preEmail = user?.email || '';
+  const prePhone = user?.phone || '';
+  
+  let preAddress = '', preCity = '', preZip = '';
+  try {
+    const pending = JSON.parse(sessionStorage.getItem('h2s_pending_account') || '{}');
+    if(pending.address) preAddress = pending.address;
+    if(pending.city) preCity = pending.city;
+    if(pending.zip) preZip = pending.zip;
+  } catch(e){}
+
+  const html = `
+    <div style="padding:32px;max-width:580px;margin:0 auto;background:white;border-radius:12px;">
+      <h2 style="margin:0 0 8px 0;color:#1e293b;font-weight:800;font-size:28px;letter-spacing:-0.02em;">Complete Your Order</h2>
+      <p style="color:#64748b;margin:0 0 28px 0;font-size:15px;line-height:1.5;">Enter your details to finalize checkout and schedule installation.</p>
+      
+      <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)" style="display:flex;flex-direction:column;gap:20px;">
+        
+        <!-- Full Name -->
+        <div>
+          <label for="coName" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Full Name</label>
+          <input 
+            type="text" 
+            id="coName" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preName)}" 
+            placeholder="Enter your full name"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
+        </div>
+        
+        <!-- Email -->
+        <div>
+          <label for="coEmail" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Email Address</label>
+          <input 
+            type="email" 
+            id="coEmail" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preEmail)}" 
+            placeholder="you@example.com"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
+        </div>
+        
+        <!-- Phone -->
+        <div>
+          <label for="coPhone" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Phone Number</label>
+          <input 
+            type="tel" 
+            id="coPhone" 
+            class="inp" 
+            required 
+            value="${escapeAttr(prePhone)}" 
+            placeholder="(864) 528-1475"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+          >
+          <p style="font-size:11px;color:#64748b;margin:6px 0 0 0;line-height:1.4;">
+            We'll use this number for appointment reminders and service updates.
+          </p>
+        </div>
+        
+        <!-- SMS Opt-in Checkbox -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
+          <label style="display:flex;align-items:start;cursor:pointer;gap:12px;">
+            <input 
+              type="checkbox" 
+              id="coSmsConsent" 
+              style="margin-top:2px;width:18px;height:18px;cursor:pointer;accent-color:#1493ff;"
+            >
+            <span style="font-size:13px;color:#334155;line-height:1.5;">
+              <strong style="color:#1e293b;">I agree to receive promotional text messages</strong> from Home2Smart about exclusive offers, new services, and special discounts. Standard message and data rates may apply. Message frequency varies. You can reply STOP to opt out at any time. This is optional and not required to complete your purchase.
+            </span>
+          </label>
+        </div>
+        
+        <!-- Service Address with Autocomplete -->
+        <div style="position:relative;z-index:10;">
+          <label for="coAddress" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">
+            Service Address
+            <span style="font-weight:400;color:#64748b;font-size:13px;margin-left:6px;">(Start typing for suggestions...)</span>
+          </label>
+          <input 
+            type="text" 
+            id="coAddress" 
+            name="address" 
+            class="inp" 
+            required 
+            value="${escapeAttr(preAddress)}" 
+            placeholder="Start typing your address..."
+            autocomplete="off" 
+            autocorrect="off" 
+            autocapitalize="off" 
+            spellcheck="false"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+            onfocus="this.style.borderColor='#1493ff';this.style.boxShadow='0 0 0 3px rgba(20,147,255,0.1)'"
+            onblur="setTimeout(() => { this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'; }, 200)"
+          >
+          <div id="addressDropdown"></div>
+        </div>
+        
+        <!-- City, State, and Zip -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;">
+          <div>
+            <label for="coCity" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">City</label>
+            <input 
+              type="text" 
+              id="coCity" 
+              name="city" 
+              class="inp" 
+              required 
+              value="${escapeAttr(preCity)}" 
+              placeholder="Greenville"
+              autocomplete="off"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
+          </div>
+          <div>
+            <label for="coState" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">State</label>
+            <input 
+              type="text" 
+              id="coState" 
+              name="state" 
+              class="inp" 
+              required 
+              value="${escapeAttr(user?.state || '')}" 
+              placeholder="SC"
+              autocomplete="off"
+              maxlength="2"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;text-transform:uppercase;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
+          </div>
+          <div>
+            <label for="coZip" style="display:block;font-weight:600;font-size:14px;margin-bottom:6px;color:#1e293b;">Zip</label>
+            <input 
+              type="text" 
+              id="coZip" 
+              name="zip" 
+              class="inp" 
+              required 
+              value="${escapeAttr(preZip)}" 
+              placeholder="29601"
+              autocomplete="off"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:15px;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+              onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
+            >
+          </div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="coError" style="color:#dc2626;font-size:14px;display:none;background:#fef2f2;padding:12px 16px;border-radius:8px;border-left:4px solid #dc2626;"></div>
+
+        <!-- Action Buttons -->
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <button 
+            type="button" 
+            class="btn btn-ghost" 
+            onclick="closeModal()" 
+            style="flex:1;padding:14px;font-size:15px;font-weight:600;border-radius:8px;background:#f1f5f9;color:#475569;border:none;cursor:pointer;transition:all 0.2s;"
+            onmouseover="this.style.background='#e2e8f0'"
+            onmouseout="this.style.background='#f1f5f9'"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="btn btn-primary" 
+            id="coSubmitBtn" 
+            style="flex:2;padding:14px;font-size:15px;font-weight:600;border-radius:8px;background:#1493ff;color:white;border:none;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.1);"
+            onmouseover="this.style.background='#0c7fd9';this.style.boxShadow='0 4px 12px rgba(20,147,255,0.4)'"
+            onmouseout="this.style.background='#1493ff';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)'"
+          >
+            Proceed to Payment →
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  // Replace modal content
+  const modalContent = modal.querySelector('.modal-content');
+  if(modalContent) {
+    modalContent.innerHTML = html;
+  } else {
+    modal.innerHTML = `<div class="modal-content">${html}</div>`;
+  }
+
+  modal.classList.add('show');
+  backdrop.classList.add('show');
+  document.body.style.overflow = 'hidden'; // Lock scroll
+  
+  // Initialize address autocomplete after modal renders
+  setTimeout(() => {
+    setupAddressAutocomplete();
+    
+    // Focus first empty field
+    if(!document.getElementById('coName').value) {
+      document.getElementById('coName').focus();
+    } else if(!document.getElementById('coAddress').value) {
+      document.getElementById('coAddress').focus();
+    }
+  }, 100);
+}
+
+// BRAND NEW ADDRESS AUTOCOMPLETE SYSTEM
+function setupAddressAutocomplete() {
+  const addressInput = document.getElementById('coAddress');
+  const dropdown = document.getElementById('addressDropdown');
+  const cityInput = document.getElementById('coCity');
+  const zipInput = document.getElementById('coZip');
+  
+  if (!addressInput || !dropdown) {
+    console.error('[Autocomplete] Required elements not found');
+    return;
+  }
+  
+  // Style the dropdown with better visibility
+  const isMobile = window.innerWidth < 768;
+  dropdown.style.cssText = `
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px -10px rgba(0,0,0,0.15), 0 0 10px -5px rgba(0,0,0,0.05);
+    max-height: ${isMobile ? '260px' : '320px'};
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 99999;
+    display: none;
+    padding: 6px 0;
+  `;
+  
+  // Prevent scroll propagation from dropdown to modal/body
+  dropdown.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+  }, { passive: false });
+  dropdown.addEventListener('touchmove', (e) => {
+    e.stopPropagation();
+  }, { passive: false });
+  dropdown.addEventListener('wheel', (e) => {
+    e.stopPropagation();
+  });
+  
+  console.log('[Autocomplete] Dropdown styled and ready');
+  
+  let debounceTimer;
+  let suggestions = [];
+  
+  // Handle typing
+  addressInput.addEventListener('input', function() {
+    const query = this.value.trim();
+    
+    console.log('[Autocomplete] Input changed:', query);
+    
+    clearTimeout(debounceTimer);
+    
+    if (query.length < 3) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      console.log('[Autocomplete] Query too short, hiding dropdown');
+      return;
+    }
+    
+    console.log('[Autocomplete] Waiting 300ms before searching...');
+    
+    debounceTimer = setTimeout(async () => {
+      console.log('[Autocomplete] Fetching suggestions for:', query);
+      try {
+        const apiUrl = `https://h2s-backend.vercel.app/api/address_autocomplete?input=${encodeURIComponent(query)}`;
+        console.log('[Autocomplete] Calling:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+        console.log('[Autocomplete] Response status:', response.status, response.statusText);
+        
+        const contentType = response.headers.get('content-type');
+        console.log('[Autocomplete] Content-Type:', contentType);
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('[Autocomplete] Expected JSON but got:', text.substring(0, 200));
+          dropdown.style.display = 'none';
+          return;
+        }
+        
+        const data = await response.json();
+        
+        console.log('[Autocomplete] API Response:', data);
+        
+        if (data.ok && data.predictions && data.predictions.length > 0) {
+          suggestions = data.predictions;
+          
+          console.log('[Autocomplete] Found', suggestions.length, 'suggestions');
+          
+          dropdown.innerHTML = suggestions.map((pred, idx) => `
+            <div 
+              class="address-option" 
+              data-idx="${idx}"
+              style="
+                padding: 14px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 14px;
+                color: #1e293b;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.15s;
+              "
+              onmouseover="this.style.background='#f8fafc'"
+              onmouseout="this.style.background='white'"
+            >
+              <span style="font-size:16px;">📍</span>
+              <span>${escapeHtml(pred.description)}</span>
+            </div>
+          `).join('');
+          
+          dropdown.style.display = 'block';
+          console.log('[Autocomplete] Dropdown displayed with', suggestions.length, 'items');
+          
+          // Click handlers
+          dropdown.querySelectorAll('.address-option').forEach(el => {
+            el.addEventListener('click', function() {
+              const idx = parseInt(this.dataset.idx);
+              selectAddress(suggestions[idx]);
+            });
+          });
+          
+        } else {
+          dropdown.style.display = 'none';
+          console.log('[Autocomplete] No suggestions found');
+        }
+      } catch (error) {
+        console.error('[Autocomplete] Error:', error);
+        dropdown.style.display = 'none';
+      }
+    }, 300);
+  });
+  
+  // Hide dropdown when clicking outside or losing focus
+  addressInput.addEventListener('blur', function() {
+    // Delay to allow click events to fire on dropdown items
+    setTimeout(() => {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    }, 200);
+  });
+  
+  // Clear dropdown when form is submitted
+  const checkoutForm = document.getElementById('checkoutForm');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function() {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+    });
+  }
+  
+  // Select address
+  function selectAddress(prediction) {
+    const comp = prediction.components || {};
+    
+    // Set street address
+    if (comp.street_number && comp.street) {
+      addressInput.value = `${comp.street_number} ${comp.street}`;
+    } else {
+      const parts = prediction.description.split(',');
+      addressInput.value = parts[0]?.trim() || prediction.description;
+    }
+    
+    // Auto-fill city
+    if (comp.city && cityInput) {
+      cityInput.value = comp.city;
+    }
+    
+    // Auto-fill state
+    const stateInput = document.getElementById('coState');
+    if (comp.state && stateInput) {
+      stateInput.value = comp.state.toUpperCase();
+    }
+    
+    // Auto-fill zip
+    if (comp.zip && zipInput) {
+      zipInput.value = comp.zip;
+    }
+    
+    // Clear and hide dropdown
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    
+    console.log('[Autocomplete] Selected:', {
+      address: addressInput.value,
+      city: cityInput.value,
+      state: stateInput?.value,
+      zip: zipInput.value
+    });
+  }
+  
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  // Keyboard navigation
+  addressInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  });
+  
+  console.log('[Autocomplete] ✓ Initialized');
+}
+
+window.handleCheckoutSubmit = async function(e) {
+  e.preventDefault();
+  
+  const btn = document.getElementById('coSubmitBtn');
+  const errEl = document.getElementById('coError');
+  
+  // Gather data
+  const name = document.getElementById('coName').value.trim();
+  const email = document.getElementById('coEmail').value.trim();
+  const phone = document.getElementById('coPhone').value.trim();
+  const address = document.getElementById('coAddress').value.trim();
+  const city = document.getElementById('coCity').value.trim();
+  const state = document.getElementById('coState').value.trim().toUpperCase();
+  const zip = document.getElementById('coZip').value.trim();
+  const smsConsent = document.getElementById('coSmsConsent')?.checked || false;
+
+  if(!name || !email || !phone || !address || !city || !state || !zip) {
+    if(errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // UI Loading state
+  if(btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Processing...'; }
+  if(errEl) errEl.style.display = 'none';
+
+  try {
+    // Prepare Line Items
+    const line_items = cart.map(item => {
+      // 3. Handle Special Items (Hardware/Upcharges) - Handled by backend directly
+      if (item.id === 'mount_hardware' || item.id === 'tv_multi_4th') {
+        return { price: 'special_item', quantity: item.qty || 1 };
+      }
+
+      let priceId = item.stripe_price_id;
+      
+      // 1. Handle Bundles/Packages
+      if(!priceId && (item.type === 'package' || item.type === 'bundle')) {
+        const id = item.id || item.bundle_id;
+        const b = catalog.bundles.find(x => x.bundle_id === id);
+        if(b) priceId = b.stripe_price_id;
+      }
+
+      // 2. Handle Services (fallback if not a bundle)
+      if(!priceId && item.service_id && catalog.priceTiers) {
+        const qty = Number(item.qty || 1);
+        const tiers = catalog.priceTiers.filter(t => t.service_id === item.service_id);
+        // Find matching tier (simple logic: min <= qty <= max)
+        const tier = tiers.find(t => {
+          const min = Number(t.min_qty || 0);
+          const max = (t.max_qty === '' || t.max_qty == null) ? Infinity : Number(t.max_qty);
+          return qty >= min && qty <= max;
+        });
+        if(tier) priceId = tier.stripe_price_id;
+      }
+      
+      if(!priceId) {
+        console.warn('Item missing price ID (skipping):', item);
+        return null;
+      }
+      
+      return {
+        price: priceId,
+        quantity: item.qty || 1
+      };
+    }).filter(Boolean);
+
+    if(line_items.length === 0) {
+      throw new Error('No valid items in cart. Please refresh and try again.');
+    }
+
+    // Promo Code
+    const promoCode = localStorage.getItem('h2s_promo_code');
+
+    // Payload
+    const payload = {
+      __action: 'create_checkout_session',
+      cart: cart.map(item => {
+        // FIX: Handle items that exist as BOTH Bundle and Service Tier (e.g. starter-smart-home)
+        // If it has an option_id (like 'H2S' or 'BYO'), it MUST be treated as a service to get the right price.
+        if (item.option_id) {
+          return {
+            service_id: item.id || item.bundle_id || item.service_id,
+            option_id: item.option_id,
+            qty: item.qty || 1
+          };
+        }
+        
+        // Otherwise, treat as a standard bundle
+        if ((item.type === 'package' || item.type === 'bundle') && item.id && !item.bundle_id) {
+          return { ...item, bundle_id: item.id };
+        }
+        return item;
+      }),
+      customer: {
+        name: name,
+        email: email,
+        phone: phone
+      },
+      success_url: 'https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: window.location.href,
+      metadata: {
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        service_address: address,
+        service_city: city,
+        service_state: state,
+        service_zip: zip,
+        sms_marketing_consent: smsConsent ? 'yes' : 'no',
+        sms_consent_timestamp: new Date().toISOString(),
+        source: 'shop_rebuilt'
+      }
+    };
+
+    if(promoCode) payload.promotion_code = promoCode;
+    
+    // IMPORTANT: Store SMS consent separately for compliance
+    if(smsConsent) {
+      try {
+        await fetch('https://h2s-backend.vercel.app/api/sms-consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            phone: phone,
+            consented_at: new Date().toISOString(),
+            consent_type: 'marketing',
+            source: 'checkout_form'
+          })
+        });
+        console.log('[SMS Consent] ✓ Consent recorded');
+      } catch(err) {
+        console.warn('[SMS Consent] Failed to record:', err);
+        // Don't block checkout if consent recording fails
+      }
+    }
+
+    console.log('[Checkout] Sending payload:', payload);
+
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    
+    if(!data.ok) {
+      throw new Error(data.error || 'Server returned error');
+    }
+
+    if(data.pay && data.pay.session_url) {
+      // Save user data for next time
+      try {
+        localStorage.setItem('h2s_guest_checkout', JSON.stringify({ name, email, phone, address, city, state, zip }));
+        if(!user.email) {
+          // Update local user object if guest
+          user = { name, email, phone };
+          saveUser();
+        }
+      } catch(e){}
+
+      // Success! Redirect.
+      window.location.href = data.pay.session_url;
+    } else {
+      throw new Error('No session URL in response');
+    }
+
+  } catch (err) {
+    console.error('[Checkout] Error:', err);
+    if(errEl) {
+      errEl.textContent = 'Checkout failed: ' + err.message;
+      errEl.style.display = 'block';
+    }
+    if(btn) { btn.disabled = false; btn.textContent = 'Proceed to Payment'; }
+  }
+};
+
+// Diagnostics: run a dry checkout to identify failures
+window.__runDiagnoseCheckout = async function(){
+  const errEl = document.getElementById('coError') || document.getElementById('cartMsg');
+  const showErr = (msg) => {
+    if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; }
+    console.error('[Diagnose] ' + msg);
+  };
+
+  if(!Array.isArray(cart) || cart.length===0){
+    return showErr('Cart is empty. Add at least one item.');
+  }
+
+  try{
+    const line_items = cart.map(item => {
+      let priceId = item.stripe_price_id;
+      if(!priceId && (item.type === 'package' || item.type === 'bundle')){
+        const id = item.id || item.bundle_id;
+        const b = catalog?.bundles?.find(x => x.bundle_id === id);
+        if(b) priceId = b.stripe_price_id;
+      }
+      if(!priceId && item.service_id && catalog?.priceTiers){
+        const qty = Number(item.qty || 1);
+        const tiers = catalog.priceTiers.filter(t => t.service_id === item.service_id);
+        const tier = tiers.find(t => {
+          const min = Number(t.min_qty || 0);
+          const max = (t.max_qty === '' || t.max_qty == null) ? Infinity : Number(t.max_qty);
+          return qty >= min && qty <= max;
+        });
+        if(tier) priceId = tier.stripe_price_id;
+      }
+      if(!priceId){
+        console.warn('[Diagnose] Missing price ID for item:', item);
+        return null;
+      }
+      return { price: priceId, quantity: item.qty || 1 };
+    }).filter(Boolean);
+
+    if(line_items.length===0){
+      return showErr('No valid Stripe price IDs found for cart items.');
+    }
+
+    const payload = {
+      __action: 'create_checkout_session',
+      line_items,
+      customer_email: user?.email || 'guest@example.com',
+      success_url: 'https://home2smart.com/bundles?view=shopsuccess&session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: window.location.href,
+      metadata: { source: 'shop_rebuilt_diagnose' },
+      diagnose: true
+    };
+
+    console.log('[Diagnose] Payload preview:', payload);
+    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const text = await res.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch(e){ console.warn('[Diagnose] Non-JSON response:', text); }
+
+    console.log('[Diagnose] Response status:', res.status);
+    console.log('[Diagnose] Response body:', data.ok ? data : text);
+
+    if(!res.ok){
+      return showErr('Backend HTTP error ' + res.status + '. Body: ' + (text||''));
+    }
+    if(!data.ok){
+      return showErr('Backend returned error: ' + (data.error||'Unknown error'));
+    }
+    if(!(data.pay && data.pay.session_url)){
+      return showErr('No session_url from backend. Check Stripe session creation.');
+    }
+    console.log('✓ Diagnose OK. session_url:', data.pay.session_url);
+    if(errEl){ errEl.style.display = 'none'; }
+  }catch(err){
+    showErr('Diagnose failed: ' + err.message);
+  }
+};
+
+function showCheckoutError(msg){
+  const el = document.getElementById('cartMsg');
+  const btn = document.getElementById('checkoutBtn');
+  if(el) {
+    el.textContent = msg;
+    el.style.color = '#d32f2f';
+  }
+  if(btn) {
+    btn.disabled = false;
+    btn.textContent = 'Checkout';
+  }
+  alert(msg);
+}
+
+// === SHOP SUCCESS ===
+window.renderShopSuccess = async function(){
+  console.log('[renderShopSuccess] Function called');
+  const params = new URL(location.href).searchParams;
+  const sessionId = params.get('session_id') || params.get('stripe_session_id') || '';
+  console.log('[renderShopSuccess] Session ID:', sessionId);
+
+  let order = {
+    order_id:           params.get('order_id') || '',
+    stripe_session_id:  sessionId,
+    order_created_at:   params.get('order_created_at') || new Date().toISOString(),
+    order_source:       params.get('order_source') || '/shop',
+    order_total:        params.get('order_total') || '',
+    order_subtotal:     params.get('order_subtotal') || '',
+    order_tax:          params.get('order_tax') || '',
+    order_fees:         params.get('order_fees') || '',
+    order_currency:     params.get('order_currency') || 'USD',
+    order_discount_code:   params.get('order_discount_code') || '',
+    order_discount_amount: params.get('order_discount_amount') || '',
+    order_item_count:   params.get('order_item_count') || '',
+    order_summary:      params.get('order_summary') || '',
+    order_lines_json:   params.get('order_lines_json') || '',
+    bundle_applied:     params.get('bundle_applied') || '',
+    membership_plan:    params.get('membership_plan') || '',
+    utm_source:   params.get('utm_source') || '',
+    utm_medium:   params.get('utm_medium') || '',
+    utm_campaign: params.get('utm_campaign') || '',
+    utm_term:     params.get('utm_term') || '',
+    utm_content:  params.get('utm_content') || ''
+  };
+
+  // PRIORITY 1: Mark session as success_redirect in backend
+  if(sessionId){
+    try{
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          __action: 'mark_session',
+          session_id: sessionId,
+          status: 'success_redirect',
+          note: 'User returned from Stripe at ' + new Date().toISOString()
+        })
+      });
+      console.log('✓ Marked session as success_redirect:', sessionId);
+    }catch(err){
+      console.error('Failed to mark session:', err);
+    }
+  }
+
+  // PRIORITY 2: Fetch authoritative order data from backend
+  if(sessionId){
+    try{
+      const res = await fetch(`${API}?action=orderpack&session_id=${sessionId}`);
+      const data = await res.json();
+      if(data.ok && data.summary){
+        console.log('✓ Fetched order pack from backend:', data.summary.order_id);
+        order.order_id = data.summary.order_id || sessionId;
+        order.order_total = typeof data.summary.total === 'number' ? String(data.summary.total.toFixed(2)) : (data.summary.total || '');
+        order.order_subtotal = typeof data.summary.subtotal === 'number' ? String(data.summary.subtotal.toFixed(2)) : (data.summary.subtotal || '');
+        order.order_currency = data.summary.currency || 'USD';
+        order.order_item_count = String(data.lines?.length || 0);
+        order.order_created_at = data.summary.created_at || order.order_created_at;
+        order.order_discount_code = data.summary.discount_code || '';
+        order.order_discount_amount = data.summary.discount_amount || '';
+        
+        // Build summary from line items
+        const parts = [];
+        (data.lines||[]).forEach(l => {
+          if(String(l.line_type||'') === 'bundle'){
+            const bundleName = l.bundle_id || 'Bundle';
+            parts.push(`${Number(l.qty||1)}× ${bundleName}`);
+          }else{
+            const serviceName = l.service_id || 'Service';
+            parts.push(`${Number(l.qty||0)}× ${serviceName}`);
+          }
+        });
+        order.order_summary = parts.join(' | ');
+      }
+    }catch(err){
+      console.error('Failed to fetch order pack:', err);
+    }
+  }
+
+  // Fallback to snapshot if backend fetch failed
+  if(!order.order_id || !order.order_summary){
+    try{
+      const snap = JSON.parse(localStorage.getItem('h2s_checkout_snapshot') || '{}');
+      if(Array.isArray(snap.cart)){
+        console.log('⚠ Using localStorage fallback for order data');
+        if(!order.order_item_count) order.order_item_count = String(snap.cart.reduce((n,l)=> n + Number(l.qty||0), 0));
+        if(!order.order_subtotal) order.order_subtotal = typeof snap.subtotal === 'number' ? String(snap.subtotal.toFixed(2)) : '';
+        if(!order.order_currency) order.order_currency = snap.currency || 'USD';
+        
+        if(!order.order_summary){
+          const parts = [];
+          snap.cart.forEach(l=>{
+            if(l.type==='package'){
+              parts.push(`${Number(l.qty||1)}× ${l.name||'Package'}`);
+            }else{
+              parts.push(`${Number(l.qty||0)}× ${l.service_id||'Service'}`);
+            }
+          });
+          order.order_summary = parts.join(' | ');
+        }
+        
+        if(!order.order_lines_json) order.order_lines_json = encodeURIComponent(JSON.stringify(snap.cart||[]));
+        if(!order.order_created_at) order.order_created_at = snap.created_at || new Date().toISOString();
+        if(!order.order_source) order.order_source = snap.source || '/shop';
+        
+        if(!order.order_id){
+          order.order_id = sessionId || '';
+        }
+      }
+    }catch(err){
+      console.error('Failed to parse localStorage snapshot:', err);
+    }
+  }
+
+  const prettyTotal = order.order_total ? money(Number(order.order_total)) : '$0.00';
+  const displayOrderId = order.order_id || sessionId || 'N/A';
+  const shortOrderId = displayOrderId.length > 20 ? displayOrderId.substring(0, 20) + '...' : displayOrderId;
+
+  cart = [];
+  saveCart();
+  localStorage.removeItem('h2s_checkout_snapshot');
+  localStorage.removeItem('h2s_promo_code');
+
+  h2sTrack('Purchase', {
+    order_id: displayOrderId,
+    value: order.order_total || order.order_subtotal || '0',
+    currency: order.order_currency || 'USD',
+    num_items: order.order_item_count || '0'
+  });
+
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form" style="max-width: 720px; margin: 60px auto 40px;">
+      <!-- Success Header -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 style="margin: 0 0 8px 0; font-weight: 900; font-size: 28px; color: var(--cobalt);">Order Confirmed!</h2>
+        <p style="margin: 0; color: var(--muted); font-size: 15px;">Thank you for choosing Home2Smart</p>
+      </div>
+
+      <!-- Order Details Card -->
+      <div style="background: #f8f9fb; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 800; color: var(--cobalt); text-transform: uppercase; letter-spacing: 0.5px;">Order Details</h3>
+        
+        <div class="details-grid" style="display: grid; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Order ID</span>
+            <span style="font-family: monospace; font-size: 13px; color: var(--cobalt); font-weight: 700; word-break: break-all; max-width: 60%; text-align: right;" title="${escapeHtml(displayOrderId)}">${escapeHtml(shortOrderId)}</span>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Items</span>
+            <span style="font-weight: 700; color: var(--ink); font-size: 14px; text-align: right;">${escapeHtml(order.order_summary || (order.order_item_count ? `${order.order_item_count} item${order.order_item_count === '1' ? '' : 's'}` : 'Installation Service'))}</span>
+          </div>
+          
+          ${order.order_discount_code ? `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Promo Applied</span>
+            <span style="font-weight: 700; color: #059669; font-size: 14px; font-family: monospace;">${escapeHtml(order.order_discount_code)}</span>
+          </div>
+          ` : ''}
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0 0;">
+            <span style="font-weight: 800; color: var(--ink); font-size: 16px;">Total Paid</span>
+            <span style="font-weight: 900; color: var(--cobalt); font-size: 22px;">${escapeHtml(prettyTotal)} <span style="font-size: 14px; font-weight: 600; color: var(--muted);">${escapeHtml(order.order_currency?.toUpperCase() || 'USD')}</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Step: Native Scheduling -->
+      <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #93c5fd; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="width: 32px; height: 32px; background: var(--cobalt); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--cobalt);">📅 Schedule Your Installation</h3>
+        </div>
+        <p style="margin: 0; color: #1e3a8a; font-size: 14px; line-height: 1.6;">Pick a date from the calendar, then choose your preferred time window.</p>
+        
+        <!-- Calendar Grid -->
+        <div id="calendarWidget" style="background: white; border-radius: 8px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"></div>
+        
+        <!-- Time Window Selection (appears after date selected) -->
+        <div id="timeWindowSection" style="display:none; margin-top:16px;">
+          <label style="display:block; font-weight:600; font-size:14px; margin-bottom:8px; color:var(--ink);">Select Time Window</label>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
+            <button class="time-slot-btn" data-window="9:00 AM - 12:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">9AM - 12PM</button>
+            <button class="time-slot-btn" data-window="12:00 PM - 3:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">12PM - 3PM</button>
+            <button class="time-slot-btn" data-window="3:00 PM - 6:00 PM" style="padding:12px; border:2px solid var(--border); border-radius:8px; background:white; cursor:pointer; font-weight:600; transition: all 0.2s;">3PM - 6PM</button>
+          </div>
+        </div>
+        
+        <div style="display:flex; gap:12px; margin-top:16px;">
+          <button class="btn btn-primary" id="confirmApptBtn" style="min-width: 160px; opacity: 0.5; pointer-events: none;">Confirm Appointment</button>
+        </div>
+        <div id="schedMsg" class="help" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <button class="btn btn-ghost" id="backToShop" style="min-width: 160px;">← Back to Shop</button>
+        <a href="tel:864-528-1475" class="btn btn-secondary" style="min-width: 160px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📞 Call Support</a>
+      </div>
+      
+      <!-- Guidance / Next Steps -->
+      <div style="margin-top: 32px; text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+        <p style="color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0;">
+          We'll reach out shortly via email and SMS to confirm your details.<br>
+          If you have any questions, please check your email for next steps.
+        </p>
+      </div>
+    </section>
+  `;
+  
+  // Show outlet now that content is rendered
+  outlet.style.opacity = '1';
+  outlet.style.visibility = 'visible';
+
+  byId('backToShop').onclick = ()=> navSet({view:null});
+  
+  // Build visual calendar
+  let selectedDate = null;
+  let selectedWindow = null;
+  
+  function renderCalendar() {
+    const cal = byId('calendarWidget');
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const today = now.getDate();
+    const currentHour = now.getHours(); // Track current time for slot validation
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    let html = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h4 style="margin:0; font-size:16px; font-weight:800; color:var(--cobalt);">${monthNames[currentMonth]} ${currentYear}</h4>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; text-align:center;">
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Sun</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Mon</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Tue</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Wed</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Thu</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Fri</div>
+        <div style="font-size:11px; font-weight:700; color:var(--muted); padding:6px 0;">Sat</div>
+    `;
+    
+    // Empty cells before first day
+    for(let i = 0; i < firstDay; i++) {
+      html += `<div></div>`;
+    }
+    
+    // Days of month - mobile optimized sizing
+    const isMobile = window.innerWidth < 768;
+    for(let day = 1; day <= daysInMonth; day++) {
+      const isPast = day <= today; // Block today AND past days (only allow tomorrow+)
+      const isToday = day === today;
+      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      if(isPast) {
+        html += `<div style="padding:${isMobile ? '8px 4px' : '12px'}; color:#ccc; font-size:${isMobile ? '13px' : '14px'};">${day}</div>`;
+      } else {
+        const style = isToday 
+          ? `padding:${isMobile ? '8px 4px' : '12px'}; border:2px solid var(--cobalt); border-radius:8px; cursor:pointer; font-weight:700; font-size:${isMobile ? '13px' : '14px'}; color:var(--cobalt); transition: all 0.2s; min-height:${isMobile ? '36px' : '44px'}; display:flex; align-items:center; justify-content:center;`
+          : `padding:${isMobile ? '8px 4px' : '12px'}; border:2px solid transparent; border-radius:8px; cursor:pointer; font-size:${isMobile ? '13px' : '14px'}; transition: all 0.2s; min-height:${isMobile ? '36px' : '44px'}; display:flex; align-items:center; justify-content:center;`;
+        html += `<div class="cal-day" data-date="${dateStr}" style="${style}" ontouchstart="" onmouseover="this.style.borderColor='var(--azure)'; this.style.background='#f0f9ff';" onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='transparent'; this.style.background='white'; }">${day}</div>`;
+      }
+    }
+    
+    html += `</div>`;
+    cal.innerHTML = html;
+    
+    // Click handlers
+    document.querySelectorAll('.cal-day').forEach(dayEl => {
+      dayEl.onclick = () => {
+        selectedDate = dayEl.getAttribute('data-date');
+        document.querySelectorAll('.cal-day').forEach(d => {
+          d.classList.remove('selected');
+          d.style.background = 'white';
+          d.style.borderColor = 'transparent';
+          d.style.color = 'inherit';
+        });
+        dayEl.classList.add('selected');
+        dayEl.style.background = 'var(--azure)';
+        dayEl.style.borderColor = 'var(--azure)';
+        dayEl.style.color = 'white';
+        
+        byId('timeWindowSection').style.display = 'block';
+        selectedWindow = null;
+        
+        // Reset all slots and check if any should be disabled based on current time
+        const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const isTomorrow = selectedDateObj.getTime() === tomorrow.getTime();
+        const currentHour = new Date().getHours();
+        
+        document.querySelectorAll('.time-slot-btn').forEach(b => {
+          const window = b.getAttribute('data-window');
+          let isDisabled = false;
+          
+          // Disable time slots that have already passed if booking for tomorrow
+          if (isTomorrow) {
+            if (window === '9:00 AM - 12:00 PM' && currentHour >= 12) isDisabled = true;
+            if (window === '12:00 PM - 3:00 PM' && currentHour >= 15) isDisabled = true;
+            if (window === '3:00 PM - 6:00 PM' && currentHour >= 18) isDisabled = true;
+          }
+          
+          if (isDisabled) {
+            b.style.borderColor = '#e5e7eb';
+            b.style.background = '#f9fafb';
+            b.style.color = '#9ca3af';
+            b.style.cursor = 'not-allowed';
+            b.style.opacity = '0.5';
+            b.disabled = true;
+          } else {
+            b.style.borderColor = 'var(--border)';
+            b.style.background = 'white';
+            b.style.color = 'inherit';
+            b.style.cursor = 'pointer';
+            b.style.opacity = '1';
+            b.disabled = false;
+          }
+        });
+        
+        byId('confirmApptBtn').style.opacity = '0.5';
+        byId('confirmApptBtn').style.pointerEvents = 'none';
+      };
+    });
+  }
+  
+  renderCalendar();
+  
+  // Time slot selection
+  document.querySelectorAll('.time-slot-btn').forEach(btn => {
+    btn.onclick = () => {
+      // Prevent clicking disabled slots
+      if (btn.disabled) return;
+      
+      selectedWindow = btn.getAttribute('data-window');
+      document.querySelectorAll('.time-slot-btn').forEach(b => {
+        if (!b.disabled) {
+          b.style.borderColor = 'var(--border)';
+          b.style.background = 'white';
+          b.style.color = 'inherit';
+        }
+      });
+      btn.style.borderColor = 'var(--azure)';
+      btn.style.background = 'var(--azure)';
+      btn.style.color = 'white';
+      
+      const confirmBtn = byId('confirmApptBtn');
+      confirmBtn.style.opacity = '1';
+      confirmBtn.style.pointerEvents = 'auto';
+    };
+  });
+  
+  const confirmBtn = byId('confirmApptBtn');
+  const schedMsg = byId('schedMsg');
+  if(confirmBtn){
+    confirmBtn.onclick = async ()=>{
+      if(!selectedDate || !selectedWindow){
+        if(schedMsg){ schedMsg.style.color = '#c33'; schedMsg.textContent = 'Select a date and time window.'; }
+        return;
+      }
+      confirmBtn.disabled = true; const prev = confirmBtn.textContent; confirmBtn.textContent = 'Saving…';
+      try{
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+        // Always use Stripe checkout session_id for backend lookup
+        const params = new URL(location.href).searchParams;
+        const sessionId = params.get('session_id') || params.get('stripe_session_id') || '';
+        const stableId = sessionId || displayOrderId;
+        const [startLabel, endLabel] = selectedWindow.split(' - ');
+        const toIso = (label)=>{
+          const d = new Date(`${selectedDate} ${label}`);
+          return d.toISOString();
+        };
+        const startIso = toIso(startLabel);
+        const endIso   = toIso(endLabel);
+        console.log('[Schedule] Sending payload', { order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz });
+        let resp;
+        try {
+          resp = await fetch(APIV1, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ order_id: stableId, delivery_date: selectedDate, delivery_time: selectedWindow, start_iso: startIso, end_iso: endIso, timezone: tz })
+          });
+        } catch (netErr) {
+          console.error('[Schedule] Network error:', netErr);
+          throw new Error('Network error: ' + netErr.message + '. Please check your connection.');
+        }
+        
+        let data;
+        try {
+          data = await resp.json();
+        } catch (jsonErr) {
+          console.error('[Schedule] JSON parse error:', jsonErr);
+          throw new Error('Invalid server response');
+        }
+
+        if(!resp.ok || !data.ok){ throw new Error(data.error||('HTTP '+resp.status)); }
+        if(schedMsg){ schedMsg.style.color = '#0b6e0b'; schedMsg.textContent = '✓ Appointment scheduled. Check your email for confirmation.'; }
+      }catch(err){
+        if(schedMsg){ schedMsg.style.color = '#c33'; schedMsg.textContent = 'Failed to schedule: ' + err.message; }
+        console.error('[Schedule] Failed to schedule', err);
+      }finally{
+        confirmBtn.disabled = false; confirmBtn.textContent = prev;
+      }
+    };
+  }
+};
+
+window.handleCalReturn = async function(){
+  const order_id = getParam('order_id') || '';
+  const startIso = getParam('start') || '';
+
+  byId('outlet').innerHTML = `
+    <section class="form">
+      <h2 style="margin:0 0 10px 0;font-weight:900">Saving your appointment…</h2>
+      <div class="help">Just a moment.</div>
+    </section>
+  `;
+
+  try{
+    // Get customer email from signed-in user, URL params, or guest checkout data
+    let email = user?.email || getParam('email') || '';
+    
+    if(!email){
+      try{
+        const guestData = JSON.parse(localStorage.getItem('h2s_guest_checkout') || '{}');
+        email = guestData.email || '';
+      }catch(e){}
+    }
+    
+    if(!email){
+      throw new Error('Missing customer email. Please sign in or complete checkout.');
+    }
+    
+    if(!startIso){
+      throw new Error('Missing appointment time.');
+    }
+    
+    const res = await fetch(APIV1, {
+      method:'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        order_id: order_id || '',
+        email: email,
+        install_at: startIso || '',
+        install_end_at: getParam('end') || '',
+        timezone: getParam('tz') || ''
+      })
+    });
+    
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || 'Failed to save appointment');
+    
+    console.log('✅ Appointment saved, job creation triggered');
+    console.log('Job ID:', data.job_id);
+    
+    // Clear guest checkout data after successful booking
+    localStorage.removeItem('h2s_guest_checkout');
+    
+    // Show success message
+    byId('outlet').innerHTML = `
+      <section class="form" style="text-align: center;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h2 style="margin:0 0 10px 0;font-weight:900; color: var(--cobalt);">All Set!</h2>
+        <p class="help" style="color: var(--muted);">Your appointment has been confirmed. We'll send you a reminder before your scheduled time.</p>
+        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+      </section>
+    `;
+    
+  }catch(err){
+    console.error('❌ Appointment save failed:', err);
+    byId('outlet').innerHTML = `
+      <section class="form" style="text-align: center;">
+        <h2 style="margin:0 0 10px 0;font-weight:900; color: #d32f2f;">Booking Failed</h2>
+        <p class="help" style="color: var(--muted);">${escapeHtml(err.message)}</p>
+        <button class="btn btn-primary" onclick="navSet({view:null})" style="margin-top: 24px;">Back to Shop</button>
+      </section>
+    `;
+  }
+};
+
+window.renderSignIn = function(){
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form">
+      <div style="text-align:center; margin-bottom:24px;">
+        <a href="#" onclick="navSet({view:'shop'}); return false;" class="link-btn" style="font-size:14px; color:var(--azure); font-weight:600;">
+          ← Back to shop
+        </a>
+      </div>
+      <h2>Sign in to your account</h2>
+      <p class="help" style="text-align:center; color:var(--text-muted); margin-bottom:20px;">Access your dashboard, track orders, and manage your account.</p>
+      <input class="inp" id="siEmail" type="email" placeholder="Email address" value="${escapeAttr(user?.email||'')}" autocomplete="email">
+      <input class="inp" id="siPass"  type="password" placeholder="Password" autocomplete="current-password">
+      <div style="display:flex; gap:12px; margin-top:24px; flex-direction:column;">
+        <button class="btn btn-primary" id="signin" style="width:100%;">Sign in</button>
+        <button class="btn btn-ghost" id="toSignup" style="width:100%;">Create account</button>
+        <button class="btn btn-subtle" id="toForgot" style="padding:10px; margin-top:8px;">Forgot password?</button>
+      </div>
+      <div id="siMsg" class="help" style="margin-top:16px; color:#d32f2f;"></div>
+    </section>
+  `;
+  
+  outlet.style.opacity = '1';
+  outlet.style.transition = '';
+  document.body.classList.add('app-ready');
+  
+  byId('toSignup').onclick = ()=> navSet({view:'signup'});
+  byId('toForgot').onclick = ()=> navSet({view:'forgot'});
+  byId('signin').onclick = async ()=>{
+    const email = byId('siEmail').value.trim();
+    const pass  = byId('siPass').value;
+    if(!email){ return showMsg('siMsg','Enter your email.'); }
+    if(!pass){ return showMsg('siMsg','Enter your password.'); }
+    showLoader();
+    try{
+      const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'signin', email, password:pass })});
+      const text = await resp.text();
+      if(!resp.ok){ showMsg('siMsg', text || ('Error ' + resp.status)); return; }
+      const data = JSON.parse(text);
+      if(!data.ok){ showMsg('siMsg', data.error||'Sign in failed'); return; }
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
+      saveUser();
+      loadAIRecommendations();
+      h2sTrack('Login', { user_email: user.email });
+      navSet({view:'account'});
+    }catch(err){ showMsg('siMsg', String(err)); }
+    finally{ hideLoader(); }
+  };
+};
+
+window.renderSignUp = function(){
+  const seed = user||{};
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form">
+      <div style="text-align:center; margin-bottom:24px;">
+        <a href="#" onclick="navSet({view:'shop'}); return false;" class="link-btn" style="font-size:14px; color:var(--azure); font-weight:600;">
+          ← Back to shop
+        </a>
+      </div>
+      <h2>Create your account</h2>
+      <p class="help" style="text-align:center; color:var(--text-muted); margin-bottom:20px;">Get exclusive discounts, earn credits, and track your installations.</p>
+      <input class="inp" id="suName"  type="text"  placeholder="Full name" value="${escapeAttr(seed.name||'')}" autocomplete="name">
+      <input class="inp" id="suEmail" type="email" placeholder="Email address" value="${escapeAttr(seed.email||'')}" autocomplete="email">
+      <input class="inp" id="suPhone" type="tel"   placeholder="Phone number" value="${escapeAttr(seed.phone||'')}" autocomplete="tel">
+      <input class="inp" id="suPass"  type="password" placeholder="Password (min 8 characters)" autocomplete="new-password">
+      <input class="inp" id="suPass2" type="password" placeholder="Confirm password" autocomplete="new-password">
+      <div class="help" style="text-align:center; color:var(--text-muted); margin-top:8px;">Secure checkout, order tracking, and rewards</div>
+      <div style="display:flex; gap:12px; margin-top:24px; flex-direction:column;">
+        <button class="btn btn-primary" id="createAcct" style="width:100%;">Create account</button>
+        <button class="btn btn-ghost" id="toSignin" style="width:100%;">Already have an account? Sign in</button>
+      </div>
+      <div id="suMsg" class="help" style="margin-top:16px;"></div>
+    </section>
+  `;
+  
+  outlet.style.opacity = '1';
+  outlet.style.transition = '';
+  document.body.classList.add('app-ready');
+  
+  byId('toSignin').onclick = ()=> navSet({view:'signin'});
+  byId('createAcct').onclick = async ()=>{
+    const name  = byId('suName').value.trim();
+    const email = byId('suEmail').value.trim();
+    const phone = byId('suPhone').value.trim();
+    const pw1   = byId('suPass').value;
+    const pw2   = byId('suPass2').value;
+    const msg   = byId('suMsg');
+    const btn   = byId('createAcct');
+    
+    if(!email){ return showMsg('suMsg','Enter your email.'); }
+    if(pw1.length < 8){ return showMsg('suMsg','Password must be at least 8 characters.'); }
+    if(pw1 !== pw2){ return showMsg('suMsg','Passwords do not match.'); }
+    showLoader();
+    try{
+      const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'create_user', user:{name,email,phone,password:pw1}})});
+      const text = await resp.text();
+      if(!resp.ok){ showMsg('suMsg', text || ('Error ' + resp.status)); return; }
+      const data = JSON.parse(text);
+      if(!data.ok){ showMsg('suMsg', data.error||'Create failed'); return; }
+      user = { 
+        name: data.user.name||'', 
+        email: data.user.email, 
+        phone: data.user.phone||'',
+        referral_code: data.user.referral_code||'',
+        credits: data.user.credits||0,
+        total_spent: data.user.total_spent||0
+      };
+      saveUser();
+      loadAIRecommendations();
+      h2sTrack('CompleteRegistration', { user_email: user.email, user_name: user.name });
+      
+      if(msg && btn){
+        msg.style.color = '#2e7d32';
+        msg.textContent = '✓ Account created! Welcome to Home2Smart.';
+        btn.textContent = 'Success!';
+        btn.disabled = true;
+      }
+      
+      setTimeout(() => {
+        navSet({view:'account'});
+      }, 1200);
+    }catch(err){ showMsg('suMsg', String(err)); }
+    finally{ hideLoader(); }
+  };
+};
+
+window.renderForgot = function(){
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form">
+      <div style="text-align:center; margin-bottom:24px;">
+        <a href="#" onclick="navSet({view:'shop'}); return false;" class="link-btn" style="font-size:14px; color:var(--azure); font-weight:600;">
+          ← Back to shop
+        </a>
+      </div>
+      <h2>Forgot password</h2>
+      <p class="help" style="text-align:center; color:var(--text-muted); margin-bottom:20px;">Enter your email and we'll send you a reset link.</p>
+      <input class="inp" id="fpEmail" type="email" placeholder="Email address" autocomplete="email">
+      <div style="display:flex; gap:12px; margin-top:24px; flex-direction:column;">
+        <button class="btn btn-primary" id="fpSend" style="width:100%;">Send reset link</button>
+        <button class="btn btn-ghost" id="fpBack" style="width:100%;">Back to sign in</button>
+      </div>
+      <div id="fpMsg" class="help" style="margin-top:16px; color:#d32f2f;"></div>
+    </section>
+  `;
+  
+  outlet.style.opacity = '1';
+  outlet.style.transition = '';
+  document.body.classList.add('app-ready');
+  
+  byId('fpBack').onclick = ()=> navSet({view:'signin'});
+  byId('fpSend').onclick = async ()=>{
+    const email = byId('fpEmail').value.trim();
+    if(!email){ return showMsg('fpMsg','Enter your email.'); }
+    showLoader();
+    try{
+      const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'request_password_reset', email})});
+      const txt  = await resp.text();
+      if(!resp.ok){ showMsg('fpMsg', txt || ('Error ' + resp.status)); return; }
+      showMsg('fpMsg','If that email has an account, a reset link has been sent. Check your inbox.');
+    }catch(err){ showMsg('fpMsg', String(err)); }
+    finally{ hideLoader(); }
+  };
+};
+
+window.renderReset = function(token){
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form">
+      <h2 style="margin:0 0 10px 0;font-weight:900">Reset password</h2>
+      <input class="inp" id="rpToken" type="text" placeholder="Reset token" value="${escapeAttr(token||'')}">
+      <input class="inp" id="rpNew1" type="password" placeholder="New password (min 8)">
+      <input class="inp" id="rpNew2" type="password" placeholder="Confirm new password">
+      <div style="display:flex; gap:10px; margin-top:6px; flex-wrap:wrap">
+        <button class="btn azure" id="rpDo">Set new password</button>
+        <button class="btn ghost" id="rpBack">Back to sign in</button>
+      </div>
+      <div id="rpMsg" class="help"></div>
+    </section>
+  `;
+  
+  outlet.style.opacity = '1';
+  outlet.style.transition = '';
+  document.body.classList.add('app-ready');
+  
+  byId('rpBack').onclick = ()=> navSet({view:'signin'});
+  byId('rpDo').onclick = async ()=>{
+    const tok = byId('rpToken').value.trim();
+    const p1   = byId('rpNew1').value;
+    const p2   = byId('rpNew2').value;
+    if(!tok){ return showMsg('rpMsg','Missing reset token.'); }
+    if(p1.length<8){ return showMsg('rpMsg','Password must be at least 8 characters.'); }
+    if(p1!==p2){ return showMsg('rpMsg','Passwords do not match.'); }
+    showLoader();
+    try{
+      const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'reset_password', token:tok, new_password:p1})});
+      const txt  = await resp.text();
+      if(!resp.ok){ showMsg('rpMsg', txt || ('Error ' + resp.status)); return; }
+      const data = JSON.parse(txt);
+      if(!data.ok){ showMsg('rpMsg', data.error||'Could not reset password'); return; }
+      showMsg('rpMsg','Password updated. You can now sign in.');
+      setTimeout(()=> navSet({view:'signin'}), 800);
+    }catch(err){ showMsg('rpMsg', String(err)); }
+    finally{ hideLoader(); }
+  };
+};
+
+window.renderAccount = function(){
+  if(!user || !user.email){ navSet({view:'signin'}); return; }
+
+  if(!user.referral_code && !window._userRefreshing){
+    window._userRefreshing = true;
+    fetch(API + '?action=user&email=' + encodeURIComponent(user.email))
+      .then(r=>r.json())
+      .then(d=>{
+        window._userRefreshing = false;
+        if(d.ok && d.user){
+          user = { ...user, ...d.user };
+          saveUser();
+          renderAccount();
+        }
+      }).catch(()=> window._userRefreshing = false);
+  }
+
+  const outlet = byId('outlet');
+  outlet.innerHTML = `
+    <section class="form">
+      <div style="text-align:center; margin-bottom:24px;">
+        <a href="#" onclick="navSet({view:null}); return false;" class="link-btn" style="font-size:14px; color:var(--azure); font-weight:600;">
+          ← Back to shop
+        </a>
+      </div>
+      <h2 style="margin:0 0 10px 0;font-weight:900">Your account</h2>
+      <p class="help" style="text-align:center; color:var(--text-muted); margin-bottom:20px;">Manage your profile, view orders, and track your rewards.</p>
+      <input class="inp" id="acName"  type="text"  placeholder="Full name" value="${escapeAttr(user.name||'')}">
+      <input class="inp" id="acEmail" type="email" placeholder="Email" value="${escapeAttr(user.email||'')}" disabled>
+      <input class="inp" id="acPhone" type="tel"   placeholder="Phone" value="${escapeAttr(user.phone||'')}">
+      <div style="display:flex; gap:12px; margin-top:24px; flex-direction:column;">
+        <button class="btn btn-primary" id="saveAcct" style="width:100%;">Save changes</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" id="signOut" style="flex:1;">Sign out</button>
+        </div>
+      </div>
+      <div id="acMsg" class="help" style="margin-top:16px;"></div>
+    </section>
+
+    <section class="form" style="margin-top:24px">
+      <h3 style="margin:0 0 10px 0;font-weight:900">Rewards & Credits</h3>
+      <div class="pd-box" style="background:#f0f9ff; border-color:#bae6fd;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+          <div style="font-weight:800; color:#0284c7;">Available Credits</div>
+          <div style="font-weight:900; font-size:18px; color:#0284c7;">${money(user.credits||0)}</div>
+        </div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #bae6fd;">
+          <div style="font-weight:800; color:#0284c7; margin-bottom:4px;">Your Referral Code</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div style="font-family:monospace; font-weight:900; font-size:18px; letter-spacing:1px; background:#fff; padding:8px 12px; border-radius:6px; border:1px dashed #0284c7; color:#0284c7;">
+              ${escapeHtml(user.referral_code || 'Loading...')}
+            </div>
+            <button class="btn btn-primary" style="padding:8px 16px; font-size:13px;" onclick="navigator.clipboard.writeText('${escapeHtml(user.referral_code||'')}').then(()=>this.textContent='Copied!')">Copy Code</button>
+          </div>
+          <div style="font-size:13px; color:#0369a1; margin-top:8px;">Share this code. Friends get discount, you get credit.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="form" style="margin-top:24px">
+      <button class="btn ghost" id="cpToggle" aria-expanded="false">Change password</button>
+      <div id="cpPanel" class="pd-box" style="display:none; margin-top:10px">
+        <h3 style="margin:0 0 10px 0;font-weight:900">Change password</h3>
+        <input class="inp" id="cpOld" type="password" placeholder="Current password">
+        <input class="inp" id="cpNew1" type="password" placeholder="New password (min 8)">
+        <input class="inp" id="cpNew2" type="password" placeholder="Confirm new password">
+        <div style="display:flex; gap:10px; margin-top:6px; flex-wrap:wrap">
+          <button class="btn azure" id="cpDo">Update password</button>
+        </div>
+        <div id="cpMsg" class="help"></div>
+      </div>
+    </section>
+
+    <section class="form" style="margin-top:24px">
+      <h3 style="margin:0 0 10px 0;font-weight:900">Previous orders</h3>
+      <div id="ordersBox" class="pd-box"><div class="help">Loading…</div></div>
+    </section>
+  `;
+
+  byId('saveAcct').onclick = async ()=>{
+    const name  = byId('acName').value.trim();
+    const phone = byId('acPhone').value.trim();
+    showLoader();
+    try{
+      const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'upsert_user', user:{name,phone,email:user.email}})});
+      const text = await resp.text();
+      if(!resp.ok){ showMsg('acMsg', text || ('Error ' + resp.status)); return; }
+      const data = JSON.parse(text);
+      if(!data.ok){ showMsg('acMsg', data.error||'Save failed'); return; }
+      user = { ...user, ...data.user };
+      saveUser();
+      showMsg('acMsg','✓ Saved successfully.');
+    }catch(err){ showMsg('acMsg', String(err)); }
+    finally{ hideLoader(); }
+  };
+  byId('signOut').onclick = ()=>{ user = {}; saveUser(); navSet({view:null}); };
+
+  outlet.style.opacity = '1';
+  outlet.style.transition = '';
+  document.body.classList.add('app-ready');
+
+  const cpToggle = byId('cpToggle');
+  const cpPanel  = byId('cpPanel');
+  if(cpToggle && cpPanel){
+    cpToggle.onclick = ()=>{
+      const open = cpPanel.style.display !== 'none';
+      cpPanel.style.display = open ? 'none' : '';
+      cpToggle.setAttribute('aria-expanded', String(!open));
+    };
+  }
+
+  const cpDo = byId('cpDo');
+  if(cpDo){
+    cpDo.onclick = async ()=>{
+      const oldp = byId('cpOld').value;
+      const p1   = byId('cpNew1').value;
+      const p2   = byId('cpNew2').value;
+      if(!oldp){ return showMsg('cpMsg','Enter your current password.'); }
+      if(p1.length<8){ return showMsg('cpMsg','New password must be at least 8 characters.'); }
+      if(p1!==p2){ return showMsg('cpMsg','Passwords do not match.'); }
+      showLoader();
+      try{
+        const resp = await fetch(API, { method:'POST', body: JSON.stringify({__action:'change_password', email:user.email, old_password:oldp, new_password:p1})});
+        const txt  = await resp.text();
+        if(!resp.ok){ showMsg('cpMsg', txt || ('Error ' + resp.status)); return; }
+        const data = JSON.parse(txt);
+        if(!data.ok){ showMsg('cpMsg', data.error||'Could not change password'); return; }
+        showMsg('cpMsg','Password updated.');
+        byId('cpOld').value = byId('cpNew1').value = byId('cpNew2').value = '';
+      }catch(err){ showMsg('cpMsg', String(err)); }
+      finally{ hideLoader(); }
+    };
+  }
+
+  loadOrders();
+};
+
+async function loadOrders(){
+  const box = byId('ordersBox');
+  if(!box) return;
+  try{
+    const res = await fetch(API + '?action=orders&email=' + encodeURIComponent(user.email));
+    const data = await res.json();
+    const orders = Array.isArray(data.orders) ? data.orders : [];
+    if(!orders.length){
+      box.innerHTML = `<div class="help">No orders yet.</div>`;
+      return;
+    }
+    orders.sort((a,b)=> new Date(b.created_at||0) - new Date(a.created_at||0));
+    box.innerHTML = orders.map(o=>{
+      const oid = o.order_id || o.stripe_session_id || '—';
+      const when = o.install_at ? new Date(o.install_at).toLocaleString() : (o.service_date||'');
+      
+      // Parse and format items
+      let itemsHtml = '';
+      try {
+        let items = o.order_summary;
+        if (typeof items === 'string') {
+          items = JSON.parse(items);
+        }
+        if (Array.isArray(items)) {
+          itemsHtml = '<ul style="margin:0; padding-left:16px; font-size:13px;">' + 
+            items.map(i => `<li>${i.qty||1}× ${escapeHtml(i.service_name || i.name || 'Item')}</li>`).join('') + 
+            '</ul>';
+        } else {
+          itemsHtml = escapeHtml(String(items || ''));
+        }
+      } catch (e) {
+        itemsHtml = escapeHtml(String(o.order_summary || ''));
+      }
+
+      const total = (Number(o.order_total)||0);
+      
+      // Schedule Later Logic
+      let dateDisplay = escapeHtml(when||'—');
+      if (!when || when === '—') {
+        dateDisplay = `<button class="btn btn-primary" style="padding:4px 12px; font-size:12px;" onclick="navSet({view:'shopsuccess', order_id:'${o.order_id}'})">Schedule Now</button>`;
+      }
+
+      return `
+        <div class="pd-box" style="margin-bottom:10px">
+          <div class="details-grid">
+            <div class="row"><div class="k">Order ID</div><div class="v">${escapeHtml(String(oid))}</div></div>
+            <div class="row"><div class="k">Total</div><div class="v">${money(total)}</div></div>
+            <div class="row" style="align-items:flex-start"><div class="k" style="margin-top:2px">Items</div><div class="v">${itemsHtml}</div></div>
+            <div class="row"><div class="k">Service date</div><div class="v">${dateDisplay}</div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }catch(e){
+    box.innerHTML = `<div class="help">Could not load orders.</div>`;
+  }
+}
+
+window.requestQuote = function(packageId){
+  const modal = document.getElementById('quoteModal');
+  const backdrop = document.getElementById('backdrop');
+  const titleEl = document.getElementById('quoteModalTitle');
+  
+  if (!modal || !backdrop) return;
+  
+  // Smart Context Setting
+  const typeSelect = document.getElementById('quoteType');
+  if (typeSelect) {
+    // Reset options
+    Array.from(typeSelect.options).forEach(opt => opt.disabled = false);
+
+    if (packageId === 'tv_custom') {
+      typeSelect.value = 'tv';
+      // Disable Camera to enforce context
+      const camOpt = Array.from(typeSelect.options).find(o => o.value === 'camera');
+      if(camOpt) camOpt.disabled = true;
+    } else if (packageId === 'cam_custom') {
+      typeSelect.value = 'camera';
+      // Disable TV to enforce context
+      const tvOpt = Array.from(typeSelect.options).find(o => o.value === 'tv');
+      if(tvOpt) tvOpt.disabled = true;
+    } else {
+      typeSelect.value = 'both';
+    }
+    // Trigger update to refresh price
+    if (typeof window.updateQuoteEstimate === 'function') window.updateQuoteEstimate();
+  }
+
+  if (packageId === 'tv_custom') {
+    titleEl.textContent = 'Custom TV Mounting Quote';
+  } else if (packageId === 'cam_custom') {
+    titleEl.textContent = 'Custom Security Camera Quote';
+  } else {
+    titleEl.textContent = 'Request Custom Quote';
+  }
+  
+  const detailsField = document.getElementById('quoteDetails');
+  if (detailsField) {
+    const projectType = packageId === 'tv_custom' ? 'TV mounting' : 'security camera installation';
+    detailsField.placeholder = `I need a custom ${projectType} package for...`;
+  }
+  
+  modal.dataset.packageId = packageId;
+
+  try{
+    modal.dataset.prevFocus = document.activeElement?.id || '';
+  }catch(e){ modal.dataset.prevFocus = ''; }
+  
+  modal.classList.add('show');
+  backdrop.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  
+  setTimeout(() => {
+    const nameInput = document.getElementById('quoteName');
+    if (nameInput) nameInput.focus();
+  }, 100);
+};
+
+window.closeQuoteModal = function(){
+  const modal = document.getElementById('quoteModal');
+  const backdrop = document.getElementById('backdrop');
+  
+  if (modal) modal.classList.remove('show');
+  
+  const menuOpen = document.getElementById('menuDrawer')?.classList.contains('open');
+  const cartOpen = document.getElementById('cartDrawer')?.classList.contains('open');
+  const mainModalOpen = document.getElementById('modal')?.classList.contains('show');
+  
+  if (!menuOpen && !cartOpen && !mainModalOpen && backdrop) {
+    backdrop.classList.remove('show');
+  }
+  
+  document.body.style.overflow = '';
+  
+  ['quoteName', 'quoteEmail', 'quotePhone', 'quoteDetails'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  
+  const msg = document.getElementById('quoteMessage');
+  if (msg) msg.textContent = '';
+
+  try{
+    const prevId = modal?.dataset?.prevFocus;
+    if(prevId){
+      const prevEl = document.getElementById(prevId);
+      if(prevEl && typeof prevEl.focus === 'function') prevEl.focus();
+    } else {
+      const outlet = document.getElementById('outlet');
+      if(outlet && typeof outlet.focus === 'function') outlet.focus();
+    }
+    if(modal && modal.dataset) modal.dataset.prevFocus = '';
+  }catch(e){ }
+};
+
+window.updateQuoteEstimate = function() {
+  const type = document.getElementById('quoteType')?.value || 'tv';
+  const qty = parseInt(document.getElementById('quoteQty')?.value) || 1;
+  const surface = document.getElementById('quoteSurface')?.value || 'standard';
+  const estimateBox = document.getElementById('quoteEstimateValue');
+  
+  if (!estimateBox) return;
+
+  // Commercial always custom
+  if (surface === 'commercial') {
+    estimateBox.innerText = "Custom Quote";
+    return;
+  }
+
+  let basePrice = 0;
+  let perItem = 0;
+
+  // Pricing Logic (Congruent with Packages)
+  if (type === 'tv') {
+    // 3 TVs (Multi-Room) = $699. 
+    // Formula: $149 + (3 * $183) = $698.
+    // 5 TVs = $1,064.
+    // 10 TVs = $1,979 (Under double $2,128).
+    basePrice = 149;
+    perItem = 183;
+  } else if (type === 'camera') {
+    // Basic (2 cams + doorbell) = $599.
+    // Standard (4 cams + doorbell) = $1,199.
+    // Premium (8 cams + doorbell) = $2,199.
+    // Custom Quote (Cameras only, no doorbell implied):
+    // 4 Cams = $1,000 ($250/ea).
+    // 8 Cams = $2,000 ($250/ea).
+    // 16 Cams = $4,000 (Under double Premium $4,398).
+    basePrice = 0;
+    perItem = 250;
+  } else {
+    // Mixed/Other
+    basePrice = 199;
+    perItem = 200; 
+  }
+
+  let totalLow = basePrice + (perItem * qty);
+  
+  // Add complexity
+  if (surface === 'brick') {
+    totalLow += (50 * qty);
+  }
+
+  // Range is +15% for buffer
+  let totalHigh = Math.round(totalLow * 1.15);
+
+  estimateBox.innerText = `$${totalLow} - $${totalHigh}`;
+};
+
+window.submitQuoteRequest = async function(){
+  const name = document.getElementById('quoteName')?.value.trim() || '';
+  const email = document.getElementById('quoteEmail')?.value.trim() || '';
+  const phone = document.getElementById('quotePhone')?.value.trim() || '';
+  const details = document.getElementById('quoteDetails')?.value.trim() || '';
+  
+  // Smart Fields
+  const type = document.getElementById('quoteType')?.value || 'N/A';
+  const qty = document.getElementById('quoteQty')?.value || 'N/A';
+  const surface = document.getElementById('quoteSurface')?.value || 'N/A';
+  const estimate = document.getElementById('quoteEstimateValue')?.innerText || 'N/A';
+
+  const msg = document.getElementById('quoteMessage');
+  const btn = document.getElementById('submitQuoteBtn');
+  const modal = document.getElementById('quoteModal');
+  const packageId = modal?.dataset.packageId || 'unknown';
+  
+  if (!msg || !btn) return;
+  
+  if (!name) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your name';
+    return;
+  }
+  
+  if (!email || !email.includes('@')) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter a valid email address';
+    return;
+  }
+  
+  if (!phone) {
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Please enter your phone number';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  msg.textContent = '';
+  
+  try {
+    const quoteEndpoint = API.replace('/api/shop', '/api/quote');
+    
+    // Combine smart fields into details
+    const smartDetails = `
+[Smart Quote Data]
+Type: ${type}
+Quantity: ${qty}
+Surface: ${surface}
+Est. Range: ${estimate}
+------------------
+${details}
+    `.trim();
+
+    const response = await fetch(quoteEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        details,
+        package_type: packageId,
+        source: '/shop',
+        timestamp: new Date().toISOString()
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.ok) {
+      msg.style.color = '#2e7d32';
+      msg.textContent = '✓ Request sent! We\'ll contact you within 1 hour.';
+      
+      h2sTrack('QuoteRequested', {
+        package_type: packageId,
+        customer_email: email,
+        quote_id: data.quote_id
+      });
+      
+      setTimeout(() => {
+        closeQuoteModal();
+      }, 2000);
+    } else {
+      throw new Error(data.error || 'Server error');
+    }
+  } catch (error) {
+    console.error('Quote request failed:', error);
+    msg.style.color = '#d32f2f';
+    msg.textContent = 'Failed to send. Please call us at (864) 528-1475';
+    btn.disabled = false;
+    btn.textContent = 'Send Request';
+  }
+};
+
+// ============================================================================
+// HYDRATION: Populate delegation targets for critical shell
+// ============================================================================
+
+window._handleToggleCart = toggleCart;
+window._handleToggleMenu = toggleMenu;
+window._handleCloseAll = closeAll;
+window._routeHandler = navSet;
+window._handleSelectPackage = selectPackage;
+window._handleCloseModal = closeModal;
+window._handleRequestQuote = safeRequestQuote;
+window._handleCloseQuoteModal = safeCloseQuoteModal;
+window._handleSubmitQuote = submitQuoteRequest;
+window._handleAddToCart = addPackageToCart;
+window._handleCloseTVSizeModal = closeTVSizeModal;
+window._handleConfirmTVSize = confirmTVSize;
+window._handleGoToReview = goToHeroReview;
+window._handleUpdateQuantity = updateQuantity;
+window._handleRemoveFromCart = removeFromCart;
+window._handleCheckout = checkout;
+
+// Mark app as initialized
+window._appInitialized = true;
+
+console.log('[BundlesJS] ✓ Hydration complete, all handlers ready');
