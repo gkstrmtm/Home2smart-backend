@@ -2761,16 +2761,8 @@ body {
 
 <script>
 'use strict';
+
 console.log('[BundlesJS] Script loaded and executing');
-
-// Yield to browser for initial render before executing heavy JS
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => initBundlesApp(), { timeout: 500 });
-} else {
-  setTimeout(initBundlesApp, 0);
-}
-
-function initBundlesApp() {
 
 function byId(id){ return document.getElementById(id); }
 
@@ -4960,8 +4952,22 @@ function showCheckoutModal() {
             onblur="this.style.borderColor='#e2e8f0';this.style.boxShadow='none'"
           >
           <p style="font-size:11px;color:#64748b;margin:6px 0 0 0;line-height:1.4;">
-            By entering your mobile number, you agree to receive text messages from Home2Smart about your bookings, appointment reminders, service updates, and occasional offers for Home2Smart services. Message and data rates may apply. Message frequency varies. Reply STOP to opt out and HELP for help.
+            We'll use this number for appointment reminders and service updates.
           </p>
+        </div>
+        
+        <!-- SMS Opt-in Checkbox -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
+          <label style="display:flex;align-items:start;cursor:pointer;gap:12px;">
+            <input 
+              type="checkbox" 
+              id="coSmsConsent" 
+              style="margin-top:2px;width:18px;height:18px;cursor:pointer;accent-color:#1493ff;"
+            >
+            <span style="font-size:13px;color:#334155;line-height:1.5;">
+              <strong style="color:#1e293b;">I agree to receive promotional text messages</strong> from Home2Smart about exclusive offers, new services, and special discounts. Standard message and data rates may apply. Message frequency varies. You can reply STOP to opt out at any time. This is optional and not required to complete your purchase.
+            </span>
+          </label>
         </div>
         
         <!-- Service Address with Autocomplete -->
@@ -5329,6 +5335,7 @@ window.handleCheckoutSubmit = async function(e) {
   const city = document.getElementById('coCity').value.trim();
   const state = document.getElementById('coState').value.trim().toUpperCase();
   const zip = document.getElementById('coZip').value.trim();
+  const smsConsent = document.getElementById('coSmsConsent')?.checked || false;
 
   if(!name || !email || !phone || !address || !city || !state || !zip) {
     if(errEl) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; }
@@ -5422,11 +5429,35 @@ window.handleCheckoutSubmit = async function(e) {
         service_city: city,
         service_state: state,
         service_zip: zip,
+        sms_marketing_consent: smsConsent ? 'yes' : 'no',
+        sms_consent_timestamp: new Date().toISOString(),
         source: 'shop_rebuilt'
       }
     };
 
     if(promoCode) payload.promotion_code = promoCode;
+    
+    // IMPORTANT: Store SMS consent separately for compliance
+    if(smsConsent) {
+      try {
+        await fetch('https://h2s-backend.vercel.app/api/sms-consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            phone: phone,
+            consented_at: new Date().toISOString(),
+            consent_type: 'marketing',
+            source: 'checkout_form'
+          })
+        });
+        console.log('[SMS Consent] ✓ Consent recorded');
+      } catch(err) {
+        console.warn('[SMS Consent] Failed to record:', err);
+        // Don't block checkout if consent recording fails
+      }
+    }
 
     console.log('[Checkout] Sending payload:', payload);
 
@@ -6886,8 +6917,6 @@ window.initAddressAutocomplete = function() {
   
   console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
 };
-
-} // End initBundlesApp()
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
