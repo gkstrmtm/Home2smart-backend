@@ -66,6 +66,8 @@ export default async function handler(req, res) {
     const jobId = body?.job_id || req.query?.job_id;
     const proId = await validateSession(token);
 
+    console.log('[MARK DONE] Session validation:', { token: token?.slice(0, 8) + '...', proId, jobId });
+
     if (!proId) {
       return res.status(401).json({
         ok: false,
@@ -215,29 +217,37 @@ export default async function handler(req, res) {
       }
 
       // Insert payouts
+      const createdPayouts = [];
       for (const p of payoutsToCreate) {
-        const { error: payoutError } = await supabase
+        const payoutEntry = {
+          pro_id: p.pro_id,
+          job_id: jobId,
+          total_amount: p.amount,
+          amount: p.amount, // ensure legacy consumers see value
+          base_amount: p.amount,
+          service_name: job.resources_needed || 'Service',
+          variant_code: job.variant_code || 'STANDARD',
+          state: 'approved', // Immediately approved for routing/payment
+          earned_at: new Date().toISOString(),
+          customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
+          note: p.note
+        };
+        console.log('[PAYOUT CREATE] Attempting insert:', payoutEntry);
+        
+        const { data: insertedRow, error: payoutError } = await supabase
           .from('h2s_payouts_ledger')
-          .insert({
-            pro_id: p.pro_id,
-            job_id: jobId,
-            total_amount: p.amount,
-            amount: p.amount, // ensure legacy consumers see value
-            base_amount: p.amount,
-            service_name: job.resources_needed || 'Service',
-            variant_code: job.variant_code || 'STANDARD',
-            state: 'approved', // Immediately approved for routing/payment
-            earned_at: new Date().toISOString(),
-            customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
-            note: p.note
-          });
+          .insert(payoutEntry)
+          .select()
+          .single();
 
         if (payoutError) {
-          console.error('Failed to create payout record:', payoutError);
+          console.error('[PAYOUT ERROR] Failed to create payout record:', payoutError);
         } else {
-          console.log('Payout record created for pro:', p.pro_id, 'amount:', p.amount);
+          console.log('[PAYOUT SUCCESS] Created entry_id:', insertedRow?.entry_id, 'for pro:', p.pro_id, 'amount:', p.amount);
+          createdPayouts.push(insertedRow);
         }
       }
+      console.log('[PAYOUT SUMMARY] Created', createdPayouts.length, 'ledger entries for job', jobId);
     } catch (payoutErr) {
       console.error('Error creating payout:', payoutErr);
     }
@@ -245,16 +255,18 @@ export default async function handler(req, res) {
     // TODO: Trigger customer review email via Apps Script webhook
     // For now, emails still handled by Apps Script background triggers
 
-    // Silent reconciliation: ensure recent completed assignments have ledger entries
+    // Silent reconciliation: ensure ALL completed assignments have ledger entries
     try {
-      const sinceIso = new Date(Date.now() - 30*24*3600*1000).toISOString(); // last 30 days
+      console.log('[RECONCILIATION] Starting backfill for pro', proId);
+      
       const { data: completedAssigns } = await supabase
         .from('h2s_dispatch_job_assignments')
         .select('assign_id, job_id, pro_id, completed_at, state')
         .eq('pro_id', proId)
         .eq('state', 'completed')
-        .gte('completed_at', sinceIso)
         .order('completed_at', { ascending: false });
+
+      console.log('[RECONCILIATION] Found', (completedAssigns || []).length, 'completed assignments for pro', proId);
 
       for (const a of (completedAssigns || [])) {
         // Check if ledger exists for this job+pro
@@ -265,7 +277,12 @@ export default async function handler(req, res) {
           .eq('pro_id', a.pro_id)
           .limit(1);
 
-        if (existing && existing.length) continue; // already present
+        if (existing && existing.length) {
+          console.log('[RECONCILIATION] Ledger entry already exists for job', a.job_id);
+          continue; // already present
+        }
+
+        console.log('[RECONCILIATION] Missing ledger entry for job', a.job_id, '- backfilling...');
 
         // Fetch job + lines
         const { data: job2 } = await supabase
@@ -295,7 +312,7 @@ export default async function handler(req, res) {
         }
 
         if (amountForPro > 0) {
-          await supabase
+          const { error: reconError } = await supabase
             .from('h2s_payouts_ledger')
             .insert({
               pro_id: a.pro_id,
@@ -310,14 +327,25 @@ export default async function handler(req, res) {
               customer_total: job2?.metadata?.items_json ? job2.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
               note: 'Reconciled: completed without ledger'
             });
-          console.log('Reconciled payout for job', a.job_id, 'pro', a.pro_id);
+          if (reconError) {
+            console.error('[RECONCILIATION] Failed to insert ledger for job', a.job_id, ':', reconError);
+          } else {
+            console.log('[RECONCILIATION] ✅ Backfilled payout for job', a.job_id, 'pro', a.pro_id, 'amount', amountForPro);
+          }
+        } else {
+          console.log('[RECONCILIATION] Skipping job', a.job_id, '- calculated amount is 0');
         }
       }
     } catch (reconErr) {
       console.warn('Silent reconciliation failed:', reconErr);
     }
 
-    return res.json({ ok: true });
+    return res.json({ 
+      ok: true,
+      payouts_created: createdPayouts.length,
+      pro_id: proId,
+      job_id: jobId
+    });
 
   } catch (error) {
     console.error('Mark done error:', error);

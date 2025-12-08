@@ -48,6 +48,8 @@ export default async function handler(req, res) {
     const token = body?.token || req.query?.token;
     const proId = await validateSession(token);
 
+    console.log('[PORTAL_PAYOUTS] Request:', { token: token?.slice(0, 8) + '...', proId });
+
     if (!proId) {
       return res.status(401).json({
         ok: false,
@@ -64,12 +66,17 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false });
 
     if (payoutError) {
-      console.error('Payouts query error:', payoutError);
+      console.error('[PORTAL_PAYOUTS] Query error:', payoutError);
       return res.status(500).json({
         ok: false,
         error: 'Failed to load payouts',
         error_code: 'query_error'
       });
+    }
+
+    console.log('[PORTAL_PAYOUTS] Found', (payouts || []).length, 'ledger entries for pro', proId);
+    if (payouts && payouts.length > 0) {
+      console.log('[PORTAL_PAYOUTS] Sample entry:', payouts[0]);
     }
 
     return res.json({

@@ -5110,21 +5110,23 @@ a:focus-visible{
           <h2 style="margin:0 0 8px;display:flex;align-items:center;gap:12px">
             Earnings Dashboard
           </h2>
-          <p class="muted" style="margin:0;font-size:15px">Track your earnings, view payout history, and withdraw funds</p>
+          <p class="muted" style="margin:0;font-size:15px">Track earnings and history. Withdrawals coming soon.</p>
         </div>
 
         <!-- Available Balance Card -->
         <div style="background:linear-gradient(155deg, #071526, #040914);border-radius:18px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)">
           <div style="position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,rgba(16,155,103,.95) 0%,rgba(31,191,131,.75) 50%,rgba(16,155,103,.5) 100%)"></div>
           <div style="position:relative;z-index:1">
-            <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Available Balance</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Available Balance</div>
+              <span title="Approved earnings not yet withdrawn" style="font-size:12px;color:#94a3b8">ⓘ</span>
+            </div>
             <div id="available-balance" style="font-size:48px;font-weight:800;color:#e0f2fe;margin-bottom:4px;letter-spacing:-0.02em">$0.00</div>
-            <div style="font-size:13px;color:#64748b;margin-bottom:24px">Ready to withdraw</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:24px">Ready to withdraw (feature in development)</div>
             <div style="display:flex;gap:12px;flex-wrap:wrap">
-              <!-- Instant Withdraw temporarily removed until banking integration is implemented -->
-              <!-- <button id="btnInstantWithdraw" class="btn" style="background:rgba(255,255,255,0.1);color:#94a3b8;border:1px solid rgba(255,255,255,0.2);cursor:not-allowed;opacity:0.6" type="button" disabled title="Banking setup required">
-                Instant Withdraw (Setup Required)
-              </button> -->
+              <button id="btnInstantWithdraw" class="btn" style="background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.18);cursor:not-allowed;opacity:0.7" type="button" disabled title="Withdrawals are coming soon">
+                Withdraw (Coming Soon)
+              </button>
               <button id="btnViewHistory" class="btn secondary" type="button">
                 View History
               </button>
@@ -5136,14 +5138,20 @@ a:focus-visible{
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px">
           <!-- Lifetime Earnings -->
           <div style="background:linear-gradient(155deg, #071526, #040914);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:20px">
-            <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Lifetime Earnings</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Lifetime Earnings</div>
+              <span title="All approved and paid earnings" style="font-size:12px;color:#94a3b8">ⓘ</span>
+            </div>
             <div id="lifetime-earnings" style="font-size:26px;font-weight:700;color:#e0f2fe;letter-spacing:-0.01em">$0.00</div>
             <div style="font-size:13px;color:#475569;margin-top:4px">Total earnings</div>
           </div>
 
           <!-- This Week -->
           <div style="background:linear-gradient(155deg, #071526, #040914);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:20px">
-            <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">This Week</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px">This Week</div>
+              <span title="Approved/paid earnings for the current week" style="font-size:12px;color:#94a3b8">ⓘ</span>
+            </div>
             <div id="week-earnings" style="font-size:26px;font-weight:700;color:#e0f2fe;letter-spacing:-0.01em">$0.00</div>
             <div id="week-jobs" style="font-size:13px;color:#475569;margin-top:4px">0 jobs completed</div>
           </div>
@@ -5151,7 +5159,10 @@ a:focus-visible{
           <!-- Pending Approval -->
           <div style="background:linear-gradient(155deg, #071526, #040914);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:20px;position:relative">
             <div style="position:absolute;top:12px;right:12px;padding:4px 8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:6px;font-size:11px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:.3px">Pending</div>
-            <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Pending Approval</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <div style="font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Pending Approval</div>
+              <span title="Submitted, awaiting review" style="font-size:12px;color:#94a3b8">ⓘ</span>
+            </div>
             <div id="pending-earnings" style="font-size:26px;font-weight:700;color:#e0f2fe;letter-spacing:-0.01em">$0.00</div>
             <div style="font-size:13px;color:#475569;margin-top:4px">Awaiting approval</div>
           </div>
@@ -5161,12 +5172,8 @@ a:focus-visible{
         <!-- Recent Payouts List -->
         <div style="background:linear-gradient(155deg, #071526, #040914);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:24px">
           <h3 style="font-size:16px;font-weight:600;margin:0 0 20px;color:#cbd5e1">Recent Earnings</h3>
-          <div id="recent-payouts-list">
-            <div style="text-align:center;padding:40px 20px;color:#475569">
-              <div style="font-size:48px;font-weight:300;margin-bottom:12px;opacity:.5;color:#1A9BFF">$0</div>
-              <div style="font-size:15px">No earnings yet. Accept jobs to start earning!</div>
-            </div>
-          </div>
+          <div id="recent-payouts-list"></div>
+          <p id="recent-payouts-empty" class="muted" style="display:none;margin-top:8px">No payouts yet. Complete jobs to see earnings here.</p>
         </div>
       </div>
 
@@ -8235,6 +8242,25 @@ function showJobDetails(job) {
     detailsHTML += `<div class="hr"></div><div class="subl">Installation Prep</div><div style="background:#f8f9fa;padding:12px;border-radius:8px;border-left:4px solid #4CAF50">${synopsisFormatted}</div>`;
   }
   
+  // ✅ PHOTOS SECTION: Show View Photos button if photos exist
+  const isCompletedJob = String(job.assign_state || '').toLowerCase() === 'completed';
+  const hasPhotos = (typeof photoOnFile !== 'undefined' && photoOnFile[job.job_id]) || (job.photos && job.photos.length > 0);
+  
+  if (hasPhotos) {
+    detailsHTML += `
+      <div class="hr"></div>
+      <div class="subl">Photos</div>
+      <button 
+        onclick="viewPhotos('${esc(job.job_id)}')" 
+        class="btn secondary" 
+        type="button"
+        style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;padding:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        View Photos ${isCompletedJob ? '(Read-only)' : ''}
+      </button>
+    `;
+  }
+  
   if (job.distance_miles) {
     detailsHTML += `<div class="hr"></div><div class="subl">Distance</div><p>${Math.round(job.distance_miles * 10) / 10} miles from your location</p>`;
   }
@@ -8717,6 +8743,14 @@ async function viewPhotos(jobId) {
       
       console.log(`[View Photos] Received ${photos.length} photo(s) from loadJobPhotos`);
       
+      // Check job status to determine if editing is allowed
+      let isCompleted = false;
+      const job = [...(currentJobsData.completed || []), ...(currentJobsData.upcoming || [])].find(j => j.job_id === jobId);
+      if (job) {
+        isCompleted = String(job.assign_state || '').toLowerCase() === 'completed';
+        console.log(`[View Photos] Job status check: assign_state=${job.assign_state}, isCompleted=${isCompleted}`);
+      }
+      
       // Remove existing if any
       const existing = document.querySelector('.photo-gallery-modal');
       if(existing) existing.remove();
@@ -8735,8 +8769,10 @@ async function viewPhotos(jobId) {
                       <div style="font-size:12px;color:#9bc8ff;opacity:.85;line-height:1">${photos.length} photo${photos.length !== 1 ? 's' : ''}</div>
                   </div>
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:12px">
-                    <input type="file" id="modal-upload-${jobId}" accept="image/*" multiple style="display:none">
-                    <button aria-label="Add photos" onclick="document.getElementById('modal-upload-${jobId}').click()" style="background:#1493ff;color:#fff;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:700;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(20,147,255,.3)">Add</button>
+                    ${!isCompleted ? `
+                      <input type="file" id="modal-upload-${jobId}" accept="image/*" multiple style="display:none">
+                      <button aria-label="Add photos" onclick="document.getElementById('modal-upload-${jobId}').click()" style="background:#1493ff;color:#fff;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:700;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(20,147,255,.3)">Add</button>
+                    ` : ''}
                     <button aria-label="Close" onclick="this.closest('.modal').remove()" style="background:none;border:none;padding:6px;margin:0;cursor:pointer;color:#e7f1ff;display:flex;align-items:center;justify-content:center">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                     </button>
@@ -8767,12 +8803,14 @@ async function viewPhotos(jobId) {
                                       ${new Date(p.uploaded_at).toLocaleDateString()}
                                   </div>
 
+                                  ${!isCompleted ? `
                                   <button onclick="event.stopPropagation(); deletePhoto('${esc(p.artifact_id)}', '${esc(jobId)}')" 
                                           title="Delete Photo"
                                           type="button"
                                           style="position:absolute;top:8px;right:8px;background:rgba(239,68,68,0.9);color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.2);">
                                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                   </button>
+                                  ` : ''}
                               </div>
                           `).join('')}
                       </div>
@@ -10046,6 +10084,9 @@ function renderUpcoming(list) {
             return;
           }
           
+          console.log('[COMPLETE] Backend response:', out);
+          console.log('[PAYOUT] Created', out.payouts_created || 0, 'ledger entries for pro', out.pro_id);
+          
           toast("✅ Job Completed! Payment processing will update shortly.");
           
           // ✅ Invalidate cache
@@ -10110,23 +10151,8 @@ function renderCompleted(list) {
     }
 
     // ✅ ACTIONS
-    // Check for photos (assuming photoOnFile is global or we check j.photos)
-    const hasPhotos = (typeof photoOnFile !== 'undefined' && photoOnFile[j.job_id]) || (j.photos && j.photos.length > 0);
+    // All completed jobs show only 'View details →' - photos are viewed in the details modal
     
-    let primaryBtnHtml = '';
-    
-    if (hasPhotos) {
-        primaryBtnHtml = `
-        <button class="btn" onclick="viewPhotos('${esc(j.job_id)}')" type="button" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> View Photos
-        </button>`;
-    } else {
-        primaryBtnHtml = `
-        <button class="btn" data-details="${esc(j.job_id)}" type="button" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
-            View Details
-        </button>`;
-    }
-
     // M13: Compact Mobile Card Structure
     let dateCapsule = '';
     if (targetDate && !isNaN(targetDate)) {
@@ -10139,6 +10165,8 @@ function renderCompleted(list) {
 
     const el = document.createElement("div");
     el.className = "item";
+    el.dataset.details = j.job_id;
+    el.style.cursor = 'pointer';
     el.innerHTML = `
       <div class="job-header">
         <div class="service-chip">${esc(j.service_name||"Service")}</div>
@@ -10151,12 +10179,10 @@ function renderCompleted(list) {
       </div>
 
       <div class="job-actions">
-        ${primaryBtnHtml}
-        
-        <div class="details-link">
-            <button class="btn ghost" data-details="${esc(j.job_id)}" type="button" style="background:transparent;border:none;color:var(--h2s-text-muted);font-size:12px;font-weight:500;padding:0;cursor:pointer" type="button">
-                View details →
-            </button>
+        <div style="text-align:center">
+          <button class="btn ghost" onclick="event.stopPropagation(); this.closest('.item').click();" type="button" style="background:transparent;border:none;color:var(--h2s-text-muted);font-size:13px;font-weight:500;padding:0;cursor:pointer">
+            View details →
+          </button>
         </div>
       </div>`;
     fragment.appendChild(el);
@@ -10398,6 +10424,7 @@ function renderPayoutsDashboard(data) {
   // Render recent payouts list
   const recentList = $("recent-payouts-list");
   recentList.innerHTML = "";
+  const recentEmpty = $("recent-payouts-empty");
   
   // Sort by earned_at or created_at, most recent first
   const sorted = [...rows].sort((a, b) => {
@@ -10409,12 +10436,9 @@ function renderPayoutsDashboard(data) {
   const recent = sorted.slice(0, 10); // Show last 10
   
   if (recent.length === 0) {
-    recentList.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;color:#94a3b8">
-        <div style="font-size:15px">No earnings yet. Accept jobs to start earning!</div>
-      </div>
-    `;
+    if (recentEmpty) recentEmpty.style.display = 'block';
   } else {
+    if (recentEmpty) recentEmpty.style.display = 'none';
     recent.forEach(r => {
       const amount = asNum(r.total_amount || r.amount || 0);
       const earnedDate = r.earned_at ? new Date(r.earned_at) : new Date(r.created_at);
@@ -10493,8 +10517,24 @@ async function loadPayouts() {
     const out = await GET("portal_payouts", {token});
     if (!out.ok) { toast(out.error || "Could not load payouts"); return; }
     
-    const rows = out.rows || [];
+    let rows = out.rows || [];
     console.log('[Payouts] Raw rows:', rows.length, rows);
+
+    // Smoke test: allow mock payouts via URL param when rows are empty
+    const usp = new URLSearchParams(location.search);
+    const useMock = usp.get('mockPayouts') === '1';
+    if (rows.length === 0 && useMock) {
+      const now = new Date();
+      const iso = (d) => new Date(d).toISOString();
+      const twoDaysAgo = new Date(now); twoDaysAgo.setDate(now.getDate() - 2);
+      const fiveDaysAgo = new Date(now); fiveDaysAgo.setDate(now.getDate() - 5);
+      rows = [
+        { id: 'm1', state: 'approved', amount: 120, earned_at: iso(twoDaysAgo), created_at: iso(twoDaysAgo), job_id: 'JOB-1001', service_name: 'TV Mounting' },
+        { id: 'm2', state: 'paid', total_amount: 85, earned_at: iso(fiveDaysAgo), created_at: iso(fiveDaysAgo), job_id: 'JOB-1002', service_name: 'Smart Integration' },
+        { id: 'm3', state: 'pending', amount: 60, earned_at: iso(now), created_at: iso(now), job_id: 'JOB-1003', service_name: 'Security Installations' }
+      ];
+      console.log('[Payouts] Using mock rows for smoke test:', rows);
+    }
     
     // Calculate comprehensive stats
     let availableBalance = 0;
@@ -10538,6 +10578,11 @@ async function loadPayouts() {
     
     const data = {rows, availableBalance, lifetimeEarnings, weekEarnings, pendingEarnings, weekJobCount};
     
+    // If no rows and no mock mode, inform user for visibility
+    if ((rows?.length || 0) === 0) {
+      toast('No payouts found yet for this account');
+    }
+
     // Cache the processed data
     setCache('payouts', data);
     
