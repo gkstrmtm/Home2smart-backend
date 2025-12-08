@@ -10584,6 +10584,19 @@ async function loadPayouts(forceRefresh = false) {
     let rows = out.rows || [];
     console.log('[Payouts] Raw rows:', rows.length, rows);
 
+    // [DEBUG REPORT]
+    if (out.debug_report && out.debug_report.length > 0) {
+      console.group('🔍 Payouts Debug Report');
+      out.debug_report.forEach(line => console.log(line));
+      console.groupEnd();
+      
+      // If still empty, show alert with debug info
+      if (rows.length === 0) {
+        console.warn('Payouts empty despite backfill attempt. Check debug report above.');
+        // Optional: alert(out.debug_report.join('\n'));
+      }
+    }
+
     // Smoke test: allow mock payouts via URL param when rows are empty
     const usp = new URLSearchParams(location.search);
     const useMock = usp.get('mockPayouts') === '1';

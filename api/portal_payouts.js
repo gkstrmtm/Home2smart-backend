@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { calculatePayout } from './utils/payout_calculator.js';
 
+// Use Service Role if available to bypass RLS, otherwise Anon
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 export const config = {
@@ -13,14 +14,18 @@ export const config = {
 // Helper to run backfill logic internally
 async function runInternalBackfill(proId) {
   console.log(`[INTERNAL BACKFILL] Starting for pro: ${proId}`);
+  const debugLog = [];
   try {
     const { data: assignments } = await supabase
       .from('h2s_dispatch_job_assignments')
       .select('assign_id, job_id, pro_id, completed_at, state')
       .eq('pro_id', proId)
-      .eq('state', 'completed');
+      .in('state', ['completed', 'Completed']); // Handle case sensitivity
 
-    if (!assignments || assignments.length === 0) return 0;
+    if (!assignments || assignments.length === 0) {
+      debugLog.push('No completed assignments found');
+      return { count: 0, log: debugLog };
+    }
 
     let createdCount = 0;
     for (const assign of assignments) {
@@ -32,11 +37,17 @@ async function runInternalBackfill(proId) {
         .eq('pro_id', proId)
         .limit(1);
 
-      if (existing && existing.length > 0) continue;
+      if (existing && existing.length > 0) {
+        debugLog.push(`Job ${assign.job_id}: Skipped (Ledger exists: ${existing[0].entry_id})`);
+        continue;
+      }
 
       // Fetch details
       const { data: job } = await supabase.from('h2s_dispatch_jobs').select('*').eq('job_id', assign.job_id).single();
-      if (!job) continue;
+      if (!job) {
+        debugLog.push(`Job ${assign.job_id}: Skipped (Job not found in jobs table)`);
+        continue;
+      }
       
       const { data: lines } = await supabase.from('h2s_dispatch_job_lines').select('*').eq('job_id', assign.job_id);
       const { data: teammates } = await supabase.from('h2s_dispatch_job_teammates').select('*').eq('job_id', assign.job_id).maybeSingle();
@@ -50,13 +61,14 @@ async function runInternalBackfill(proId) {
       if (calc.split_details) {
         if (String(proId) === String(teammates?.primary_pro_id)) { amount = calc.primary_amount; note += ' (Primary)'; }
         else if (String(proId) === String(teammates?.secondary_pro_id)) { amount = calc.secondary_amount; note += ' (Secondary)'; }
+        else { debugLog.push(`Job ${assign.job_id}: Skipped (Pro ID ${proId} not in team split)`); }
       } else {
         amount = calc.total;
         note += ' (Solo)';
       }
 
       if (amount > 0) {
-        await supabase.from('h2s_payouts_ledger').insert({
+        const { error: insertErr } = await supabase.from('h2s_payouts_ledger').insert({
           pro_id: proId,
           job_id: assign.job_id,
           total_amount: amount,
@@ -69,14 +81,23 @@ async function runInternalBackfill(proId) {
           customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
           note: note
         });
-        createdCount++;
+        
+        if (insertErr) {
+           debugLog.push(`Job ${assign.job_id}: Insert Error (${insertErr.message})`);
+        } else {
+           createdCount++;
+           debugLog.push(`Job ${assign.job_id}: Created payout $${amount}`);
+        }
+      } else {
+        debugLog.push(`Job ${assign.job_id}: Skipped (Calculated amount is 0)`);
       }
     }
     console.log(`[INTERNAL BACKFILL] Created ${createdCount} missing entries.`);
-    return createdCount;
+    return { count: createdCount, log: debugLog };
   } catch (err) {
     console.error('[INTERNAL BACKFILL] Error:', err);
-    return 0;
+    debugLog.push(`Fatal Error: ${err.message}`);
+    return { count: 0, log: debugLog };
   }
 }
 
@@ -137,11 +158,13 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false });
 
     // [AUTO-FIX] If no payouts found, try to backfill immediately
+    let debugReport = [];
     if ((!payouts || payouts.length === 0) && !payoutError) {
       console.log('[PORTAL_PAYOUTS] No payouts found. Triggering internal backfill...');
-      const fixedCount = await runInternalBackfill(proId);
+      const { count, log } = await runInternalBackfill(proId);
+      debugReport = log;
       
-      if (fixedCount > 0) {
+      if (count > 0) {
         // Re-fetch if we fixed anything
         const { data: retryPayouts } = await supabase
           .from('h2s_payouts_ledger')
@@ -174,7 +197,8 @@ export default async function handler(req, res) {
 
     return res.json({
       ok: true,
-      rows: payouts || []
+      rows: payouts || [],
+      debug_report: debugReport
     });
 
   } catch (error) {
