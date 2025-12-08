@@ -33,13 +33,9 @@
 <link rel="preconnect" href="https://h2s-backend.vercel.app">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://maps.googleapis.com">
-<!-- Preload logo for faster LCP -->
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
-<!-- Preload critical data -->
-<link rel="preload" href="https://h2s-backend.vercel.app/api/bundles-data" as="fetch" crossorigin>
 
-<!-- Critical Fonts -->
-<!-- Fonts loaded with optimal display strategy -->
+<!-- Fonts: async non-blocking -->
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" media="print" onload="this.media='all'">
@@ -55,11 +51,8 @@
 }
 </style>
 
-
-
-<!-- Load remaining font weights async (non-blocking, low priority) -->
 <style>
-/* === CRITICAL CSS (INLINE) === */
+/* === CRITICAL CSS === */
 :root {
   --cobalt: #0a2a5a;
   --azure: #1493ff;
@@ -80,15 +73,12 @@
 
 html {
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
-  background: var(--cobalt); /* Prevent white flash / overscroll raw area */
-  overscroll-behavior-y: none; /* Clamp bounce */
+  background: var(--cobalt);
+  overscroll-behavior-y: none;
 }
 
 body {
-  /* Performance: Use system font first, upgrade to Archivo when it loads */
   font-family: Archivo, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Archivo-fallback', Arial, sans-serif;
   background: var(--bg);
   color: var(--ink);
@@ -2762,7 +2752,9 @@ body {
 <script>
 'use strict';
 
-console.log('[BundlesJS] Script loaded and executing');
+// Micro-optimization: Defer heavy operations until after initial paint
+const deferredInit = () => {
+  console.log('[BundlesJS] Script loaded and executing');
 
 function byId(id){ return document.getElementById(id); }
 
@@ -2792,31 +2784,59 @@ const DASH_URL = 'https://h2s-backend.vercel.app/api/track';
 const CAL_FORM_URL = 'https://api.leadconnectorhq.com/widget/booking/RjwOQacM3FAjRNCfm6uU';
 const PIXEL_ID = '2384221445259822';
 
-// === PERFORMANCE: Start Data Fetch Immediately ===
-// We start this request parallel to JS parsing/execution so data is ready when we need it.
-const bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
-  cache: 'default',
-  headers: { 'Accept': 'application/json' }
-}).then(res => res.json()).catch(err => {
-  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
-  return null;
-});
+// === PERFORMANCE: Defer Data Fetch Until DOM Ready ===
+// Start fetch after DOM interactive to prioritize initial paint
+let bundlesFetchPromise = null;
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
+      cache: 'default',
+      headers: { 'Accept': 'application/json' }
+    }).then(res => res.json()).catch(err => {
+      console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+      return null;
+    });
+  }, { once: true });
+} else {
+  bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
+    cache: 'default',
+    headers: { 'Accept': 'application/json' }
+  }).then(res => res.json()).catch(err => {
+    console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+    return null;
+  });
+}
 
-// Session ID for tracking
+// Session ID for tracking (defer generation if needed)
 let SESSION_ID = sessionStorage.getItem('h2s_session_id');
 if(!SESSION_ID){
-  SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
-  sessionStorage.setItem('h2s_session_id', SESSION_ID);
+  SESSION_ID = 'tmp_' + Date.now();
+  requestIdleCallback(() => {
+    SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    sessionStorage.setItem('h2s_session_id', SESSION_ID);
+  }, { timeout: 1000 });
 }
 
 // === STATE ===
 let catalog = { services:[], serviceOptions:[], priceTiers:[], bundles:[], bundleItems:[], recommendations:[], memberships:[], membershipPrices:[] };
-let cart = loadCart();
-let user = loadUser();
+let cart = [];
+let user = {};
 let lastSearch = '';
 let lastCat = '';
 let allReviews = [];
 let reviewsLoadedFromAPI = false;
+
+// Defer cart/user loading to avoid blocking initial render
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    cart = loadCart();
+    user = loadUser();
+    updateCartBadge();
+  }, { once: true });
+} else {
+  cart = loadCart();
+  user = loadUser();
+}
 
 // === EXTRA DEFERRED LOADER (Recommendations) ===
 // Defers rule-based recommendations parsing & rendering to shrink initial JS parse.
@@ -2861,12 +2881,15 @@ function queueRenderRecsPanel(){
 }
 
 // === LOADER ===
+let loaderBuilt = false;
 function buildLoader(){
+  if(loaderBuilt) return;
   const slices = byId('h2sLoaderSlices');
   if(!slices) return;
   const c1 = '#1493ff', c2 = '#0a2a5a', c3 = '#6b778c';
   const colors = [c1, c2, c3, c1, c2, c3, c1, c2];
   slices.innerHTML = colors.map((col, i)=>`<div class="h2s-loader-slice" style="background:${col};animation-delay:${i*0.05}s"></div>`).join('');
+  loaderBuilt = true;
 }
 function showLoader(){ 
   const el=byId('h2s-loader'); 
@@ -6917,6 +6940,15 @@ window.initAddressAutocomplete = function() {
   
   console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
 };
+
+}; // End deferredInit
+
+// Execute deferred initialization
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', deferredInit, { once: true });
+} else {
+  deferredInit();
+}
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
