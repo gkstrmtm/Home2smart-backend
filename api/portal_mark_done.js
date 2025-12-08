@@ -224,6 +224,77 @@ export default async function handler(req, res) {
     // TODO: Trigger customer review email via Apps Script webhook
     // For now, emails still handled by Apps Script background triggers
 
+    // Silent reconciliation: ensure recent completed assignments have ledger entries
+    try {
+      const sinceIso = new Date(Date.now() - 30*24*3600*1000).toISOString(); // last 30 days
+      const { data: completedAssigns } = await supabase
+        .from('h2s_dispatch_job_assignments')
+        .select('assign_id, job_id, pro_id, completed_at, state')
+        .eq('pro_id', proId)
+        .eq('state', 'completed')
+        .gte('completed_at', sinceIso)
+        .order('completed_at', { ascending: false });
+
+      for (const a of (completedAssigns || [])) {
+        // Check if ledger exists for this job+pro
+        const { data: existing } = await supabase
+          .from('h2s_payouts_ledger')
+          .select('entry_id')
+          .eq('job_id', a.job_id)
+          .eq('pro_id', a.pro_id)
+          .limit(1);
+
+        if (existing && existing.length) continue; // already present
+
+        // Fetch job + lines
+        const { data: job2 } = await supabase
+          .from('h2s_dispatch_jobs')
+          .select('*')
+          .eq('job_id', a.job_id)
+          .single();
+        const { data: lines2 } = await supabase
+          .from('h2s_dispatch_job_lines')
+          .select('*')
+          .eq('job_id', a.job_id);
+        const { data: teammates2 } = await supabase
+          .from('h2s_dispatch_job_teammates')
+          .select('*')
+          .eq('job_id', a.job_id)
+          .maybeSingle();
+
+        const res2 = calculatePayout(job2, lines2, teammates2);
+
+        // Insert only the portion for this pro (primary/secondary or solo)
+        let amountForPro = 0;
+        if (res2.split_details) {
+          if (String(a.pro_id) === String(teammates2?.primary_pro_id)) amountForPro = res2.primary_amount || 0;
+          else if (String(a.pro_id) === String(teammates2?.secondary_pro_id)) amountForPro = res2.secondary_amount || 0;
+        } else {
+          amountForPro = res2.total || 0;
+        }
+
+        if (amountForPro > 0) {
+          await supabase
+            .from('h2s_payouts_ledger')
+            .insert({
+              pro_id: a.pro_id,
+              job_id: a.job_id,
+              total_amount: amountForPro,
+              base_amount: amountForPro,
+              service_name: job2?.resources_needed || 'Service',
+              variant_code: job2?.variant_code || 'STANDARD',
+              state: 'approved',
+              earned_at: a.completed_at || new Date().toISOString(),
+              customer_total: job2?.metadata?.items_json ? job2.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
+              note: 'Reconciled: completed without ledger'
+            });
+          console.log('Reconciled payout for job', a.job_id, 'pro', a.pro_id);
+        }
+      }
+    } catch (reconErr) {
+      console.warn('Silent reconciliation failed:', reconErr);
+    }
+
     return res.json({ ok: true });
 
   } catch (error) {
