@@ -4866,6 +4866,16 @@ function showCheckoutModal() {
     return;
   }
 
+  // Lazy load address autocomplete on first checkout open
+  if (!window._addressAutocompleteLoaded) {
+    window._addressAutocompleteLoaded = true;
+    requestIdleCallback(() => {
+      if (typeof window.initAddressAutocomplete === 'function') {
+        window.initAddressAutocomplete();
+      }
+    }, { timeout: 500 });
+  }
+
   // Ensure visibility
   modal.style.contentVisibility = 'visible';
   modal.style.display = 'flex';
@@ -5077,233 +5087,14 @@ function showCheckoutModal() {
   backdrop.classList.add('show');
   document.body.style.overflow = 'hidden'; // Lock scroll
   
-  // Initialize address autocomplete after modal renders
+  // Focus first empty field after modal renders
   setTimeout(() => {
-    setupAddressAutocomplete();
-    
-    // Focus first empty field
     if(!document.getElementById('coName').value) {
       document.getElementById('coName').focus();
     } else if(!document.getElementById('coAddress').value) {
       document.getElementById('coAddress').focus();
     }
   }, 100);
-}
-
-// BRAND NEW ADDRESS AUTOCOMPLETE SYSTEM
-function setupAddressAutocomplete() {
-  const addressInput = document.getElementById('coAddress');
-  const dropdown = document.getElementById('addressDropdown');
-  const cityInput = document.getElementById('coCity');
-  const zipInput = document.getElementById('coZip');
-  
-  if (!addressInput || !dropdown) {
-    console.error('[Autocomplete] Required elements not found');
-    return;
-  }
-  
-  // Style the dropdown with better visibility
-  const isMobile = window.innerWidth < 768;
-  dropdown.style.cssText = `
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 16px 40px -10px rgba(0,0,0,0.15), 0 0 10px -5px rgba(0,0,0,0.05);
-    max-height: ${isMobile ? '260px' : '320px'};
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    z-index: 99999;
-    display: none;
-    padding: 6px 0;
-  `;
-  
-  // Prevent scroll propagation from dropdown to modal/body
-  dropdown.addEventListener('touchstart', (e) => {
-    e.stopPropagation();
-  }, { passive: false });
-  dropdown.addEventListener('touchmove', (e) => {
-    e.stopPropagation();
-  }, { passive: false });
-  dropdown.addEventListener('wheel', (e) => {
-    e.stopPropagation();
-  });
-  
-  console.log('[Autocomplete] Dropdown styled and ready');
-  
-  let debounceTimer;
-  let suggestions = [];
-  
-  // Handle typing
-  addressInput.addEventListener('input', function() {
-    const query = this.value.trim();
-    
-    console.log('[Autocomplete] Input changed:', query);
-    
-    clearTimeout(debounceTimer);
-    
-    if (query.length < 3) {
-      dropdown.style.display = 'none';
-      dropdown.innerHTML = '';
-      console.log('[Autocomplete] Query too short, hiding dropdown');
-      return;
-    }
-    
-    console.log('[Autocomplete] Waiting 300ms before searching...');
-    
-    debounceTimer = setTimeout(async () => {
-      console.log('[Autocomplete] Fetching suggestions for:', query);
-      try {
-        const apiUrl = `https://h2s-backend.vercel.app/api/address_autocomplete?input=${encodeURIComponent(query)}`;
-        console.log('[Autocomplete] Calling:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          cache: 'no-store'
-        });
-        console.log('[Autocomplete] Response status:', response.status, response.statusText);
-        
-        const contentType = response.headers.get('content-type');
-        console.log('[Autocomplete] Content-Type:', contentType);
-        
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          console.error('[Autocomplete] Expected JSON but got:', text.substring(0, 200));
-          dropdown.style.display = 'none';
-          return;
-        }
-        
-        const data = await response.json();
-        
-        console.log('[Autocomplete] API Response:', data);
-        
-        if (data.ok && data.predictions && data.predictions.length > 0) {
-          suggestions = data.predictions;
-          
-          console.log('[Autocomplete] Found', suggestions.length, 'suggestions');
-          
-          dropdown.innerHTML = suggestions.map((pred, idx) => `
-            <div 
-              class="address-option" 
-              data-idx="${idx}"
-              style="
-                padding: 14px 16px;
-                cursor: pointer;
-                border-bottom: 1px solid #f1f5f9;
-                font-size: 14px;
-                color: #1e293b;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                transition: all 0.15s;
-              "
-              onmouseover="this.style.background='#f8fafc'"
-              onmouseout="this.style.background='white'"
-            >
-              <span style="font-size:16px;">📍</span>
-              <span>${escapeHtml(pred.description)}</span>
-            </div>
-          `).join('');
-          
-          dropdown.style.display = 'block';
-          console.log('[Autocomplete] Dropdown displayed with', suggestions.length, 'items');
-          
-          // Click handlers
-          dropdown.querySelectorAll('.address-option').forEach(el => {
-            el.addEventListener('click', function() {
-              const idx = parseInt(this.dataset.idx);
-              selectAddress(suggestions[idx]);
-            });
-          });
-          
-        } else {
-          dropdown.style.display = 'none';
-          console.log('[Autocomplete] No suggestions found');
-        }
-      } catch (error) {
-        console.error('[Autocomplete] Error:', error);
-        dropdown.style.display = 'none';
-      }
-    }, 300);
-  });
-  
-  // Hide dropdown when clicking outside or losing focus
-  addressInput.addEventListener('blur', function() {
-    // Delay to allow click events to fire on dropdown items
-    setTimeout(() => {
-      dropdown.style.display = 'none';
-      dropdown.innerHTML = '';
-    }, 200);
-  });
-  
-  // Clear dropdown when form is submitted
-  const checkoutForm = document.getElementById('checkoutForm');
-  if (checkoutForm) {
-    checkoutForm.addEventListener('submit', function() {
-      dropdown.style.display = 'none';
-      dropdown.innerHTML = '';
-    });
-  }
-  
-  // Select address
-  function selectAddress(prediction) {
-    const comp = prediction.components || {};
-    
-    // Set street address
-    if (comp.street_number && comp.street) {
-      addressInput.value = `${comp.street_number} ${comp.street}`;
-    } else {
-      const parts = prediction.description.split(',');
-      addressInput.value = parts[0]?.trim() || prediction.description;
-    }
-    
-    // Auto-fill city
-    if (comp.city && cityInput) {
-      cityInput.value = comp.city;
-    }
-    
-    // Auto-fill state
-    const stateInput = document.getElementById('coState');
-    if (comp.state && stateInput) {
-      stateInput.value = comp.state.toUpperCase();
-    }
-    
-    // Auto-fill zip
-    if (comp.zip && zipInput) {
-      zipInput.value = comp.zip;
-    }
-    
-    // Clear and hide dropdown
-    dropdown.style.display = 'none';
-    dropdown.innerHTML = '';
-    
-    console.log('[Autocomplete] Selected:', {
-      address: addressInput.value,
-      city: cityInput.value,
-      state: stateInput?.value,
-      zip: zipInput.value
-    });
-  }
-  
-  // Close on outside click
-  document.addEventListener('click', function(e) {
-    if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-  
-  // Keyboard navigation
-  addressInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      dropdown.style.display = 'none';
-    }
-  });
-  
-  console.log('[Autocomplete] ✓ Initialized');
 }
 
 window.handleCheckoutSubmit = async function(e) {
@@ -6743,164 +6534,57 @@ ${details}
 console.log('✓ Deferred logic loaded');
 </script>
 
-<!-- Intelligent Address Autocomplete (Backend-proxied for security) -->
+<!-- Address Autocomplete (Deferred - loads on checkout open) -->
 <script>
-// Address autocomplete using backend proxy to Google Places API
+// Deferred address autocomplete - only executes when checkout modal opens
 window.initAddressAutocomplete = function() {
-  console.log('[Address Autocomplete] Initializing...');
-  
   const addressInput = document.getElementById('coAddress');
-  if (!addressInput) {
-    console.warn('[Address Autocomplete] Address input not found');
-    return;
-  }
-  
-  // Prevent double initialization
-  if (addressInput.dataset.autocompleteInitialized === 'true') {
-    console.log('[Address Autocomplete] Already initialized');
-    return;
-  }
+  if (!addressInput || addressInput.dataset.autocompleteInitialized === 'true') return;
   
   addressInput.dataset.autocompleteInitialized = 'true';
   addressInput.placeholder = 'Start typing your address...';
   
-  // Create dropdown for suggestions
   const dropdown = document.createElement('div');
   dropdown.id = 'addressDropdown';
   dropdown.style.cssText = 'position:absolute;background:white;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:300px;overflow-y:auto;z-index:1000;display:none;width:100%;margin-top:4px;';
   addressInput.parentNode.style.position = 'relative';
   addressInput.parentNode.appendChild(dropdown);
   
-  let debounceTimer;
-  let currentSuggestions = [];
+  let debounceTimer, currentSuggestions = [];
   
-  // Handle input with debouncing
   addressInput.addEventListener('input', function() {
-    const query = addressInput.value.trim();
-    
+    const query = this.value.trim();
     clearTimeout(debounceTimer);
-    
-    if (query.length < 3) {
-      dropdown.style.display = 'none';
-      return;
-    }
+    if (query.length < 3) { dropdown.style.display = 'none'; return; }
     
     debounceTimer = setTimeout(async () => {
       try {
         const response = await fetch(`/api/address_autocomplete?input=${encodeURIComponent(query)}`);
         const data = await response.json();
-        
-        if (data.ok && data.predictions && data.predictions.length > 0) {
+        if (data.ok && data.predictions?.length > 0) {
           currentSuggestions = data.predictions;
-          
-          dropdown.innerHTML = data.predictions.map((pred, idx) => `
-            <div 
-              class="address-suggestion" 
-              data-index="${idx}"
-              style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333;"
-              onmouseover="this.style.background='#f5f5f5'"
-              onmouseout="this.style.background='white'"
-            >
-              📍 ${escapeHtml(pred.description)}
-            </div>
-          `).join('');
-          
+          dropdown.innerHTML = data.predictions.map((pred, idx) => `<div class="address-suggestion" data-index="${idx}" style="padding:12px 16px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px;color:#333;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">📍 ${escapeHtml(pred.description)}</div>`).join('');
           dropdown.style.display = 'block';
-          
-          // Add click handlers
           dropdown.querySelectorAll('.address-suggestion').forEach(el => {
             el.addEventListener('click', function() {
-              const idx = parseInt(this.dataset.index);
-              selectAddress(currentSuggestions[idx]);
+              const pred = currentSuggestions[parseInt(this.dataset.index)];
+              addressInput.value = pred.description.split(',')[0]?.trim() || pred.description;
+              if (pred.components) {
+                const cityInput = document.getElementById('coCity'), zipInput = document.getElementById('coZip');
+                if (pred.components.street_number && pred.components.street) addressInput.value = `${pred.components.street_number} ${pred.components.street}`;
+                if (cityInput && pred.components.city) cityInput.value = pred.components.city;
+                if (zipInput && pred.components.zip) zipInput.value = pred.components.zip;
+              }
+              dropdown.style.display = 'none';
             });
           });
-          
-          console.log(`[Address Autocomplete] Found ${data.predictions.length} suggestions`);
-        } else {
-          dropdown.style.display = 'none';
-        }
-      } catch (error) {
-        console.error('[Address Autocomplete] Fetch error:', error);
-        dropdown.style.display = 'none';
-      }
-    }, 300); // Wait 300ms after user stops typing
+        } else { dropdown.style.display = 'none'; }
+      } catch(e) { dropdown.style.display = 'none'; }
+    }, 300);
   });
   
-  // Select address and parse it
-  function selectAddress(prediction) {
-    const fullAddress = prediction.description;
-    addressInput.value = fullAddress;
-    dropdown.style.display = 'none';
-    
-    // Use components from backend if available (Photon provides these)
-    if (prediction.components) {
-      const cityInput = document.getElementById('coCity');
-      const zipInput = document.getElementById('coZip');
-      
-      // Extract street address (number + street name)
-      if (prediction.components.street_number && prediction.components.street) {
-        addressInput.value = `${prediction.components.street_number} ${prediction.components.street}`;
-      }
-      
-      // Auto-fill city
-      if (cityInput && prediction.components.city) {
-        cityInput.value = prediction.components.city;
-      }
-      
-      // Auto-fill zip
-      if (zipInput && prediction.components.zip) {
-        zipInput.value = prediction.components.zip;
-      }
-      
-      console.log('[Address Autocomplete] ✓ Address selected:', {
-        address: addressInput.value,
-        city: prediction.components.city,
-        zip: prediction.components.zip
-      });
-    } else {
-      // Fallback: Parse from description string
-      const parts = fullAddress.split(',').map(p => p.trim());
-      
-      if (parts.length >= 2) {
-        // First part is usually the street address
-        addressInput.value = parts[0];
-        
-        const cityInput = document.getElementById('coCity');
-        const zipInput = document.getElementById('coZip');
-        
-        // Second part is usually city
-        if (cityInput && parts[1]) {
-          cityInput.value = parts[1];
-        }
-        
-        // Last part usually has state and ZIP
-        if (zipInput && parts[parts.length - 1]) {
-          const zipMatch = parts[parts.length - 1].match(/\b\d{5}\b/);
-          if (zipMatch) {
-            zipInput.value = zipMatch[0];
-          }
-        }
-        
-        console.log('[Address Autocomplete] ✓ Address parsed from description');
-      }
-    }
-  }
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function(e) {
-    if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-  
-  // Handle keyboard navigation
-  addressInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      dropdown.style.display = 'none';
-    }
-  });
-  
-  console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
+  document.addEventListener('click', e => { if (!addressInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none'; });
+  addressInput.addEventListener('keydown', e => { if (e.key === 'Escape') dropdown.style.display = 'none'; });
 };
 
 // Initialize everything when DOM is ready
@@ -6911,14 +6595,12 @@ if (document.readyState === 'loading') {
 }
 
 function initApp() {
-  console.log('[BundlesJS] Initializing app...');
-  init(); // Call original init (checkout, etc)
+  init();
   loadData();
   wireCart();
   route();
   window.addEventListener('popstate', route, { passive: true });
 }
-
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
