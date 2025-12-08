@@ -184,6 +184,16 @@ export default async function handler(req, res) {
       const payoutResult = calculatePayout(job, lines, teammates);
       console.log('Payout calculation result:', payoutResult);
 
+      // [LOGGING REQUESTED BY USER]
+      console.log('[PAYOUT DATA TRACE]', {
+        job_id: jobId,
+        pro_id: proId,
+        service_type: job.resources_needed || 'Unknown',
+        payout_amount: payoutResult.total,
+        job_status: job.status,
+        completed_at: new Date().toISOString()
+      });
+
       const payoutsToCreate = [];
       
       if (payoutResult.split_details) {

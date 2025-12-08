@@ -10539,6 +10539,28 @@ async function loadPayouts() {
       ];
       console.log('[Payouts] Using mock rows for smoke test:', rows);
     }
+
+    // [AUTO-REPAIR] If no rows, try to backfill once per session
+    if ((rows?.length || 0) === 0 && !sessionStorage.getItem('payout_backfill_attempted')) {
+      console.log('[Payouts] No payouts found. Attempting auto-backfill...');
+      sessionStorage.setItem('payout_backfill_attempted', 'true');
+      try {
+        toast('Checking for missing payouts...');
+        await fetch('/api/admin_backfill_payouts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        // Retry load once
+        const retryOut = await GET("portal_payouts", {token});
+        if (retryOut.ok && retryOut.rows?.length > 0) {
+           rows = retryOut.rows;
+           toast('Restored missing payout records');
+        }
+      } catch (bfErr) {
+        console.error('Backfill failed:', bfErr);
+      }
+    }
     
     // Calculate comprehensive stats
     let availableBalance = 0;

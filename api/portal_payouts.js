@@ -74,6 +74,12 @@ export default async function handler(req, res) {
       });
     }
 
+    console.log('[PAYOUTS FETCH]', {
+      pro_id: proId,
+      count: (payouts || []).length,
+      sample: payouts && payouts.length > 0 ? payouts[0] : 'None'
+    });
+
     console.log('[PORTAL_PAYOUTS] Found', (payouts || []).length, 'ledger entries for pro', proId);
     if (payouts && payouts.length > 0) {
       console.log('[PORTAL_PAYOUTS] Sample entry:', payouts[0]);
