@@ -3238,6 +3238,15 @@ function renderShop(){
   }
 }
 
+window.navSet = function(params){
+  const u = new URL(location.href);
+  Object.entries(params||{}).forEach(([k,v])=>{
+    if(v==null) u.searchParams.delete(k); else u.searchParams.set(k,v);
+  });
+  history.pushState({}, '', u.toString());
+  route();
+};
+
 // Connect route handler for navSet
 window._routeHandler = route;
 
