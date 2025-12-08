@@ -222,6 +222,7 @@ export default async function handler(req, res) {
             pro_id: p.pro_id,
             job_id: jobId,
             total_amount: p.amount,
+            amount: p.amount, // ensure legacy consumers see value
             base_amount: p.amount,
             service_name: job.resources_needed || 'Service',
             variant_code: job.variant_code || 'STANDARD',
@@ -300,6 +301,7 @@ export default async function handler(req, res) {
               pro_id: a.pro_id,
               job_id: a.job_id,
               total_amount: amountForPro,
+              amount: amountForPro,
               base_amount: amountForPro,
               service_name: job2?.resources_needed || 'Service',
               variant_code: job2?.variant_code || 'STANDARD',
