@@ -30,22 +30,20 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 
 <!-- Performance: Critical Resource Hints -->
-<link rel="preconnect" href="https://h2s-backend.vercel.app" crossorigin>
-<link rel="dns-prefetch" href="https://h2s-backend.vercel.app">
-<link rel="preconnect" href="https://maps.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://h2s-backend.vercel.app">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://maps.googleapis.com">
-<!-- Preload aggregated data to start fetch parallel to HTML parsing -->
-<link rel="preload" href="https://h2s-backend.vercel.app/api/bundles-data" as="fetch" crossorigin>
 <!-- Preload logo for faster LCP -->
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Preload critical data -->
+<link rel="preload" href="https://h2s-backend.vercel.app/api/bundles-data" as="fetch" crossorigin>
 
 <!-- Critical Fonts -->
-<!-- Fonts loaded async to avoid render-blocking -->
+<!-- Fonts loaded with optimal display strategy -->
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" as="style" crossorigin onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet" crossorigin></noscript>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet"></noscript>
 
 <style>
 @font-face {
@@ -2197,7 +2195,7 @@ body {
 <header class="header">
   <div class="header-inner">
     <a href="#" class="logo" aria-label="Home2Smart home" onclick="navSet({view:'shop'}); return false;">
-      <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" class="logo-img" width="36" height="36" fetchpriority="high" decoding="async">
+      <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" class="logo-img" width="36" height="36" fetchpriority="high" decoding="async" loading="eager">
     </a>
 
     <div class="header-actions">
@@ -2762,10 +2760,17 @@ body {
 </script>
 
 <script>
-// (IIFE removed)
 'use strict';
-
 console.log('[BundlesJS] Script loaded and executing');
+
+// Yield to browser for initial render before executing heavy JS
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(() => initBundlesApp(), { timeout: 500 });
+} else {
+  setTimeout(initBundlesApp, 0);
+}
+
+function initBundlesApp() {
 
 function byId(id){ return document.getElementById(id); }
 
@@ -2799,8 +2804,7 @@ const PIXEL_ID = '2384221445259822';
 // We start this request parallel to JS parsing/execution so data is ready when we need it.
 const bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
   cache: 'default',
-  headers: { 'Accept': 'application/json' },
-  priority: 'high' // Hint to browser this is important
+  headers: { 'Accept': 'application/json' }
 }).then(res => res.json()).catch(err => {
   console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
   return null;
@@ -3990,7 +3994,7 @@ window.addEventListener('pageshow', (event) => {
     updateCartBadge();
     paintCart();
   }
-});
+}, { passive: true });
 
 // Also listen for storage events (if cart changes in another tab)
 window.addEventListener('storage', (e) => {
@@ -4000,7 +4004,7 @@ window.addEventListener('storage', (e) => {
     updateCartBadge();
     paintCart();
   }
-});
+}, { passive: true });
 
 function updateQuantity(idx, delta){
   if(!cart[idx]) return;
@@ -4298,7 +4302,7 @@ window.addEventListener('resize', () => {
   resizeTimeout = setTimeout(() => {
     if (allReviews.length > 0) updateCarousel();
   }, 100);
-});
+}, { passive: true });
 
 // Extended reviews disabled for performance; hero section links to full reviews page.
 
@@ -6882,6 +6886,8 @@ window.initAddressAutocomplete = function() {
   
   console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
 };
+
+} // End initBundlesApp()
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
