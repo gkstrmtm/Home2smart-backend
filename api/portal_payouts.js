@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { calculatePayout } from './utils/payout_calculator.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,6 +9,76 @@ const supabase = createClient(
 export const config = {
   api: { bodyParser: true },
 };
+
+// Helper to run backfill logic internally
+async function runInternalBackfill(proId) {
+  console.log(`[INTERNAL BACKFILL] Starting for pro: ${proId}`);
+  try {
+    const { data: assignments } = await supabase
+      .from('h2s_dispatch_job_assignments')
+      .select('assign_id, job_id, pro_id, completed_at, state')
+      .eq('pro_id', proId)
+      .eq('state', 'completed');
+
+    if (!assignments || assignments.length === 0) return 0;
+
+    let createdCount = 0;
+    for (const assign of assignments) {
+      // Check existence
+      const { data: existing } = await supabase
+        .from('h2s_payouts_ledger')
+        .select('entry_id')
+        .eq('job_id', assign.job_id)
+        .eq('pro_id', proId)
+        .limit(1);
+
+      if (existing && existing.length > 0) continue;
+
+      // Fetch details
+      const { data: job } = await supabase.from('h2s_dispatch_jobs').select('*').eq('job_id', assign.job_id).single();
+      if (!job) continue;
+      
+      const { data: lines } = await supabase.from('h2s_dispatch_job_lines').select('*').eq('job_id', assign.job_id);
+      const { data: teammates } = await supabase.from('h2s_dispatch_job_teammates').select('*').eq('job_id', assign.job_id).maybeSingle();
+
+      // Calculate
+      const calc = calculatePayout(job, lines || [], teammates);
+      
+      let amount = 0;
+      let note = 'Auto-Backfilled';
+      
+      if (calc.split_details) {
+        if (String(proId) === String(teammates?.primary_pro_id)) { amount = calc.primary_amount; note += ' (Primary)'; }
+        else if (String(proId) === String(teammates?.secondary_pro_id)) { amount = calc.secondary_amount; note += ' (Secondary)'; }
+      } else {
+        amount = calc.total;
+        note += ' (Solo)';
+      }
+
+      if (amount > 0) {
+        await supabase.from('h2s_payouts_ledger').insert({
+          pro_id: proId,
+          job_id: assign.job_id,
+          total_amount: amount,
+          amount: amount,
+          base_amount: amount,
+          service_name: job.resources_needed || 'Service',
+          variant_code: job.variant_code || 'STANDARD',
+          state: 'approved',
+          earned_at: assign.completed_at || job.completed_at || new Date().toISOString(),
+          customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
+          note: note
+        });
+        createdCount++;
+      }
+    }
+    console.log(`[INTERNAL BACKFILL] Created ${createdCount} missing entries.`);
+    return createdCount;
+  } catch (err) {
+    console.error('[INTERNAL BACKFILL] Error:', err);
+    return 0;
+  }
+}
 
 async function validateSession(token) {
   const { data, error } = await supabase
@@ -59,11 +130,27 @@ export default async function handler(req, res) {
     }
 
     // Get payouts for this pro
-    const { data: payouts, error: payoutError } = await supabase
+    let { data: payouts, error: payoutError } = await supabase
       .from('h2s_payouts_ledger')
       .select('*')
       .eq('pro_id', proId)
       .order('created_at', { ascending: false });
+
+    // [AUTO-FIX] If no payouts found, try to backfill immediately
+    if ((!payouts || payouts.length === 0) && !payoutError) {
+      console.log('[PORTAL_PAYOUTS] No payouts found. Triggering internal backfill...');
+      const fixedCount = await runInternalBackfill(proId);
+      
+      if (fixedCount > 0) {
+        // Re-fetch if we fixed anything
+        const { data: retryPayouts } = await supabase
+          .from('h2s_payouts_ledger')
+          .select('*')
+          .eq('pro_id', proId)
+          .order('created_at', { ascending: false });
+        payouts = retryPayouts;
+      }
+    }
 
     if (payoutError) {
       console.error('[PORTAL_PAYOUTS] Query error:', payoutError);
