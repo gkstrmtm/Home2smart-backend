@@ -2723,13 +2723,6 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,'Arc
 const deferredInit = () => {
   console.log('[BundlesJS] Deferred init executing');
 
-// Immediately define critical functions for onclick handlers
-window.toggleCart = window.toggleCart || function(){};
-window.toggleMenu = window.toggleMenu || function(){};
-window.closeAll = window.closeAll || function(){};
-window.navSet = window.navSet || function(){};
-window.scrollToSection = window.scrollToSection || function(){};
-
 function byId(id){ return document.getElementById(id); }
 
 // === UTILITY FUNCTIONS ===
