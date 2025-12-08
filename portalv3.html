@@ -8763,7 +8763,7 @@ async function viewPhotos(jobId) {
                           </div>
                           <div style="font-size:16px;font-weight:600;color:#fff">No photos yet</div>
                           <div style="font-size:14px;color:#94a3b8;margin-top:8px">Upload photos to document your work</div>
-                          <button onclick="viewPhotos('${jobId}')" class="btn ghost" style="margin-top:24px;font-size:14px;border:1px solid rgba(255,255,255,0.2);color:#fff">
+                          <button onclick="delete jobPhotos['${jobId}']; this.closest('.modal').remove(); viewPhotos('${jobId}')" class="btn ghost" style="margin-top:24px;font-size:14px;border:1px solid rgba(255,255,255,0.2);color:#fff">
                             Refresh Gallery
                           </button>
                       </div>
@@ -8801,8 +8801,18 @@ async function viewPhotos(jobId) {
               
               const confirmed = await showPhotoUploadPreview(input.files, jId);
               if(confirmed) {
+                  console.log('[handlePhotoAdd] Starting upload for job:', jId);
                   await uploadPhotos(confirmed, jId);
-                  viewPhotos(jId); // Re-open gallery
+                  console.log('[handlePhotoAdd] Upload complete, re-opening gallery');
+                  
+                  // Small delay to ensure backend has processed the upload
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  
+                  // Force clear cache before re-opening
+                  delete jobPhotos[jId];
+                  console.log('[handlePhotoAdd] Cache cleared, calling viewPhotos');
+                  
+                  await viewPhotos(jId); // Re-open gallery with fresh data
                   loadJobs(); // Refresh counts
               } else {
                   viewPhotos(jId); // Re-open gallery if cancelled
