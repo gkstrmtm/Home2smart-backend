@@ -10200,11 +10200,15 @@ function renderCompleted(list) {
 
   // COMPLETED JOBS CLICK HANDLERS
   box.onclick = async function(e) {
+    // Check if clicked on a button with data-details
     const detailsBtn = e.target.closest("button[data-details]");
     
-    // ✅ DETAILS BUTTON: Show full job details
-    if (detailsBtn) {
-      const jobId = detailsBtn.dataset.details;
+    // Check if clicked on a card with data-details
+    const detailsCard = e.target.closest(".item[data-details]");
+    
+    // ✅ DETAILS: Show full job details (from button or card)
+    const jobId = detailsBtn?.dataset?.details || detailsCard?.dataset?.details;
+    if (jobId) {
       const job = currentJobsData.completed.find(j => j.job_id === jobId);
       if (job) {
         showJobDetails(job);
