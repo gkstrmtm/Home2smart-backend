@@ -3246,14 +3246,14 @@ function renderShop(){
   }
 }
 
-function navSet(params){
+window.navSet = function navSet(params){
   const u = new URL(location.href);
   Object.entries(params||{}).forEach(([k,v])=>{
     if(v==null) u.searchParams.delete(k); else u.searchParams.set(k,v);
   });
   history.pushState({}, '', u.toString());
   route();
-}
+};
 
 function getParam(k){
   const u = new URL(location.href);
@@ -3293,15 +3293,15 @@ function renderSigninState(){
   }
 }
 
-function scrollToSection(id){
+window.scrollToSection = function scrollToSection(id){
   const el = document.getElementById(id);
   if(el){
     el.scrollIntoView({behavior: 'smooth', block: 'start'});
   }
-}
+};
 
 // === MENU / CART / MODAL TOGGLES ===
-function toggleMenu(){
+window.toggleMenu = function toggleMenu(){
   const menu = document.getElementById('menuDrawer');
   const backdrop = document.getElementById('backdrop');
   if(!menu || !backdrop) return;
@@ -3324,7 +3324,7 @@ function toggleMenu(){
   }
 }
 
-function toggleCart(){
+window.toggleCart = function toggleCart(){
   console.log('[Cart] toggleCart() called');
   const drawer = document.getElementById('cartDrawer');
   const backdrop = document.getElementById('backdrop');
@@ -3348,7 +3348,7 @@ function toggleCart(){
   }
 }
 
-function closeAll(){
+window.closeAll = function closeAll(){
   const menu = document.getElementById('menuDrawer');
   const cart = document.getElementById('cartDrawer');
   
@@ -3376,7 +3376,7 @@ function showModal(){
   document.body.style.overflow = 'hidden'; // Lock scroll
 }
 
-function closeModal(){
+window.closeModal = function closeModal(){
   const m = byId('modal');
   m.classList.remove('show');
   setTimeout(()=>{ if(!m.classList.contains('show')) m.style.contentVisibility = 'hidden'; }, 300);
@@ -3493,7 +3493,7 @@ async function submitQuoteRequest(){
 // === PACKAGE SELECTION ===
 let currentPackage = null;
 
-function selectPackage(id, name, price){
+window.selectPackage = function selectPackage(id, name, price){
   // Check if this is a TV mounting package - if so, show TV size modal
   if (id.includes('tv_') || name.toLowerCase().includes('tv')) {
     showTVSizeModal(id, name, price);
@@ -3502,7 +3502,7 @@ function selectPackage(id, name, price){
   
   // For non-TV packages, add directly to cart
   addPackageDirectToCart(id, name, price);
-}
+};
 
 function addPackageDirectToCart(id, name, price, metadata = {}){
   // OPTIMIZATION: Direct Add-to-Cart (Fast Path)
