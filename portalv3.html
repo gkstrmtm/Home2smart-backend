@@ -10440,7 +10440,48 @@ function renderPayoutsDashboard(data) {
   const recent = sorted.slice(0, 10); // Show last 10
   
   if (recent.length === 0) {
-    if (recentEmpty) recentEmpty.style.display = 'block';
+    if (recentEmpty) {
+      recentEmpty.style.display = 'block';
+      // Add diagnostic button if not present
+      if (!recentEmpty.querySelector('#btn-debug-payouts')) {
+        const debugBtn = document.createElement('button');
+        debugBtn.id = 'btn-debug-payouts';
+        debugBtn.className = 'btn secondary';
+        debugBtn.style.marginTop = '16px';
+        debugBtn.textContent = 'Run Diagnostics';
+        debugBtn.onclick = async () => {
+          try {
+            loading(true);
+            const res = await fetch('/api/debug_payout_probe?token=' + encodeURIComponent(token));
+            const json = await res.json();
+            console.log('Diagnostic Result:', json);
+            
+            let msg = `Pro ID: ${json.diagnosis?.pro_id}\n`;
+            msg += `Completed Assignments: ${json.diagnosis?.assignments?.completed}\n`;
+            msg += `Ledger Entries: ${json.diagnosis?.ledger?.total}\n`;
+            msg += `Mismatch: ${json.diagnosis?.mismatch ? 'YES' : 'NO'}\n`;
+            
+            if (json.diagnosis?.mismatch) {
+              msg += `\nAttempting force backfill...`;
+              await fetch('/api/admin_backfill_payouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+              });
+              msg += `\nBackfill triggered. Reloading...`;
+              setTimeout(() => loadPayouts(), 1000);
+            }
+            
+            alert(msg);
+          } catch (e) {
+            alert('Diagnostic failed: ' + e.message);
+          } finally {
+            loading(false);
+          }
+        };
+        recentEmpty.appendChild(debugBtn);
+      }
+    }
   } else {
     if (recentEmpty) recentEmpty.style.display = 'none';
     recent.forEach(r => {
