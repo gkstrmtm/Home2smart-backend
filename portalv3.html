@@ -9789,27 +9789,28 @@ function renderUpcoming(list) {
     // ✅ PHOTOS BUTTON: Trigger file input OR View Gallery
     if (photosBtn) {
       const jobId = photosBtn.dataset.photos;
-      
-      // Check if we have photos on file - View Gallery
-      if (photoOnFile[jobId]) {
+
+      // Always attempt to load gallery first to avoid stale session state
+      try {
+        const photos = await loadJobPhotos(jobId);
+        if (photos && photos.length > 0) {
+          photoOnFile[jobId] = true; // persist state for this session
           viewPhotos(jobId);
           return;
+        }
+      } catch (e) {
+        console.warn('[Photos] Could not pre-load photos, falling back to upload:', e?.message || e);
       }
 
-      // No photos yet - Trigger Upload
+      // No photos found - Trigger Upload
       const input = document.getElementById(`upload-${jobId}`);
       if (input) {
-        // Reset input to allow re-selecting same files
         input.value = '';
-        
-        // Attach change listener once
         input.onchange = async (evt) => {
           if (evt.target.files && evt.target.files.length > 0) {
-            // Use existing preview/upload logic
             const confirmedFiles = await showPhotoUploadPreview(evt.target.files, jobId);
             if (confirmedFiles) {
               await uploadPhotos(confirmedFiles, jobId);
-              // Refresh to update button state
               loadJobs();
             }
           }
