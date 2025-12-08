@@ -8492,6 +8492,8 @@ async function loadJobPhotos(jobId) {
     
     const artifacts = out.artifacts || [];
     jobPhotos[jobId] = artifacts;
+    // Authoritative state: set photoOnFile from backend truth
+    photoOnFile[jobId] = Array.isArray(artifacts) && artifacts.length > 0;
     
     console.log(`[Load Photos] ✅ Loaded ${artifacts.length} photos for job ${jobId}`);
     console.log("[Load Photos] Photos data:", artifacts);
@@ -8610,6 +8612,8 @@ async function renderPhotoGallery(jobId) {
   `;
   
   console.log("[Render Gallery] ✅ Rendered", photos.length, "photos");
+  // Keep photoOnFile aligned after render
+  photoOnFile[jobId] = photos.length > 0;
 }
 
 /* ============================================
@@ -8669,6 +8673,8 @@ async function deletePhoto(artifactId, jobId) {
       if (jobPhotos[jobId] && Array.isArray(jobPhotos[jobId])) {
         jobPhotos[jobId] = jobPhotos[jobId].filter(p => p.artifact_id !== artifactId);
       }
+      // Update photoOnFile based on remaining
+      photoOnFile[jobId] = (jobPhotos[jobId] || []).length > 0;
 
       // Refresh modal in-place if open
       const modal = document.querySelector('.photo-gallery-modal');
@@ -9043,7 +9049,7 @@ async function uploadPhotos(previews, jobId) {
 
     if (success > 0) {
       // Mark state and refresh gallery/job list
-      photoOnFile[jobId] = true;
+      // Do not assume; let backend truth set this after reload
       
       // CRITICAL: Clear cache before reloading to force fresh fetch
       delete jobPhotos[jobId];
@@ -9053,6 +9059,7 @@ async function uploadPhotos(previews, jobId) {
       try {
         await loadJobPhotos(jobId);
         console.log('[Upload Photos] ✅ Photos reloaded, cache now has:', jobPhotos[jobId]?.length || 0, 'photos');
+        photoOnFile[jobId] = (jobPhotos[jobId] || []).length > 0;
       } catch (e) {
         console.error('[Upload Photos] Failed to reload photos:', e);
       }
