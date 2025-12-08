@@ -8746,7 +8746,9 @@ async function viewPhotos(jobId) {
                       <h3 style="margin:0;font-size:18px;font-weight:700;color:#e7f1ff;letter-spacing:-0.01em">Job Photos</h3>
                       <div style="font-size:13px;color:#9bc8ff;opacity:.85">${photos.length} photo${photos.length !== 1 ? 's' : ''}</div>
                   </div>
-                  <div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <input type="file" id="modal-upload-${jobId}" accept="image/*" multiple style="display:none">
+                    <button aria-label="Add photos" onclick="document.getElementById('modal-upload-${jobId}').click()" style="background:rgba(20,147,255,0.15);border:1px solid rgba(20,147,255,0.3);color:#1493ff;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">Add</button>
                     <button aria-label="Close" onclick="this.closest('.modal').remove()" style="background:none;border:none;padding:0;margin:0;cursor:pointer;color:#e7f1ff;display:flex;align-items:center;justify-content:center">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                     </button>
@@ -8791,6 +8793,22 @@ async function viewPhotos(jobId) {
           </div>
       `;
       document.body.appendChild(modal);
+      // Modal upload handler
+      const modalInput = modal.querySelector(`#modal-upload-${jobId}`);
+      if (modalInput) {
+        modalInput.onchange = async (evt) => {
+          if (evt.target.files && evt.target.files.length > 0) {
+            const confirmed = await showPhotoUploadPreview(evt.target.files, jobId);
+            if (confirmed) {
+              await uploadPhotos(confirmed, jobId);
+              // Re-open gallery with fresh data
+              await new Promise(r => setTimeout(r, 300));
+              delete jobPhotos[jobId];
+              await viewPhotos(jobId);
+            }
+          }
+        };
+      }
       
       // Helper for adding photos from modal
       window.handlePhotoAdd = async (input, jId) => {
