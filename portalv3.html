@@ -10425,6 +10425,19 @@ function renderPayoutsDashboard(data) {
   $("week-jobs").textContent = `${weekJobCount} job${weekJobCount !== 1 ? 's' : ''} completed`;
   $("pending-earnings").textContent = fmtMoney(pendingEarnings);
   
+  // Add Refresh Button to Header if not present
+  const headerAction = document.querySelector('#view-payouts .header-actions');
+  if (headerAction && !headerAction.querySelector('.btn-refresh-payouts')) {
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'btn-icon btn-refresh-payouts';
+    refreshBtn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`;
+    refreshBtn.onclick = () => {
+      toast('Refreshing payouts...');
+      loadPayouts(true);
+    };
+    headerAction.appendChild(refreshBtn);
+  }
+
   // Render recent payouts list
   const recentList = $("recent-payouts-list");
   recentList.innerHTML = "";
@@ -10548,13 +10561,19 @@ function renderPayoutsDashboard(data) {
   }
 }
 
-async function loadPayouts() {
-  // Check cache first
+async function loadPayouts(forceRefresh = false) {
+  // Check cache first (unless forced or cache is empty/invalid)
   const cached = getCache('payouts');
-  if (cached) {
-    console.log('[Payouts] 🎯 Using cached data');
-    renderPayoutsDashboard(cached);
-    return;
+  if (!forceRefresh && cached) {
+    // Only use cache if it actually has data. If it's empty, we want to try fetching again
+    // in case new jobs were completed or backfill happened.
+    if (cached.rows && cached.rows.length > 0) {
+      console.log('[Payouts] 🎯 Using cached data');
+      renderPayoutsDashboard(cached);
+      return;
+    } else {
+      console.log('[Payouts] ⚠️ Cache exists but is empty. Forcing refresh.');
+    }
   }
   
   try {
