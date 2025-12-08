@@ -50,34 +50,53 @@ if ('serviceWorker' in navigator) {
 <!-- Inline critical CSS for above-the-fold content -->
 <style>
 :root{
-  /* Stack C - Deep gradient-based depth system */
+  /* ===== BRAND COLORS (Prompt Spec v1) ===== */
+  --h2s-brand-cobalt:#0A2A5A;
+  --h2s-brand-azure:#1493FF;
+  --h2s-brand-green:#22C96F;
+  --h2s-brand-gold:#FFC857;
   
-  /* Base Backgrounds - Radial and diagonal gradients */
-  --h2s-bg-root:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
-  --h2s-bg-shell:linear-gradient(150deg,#050E1B,#040814);
-  --h2s-bg-card:linear-gradient(155deg,#071526,#040914);
+  /* ===== DARK SURFACES (Prompt Spec v1) ===== */
+  --h2s-bg-root:#020617;
+  --h2s-bg-shell:#050D1A;
+  --h2s-bg-card:#071426;
+  --h2s-bg-card-elevated:#081A33;
+  --h2s-bg-input:#030B18;
+  --h2s-border-subtle:#0D223D;
+  --h2s-border-strong:#1A3C6A;
   
-  /* Accent Gradients */
-  --h2s-accent-primary:linear-gradient(160deg,#1A9BFF,#0F7BE0);
-  --h2s-accent-soft:linear-gradient(160deg,#1F5096,#163A73);
-  --h2s-accent-danger:linear-gradient(160deg,#F45B5B,#B5323C);
-  --h2s-accent-success:linear-gradient(160deg,#2ECC71,#1F9A52);
-  --h2s-accent-warning:linear-gradient(160deg,#F59E0B,#D97706);
+  /* Gradients (Prompt Spec v1) */
+  --h2s-bg-root-gradient:radial-gradient(circle at top right,#0A2A5A 0%,#020617 100%);
+  --h2s-bg-card-gradient-soft:linear-gradient(135deg,#071426,#050D1A);
   
-  /* Solid accent colors for borders, text, and non-background uses */
-  --h2s-accent-primary-solid:#1A9BFF;
-  --h2s-accent-soft-solid:#1F5096;
-  --h2s-accent-danger-solid:#F45B5B;
-  --h2s-accent-success-solid:#2ECC71;
-  --h2s-accent-warning-solid:#F59E0B;
+  /* ===== TYPOGRAPHY & TEXT (Prompt Spec v1) ===== */
+  --h2s-text-main:#E6F2FF;
+  --h2s-text-muted:#9BB0CC;
+  --h2s-text-soft:#7183A0;
+  --h2s-text-invert:#020617;
   
-  /* Text Colors */
-  --h2s-text-main:#F4F7FB;
-  --h2s-text-muted:#9FAAC0;
-  --h2s-text-placeholder:#5F6C82;
+  /* ===== FUNCTIONAL COLORS ===== */
+  --h2s-accent-primary:var(--h2s-brand-azure);
+  --h2s-accent-success:var(--h2s-brand-green);
+  --h2s-accent-warning:var(--h2s-brand-gold);
+  --h2s-accent-danger:#EF4444;
+  --h2s-accent-soft:var(--h2s-brand-cobalt);
   
-  /* Border */
-  --h2s-border-subtle:#15243A;
+  /* ===== NEW MOBILE TOKENS (M17.1) ===== */
+  --h2s-bg: #020919;
+  --h2s-bg-elevated: #071b33;
+  --h2s-bg-elevated-soft: #0b2342;
+  --h2s-primary: #1493ff;
+  --h2s-primary-soft: #2b9cff;
+  --h2s-accent-purple: #232a5d;
+  --h2s-border-soft: rgba(255,255,255,0.06);
+  --h2s-text-main: #f5f7ff;
+  --h2s-text-muted: #96a0c2;
+  --h2s-warning: #ff751f;
+  --h2s-badge-bg: #141f3a;
+  
+  --h2s-secondary:rgba(30, 58, 138, 0.4);
+  --h2s-bg-card-soft:#081A33;
   
   /* Legacy aliases for backward compatibility */
   --navy-950:#000108;
@@ -215,8 +234,7 @@ if ('serviceWorker' in navigator) {
 }
 html,body{
   min-height:100%;
-  background:var(--h2s-bg-root);
-  background:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
+  background:var(--h2s-bg-root-gradient);
   overflow-x:hidden;
   -webkit-text-size-adjust:100%;
   -ms-text-size-adjust:100%;
@@ -232,7 +250,7 @@ body{
   display:flex;
   flex-direction:column;
   min-height:100vh;
-  background:radial-gradient(circle at 50% 0%,#050B16 0,#02040B 52%,#000108 100%);
+  background:var(--h2s-bg-root-gradient);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;
@@ -242,38 +260,103 @@ body{
 }
 
 /* Header */
-/* ===== HEADER ===== */
-.header{
+/* ===== HEADER (Prompt Spec v1) ===== */
+.header,.h2s-header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:16px 24px;
+  padding:0 16px;
   position:fixed;
   top:0;
   left:0;
   right:0;
   z-index:50;
-  background:rgba(5,15,31,0.95);
+  background:rgba(5,13,26,0.95);
   border-bottom:1px solid var(--h2s-border-subtle);
   backdrop-filter:blur(20px) saturate(180%);
   -webkit-backdrop-filter:blur(20px) saturate(180%);
-  height:72px;
+  height:56px;
+  min-height:56px;
   box-shadow:var(--shadow-sm);
-  transition:background-color 160ms ease-out,border-color 160ms ease-out,box-shadow 160ms ease-out;
+  transition:all 160ms ease-out;
 }
 .header.header-hidden{
   transform:translateY(-100%);
 }
-.header img{
-  height:32px; /* Smaller logo for mobile */
+
+/* Header left group */
+.h2s-header-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.h2s-logo{
+  display:flex;
+  align-items:center;
+}
+.h2s-logo img{
+  height:28px;
   width:auto;
   display:block;
 }
-.header-right{
+.h2s-header-title{
+  font-size:16px;
+  font-weight:600;
+  color:var(--h2s-text-main);
+  letter-spacing:-0.01em;
+  display:none;
+}
+
+/* Header right group */
+.h2s-header-right,.header-right{
   display:flex;
   align-items:center;
-  gap:14px;
+  gap:8px;
 }
+
+/* Header icon buttons */
+.h2s-header-icon{
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:var(--br-sm);
+  background:transparent;
+  border:1px solid var(--h2s-border-subtle);
+  color:var(--h2s-text-main);
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+.h2s-header-icon:hover{
+  background:var(--h2s-bg-card);
+  border-color:var(--h2s-border-strong);
+}
+.h2s-header-icon:active{
+  transform:scale(0.95);
+}
+.h2s-header-icon svg{
+  width:20px;
+  height:20px;
+}
+
+/* Desktop header adjustments */
+@media (min-width:768px){
+  .header,.h2s-header{
+    padding:12px 24px;
+  }
+  .h2s-logo img{
+    height:32px;
+  }
+  .h2s-header-title{
+    display:block;
+  }
+  .h2s-header-right,.header-right{
+    gap:12px;
+  }
+}
+
+/* Legacy support class */
 .support{
   color:var(--h2s-text-main);
   text-decoration:none;
@@ -305,57 +388,68 @@ body{
 .menu-overlay{
   position:fixed;
   inset:0;
-  background:rgba(2,6,23,0.92);
+  background:rgba(2,6,23,0.95);
   backdrop-filter:blur(24px) saturate(150%);
   -webkit-backdrop-filter:blur(24px) saturate(150%);
   z-index:100;
   display:none;
   place-items:center;
-  padding:20px;
+  padding:0;
   animation:fadeIn 0.2s ease;
 }
 .menu-overlay[aria-hidden="false"]{
   display:grid;
 }
 .menu-sheet{
-  background:var(--slate-800);
-  border:1px solid rgba(148,163,184,.15);
-  border-radius:var(--br-xl);
-  padding:32px;
+  background:var(--h2s-bg);
+  border:none;
+  border-radius:0;
+  padding:20px;
   width:100%;
-  max-width:480px;
-  box-shadow:var(--shadow-2xl);
+  max-width:100%;
+  height:100%;
+  box-shadow:none;
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
 }
 .menu-row{
   display:flex;
   flex-direction:column;
-  gap:12px;
-  margin-bottom:24px;
+  gap:8px;
+  flex:1;
 }
 .menu-item{
-  background:var(--h2s-bg-card-gradient);
-  border:1px solid var(--h2s-border-subtle);
-  border-radius:var(--br);
-  padding:18px 24px;
-  font-size:16px;
+  background:rgba(15, 23, 42, 0.6);
+  border:1px solid rgba(59, 130, 246, 0.15);
+  border-radius:12px;
+  padding:14px 16px;
+  font-size:15px;
   font-weight:500;
   color:var(--h2s-text-main);
   cursor:pointer;
-  transition:transform 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out;
+  transition:all 0.2s ease;
   text-align:left;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:52px;
 }
 .menu-item:hover{
-  background:var(--h2s-accent-soft);
-  border-color:rgba(148,163,184,0.25);
-  transform:translateX(4px);
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  background:rgba(59, 130, 246, 0.12);
+  border-color:rgba(59, 130, 246, 0.3);
+  transform:translateX(2px);
 }
 .menu-item:active{
-  transform:translateX(2px);
+  transform:translateX(1px);
+  background:rgba(59, 130, 246, 0.18);
 }
 .menu-close{
   display:flex;
   justify-content:center;
+  padding-top:16px;
+  margin-top:auto;
+  padding-bottom:env(safe-area-inset-bottom, 20px);
 }
 .menu-btn{
   background:var(--h2s-bg-card-gradient);
@@ -416,16 +510,26 @@ body{
 .main{
   flex:1;
   display:block;
-  padding:20px;
+  padding:16px;
   padding-top:88px;
-  background:var(--slate-950);
+  background:transparent;
   min-height:100vh;
 }
 .container{
   max-width:100%;
   width:100%;
   margin:0 auto;
-  padding:0; /* Remove double padding */
+  padding:0;
+}
+
+/* Desktop: centered max-width container */
+@media (min-width:1024px){
+  .main{
+    padding:24px;
+  }
+  .container{
+    max-width:1040px;
+  }
 }
 
 /* Titles */
@@ -433,20 +537,26 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-weight:500;
   font-size:26px;
-  margin:0 0 24px;
+  margin:24px 0 16px;
   color:var(--h2s-text-main);
   line-height:1.2;
   letter-spacing:-0.02em;
+}
+.h1:first-child{
+  margin-top:0;
 }
 
 h2,.h2{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-weight:500;
   font-size:20px;
-  margin:0 0 16px;
+  margin:24px 0 8px;
   color:var(--h2s-text-main);
   line-height:1.3;
   letter-spacing:-0.01em;
+}
+h2:first-child,.h2:first-child{
+  margin-top:0;
 }
 
 h3,.h3{
@@ -460,20 +570,34 @@ h3,.h3{
 
 /* Cards & inputs */
 .card{
-  background:var(--slate-800);
-  border:1px solid rgba(148,163,184,0.1);
-  border-radius:var(--br-lg);
-  padding:24px;
-  margin-bottom:20px;
-  box-shadow:var(--shadow-md);
+  background:var(--h2s-bg-card);
+  border:1px solid var(--h2s-border-subtle);
+  border-radius:var(--br);
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow-sm);
   transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 .card:hover{
-  border-color:rgba(148,163,184,0.2);
+  border-color:var(--h2s-border-strong);
   box-shadow:var(--shadow-lg);
   transform:translateY(-2px);
 }
 .card::before{display:none}
+
+/* Card spacing scales on larger screens */
+@media (min-width:768px){
+  .card{
+    padding:20px;
+    margin-bottom:20px;
+  }
+}
+@media (min-width:1024px){
+  .card{
+    padding:24px;
+    margin-bottom:24px;
+  }
+}
 
 .card h2{
   margin:0 0 16px;
@@ -488,16 +612,16 @@ h3,.h3{
   font-weight:700;
   font-size:14px;
   margin:8px 0 6px;
-  color:#b8d9ff;
+  color:var(--h2s-text-muted);
   text-transform:uppercase;
   letter-spacing:.5px;
   font-size:12px
 }
 .input,.textarea,.select{
   width:100%;
-  border:2px solid rgba(148,163,184,.2);
-  background:var(--slate-900);
-  color:var(--slate-100);
+  border:2px solid var(--h2s-border-subtle);
+  background:var(--h2s-bg-input);
+  color:var(--h2s-text-main);
   border-radius:var(--br);
   padding:14px 16px;
   font-size:16px;
@@ -507,11 +631,11 @@ h3,.h3{
 }
 .input:focus,.textarea:focus,.select:focus{
   outline:none;
-  border-color:#1A9BFF;
-  box-shadow:0 0 0 3px rgba(26,155,255,0.12);
+  border-color:var(--h2s-brand-azure);
+  box-shadow:0 0 0 3px rgba(20,147,255,0.12);
 }
 .input::placeholder,.textarea::placeholder{
-  color:var(--slate-500)
+  color:var(--h2s-text-soft)
 }
 .input{min-height:48px}
 .textarea{min-height:120px;resize:vertical}
@@ -530,9 +654,9 @@ select.input:hover,select.select:hover{
 .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
 .btn{
   appearance:none;
-  border:2px solid var(--baby-blue);
-  background:var(--gradient-primary);
-  color:var(--white);
+  border:2px solid var(--h2s-brand-azure);
+  background:var(--h2s-brand-azure);
+  color:#fff;
   font-weight:700;
   border-radius:var(--br);
   cursor:pointer;
@@ -550,14 +674,74 @@ select.input:hover,select.select:hover{
 }
 .btn:hover{
   transform:translateY(-1px);
-  box-shadow:0 5px 14px rgba(26,155,255,0.35);
+  box-shadow:0 5px 14px rgba(20,147,255,0.35);
+  background:color-mix(in srgb, var(--h2s-brand-azure) 90%, white);
 }
 .btn:active{
   transform:translateY(0);
-  box-shadow:0 2px 6px rgba(26,155,255,0.25);
+  box-shadow:0 2px 6px rgba(20,147,255,0.25);
 }
+
+/* Modern Checkbox Styling */
+.modern-checkbox{
+  appearance:none;
+  -webkit-appearance:none;
+  width:20px;
+  height:20px;
+  border:2px solid var(--h2s-border-strong);
+  border-radius:6px;
+  background:var(--h2s-bg-input);
+  cursor:pointer;
+  position:relative;
+  transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
+  margin:0;
+  flex-shrink:0;
+}
+.modern-checkbox:hover{
+  border-color:var(--h2s-brand-azure);
+  background:var(--h2s-bg-card);
+}
+.modern-checkbox:checked{
+  background:var(--h2s-brand-azure);
+  border-color:var(--h2s-brand-azure);
+}
+.modern-checkbox:checked::after{
+  content:'';
+  position:absolute;
+  left:6px;
+  top:2px;
+  width:5px;
+  height:10px;
+  border:solid white;
+  border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+.modern-checkbox:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(20,147,255,0.15);
+}
+
 /* Mobile touch feedback */
 @media (max-width:640px){
+  /* Adjust main container for mobile */
+  .main {
+    padding-top: 72px !important; /* 56px header + 16px spacing */
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Hide redundant title on mobile since it's in the card */
+  #portalTitle {
+    display: none !important;
+  }
+  
+  /* Compress footer on mobile - thin status bar */
+  .footer {
+    padding: 14px 16px !important;
+    font-size: 11px !important;
+    opacity: 0.7;
+  }
+
   .btn:active, button:active, a:active{
     transform:scale(0.96);
     transition:transform 0.1s;
@@ -577,6 +761,139 @@ select.input:hover,select.select:hover{
     grid-column: auto !important; /* Override any grid-column spans */
     width: 100%;
   }
+
+  /* 4A. Login screen – Mobile rules: POLISHED CENTERED CARD */
+  
+  /* Hide entire header on mobile auth screen */
+  #view-auth.view:not([aria-hidden="true"]) ~ * .header,
+  #view-auth.view:not([aria-hidden="true"]) ~ * .h2s-header,
+  body:has(#view-auth.view:not([aria-hidden="true"])) .header,
+  body:has(#view-auth.view:not([aria-hidden="true"])) .h2s-header {
+    display: none !important;
+  }
+  
+  /* Hide portal title on auth view for clean mobile experience */
+  #view-auth.view:not([aria-hidden="true"]) ~ * #portalTitle,
+  body:has(#view-auth.view:not([aria-hidden="true"])) #portalTitle {
+    display: none !important;
+  }
+  
+  /* CRITICAL: Hide menu button and support button on auth screen */
+  #view-auth.view:not([aria-hidden="true"]) ~ * #openMenu,
+  #view-auth.view:not([aria-hidden="true"]) ~ * #supportBtn,
+  body:has(#view-auth.view:not([aria-hidden="true"])) #openMenu,
+  body:has(#view-auth.view:not([aria-hidden="true"])) #supportBtn {
+    display: none !important;
+  }
+  
+  /* Page wrapper: flex column layout for auth screen */
+  body:has(#view-auth.view:not([aria-hidden="true"])) {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Main container on auth screen: flex-1 with centered content */
+  body:has(#view-auth.view:not([aria-hidden="true"])) .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 16px 24px 16px; /* Slightly more padding on top to push content above center */
+    margin: 0;
+  }
+  
+  /* Footer pinned to bottom on auth screen */
+  body:has(#view-auth.view:not([aria-hidden="true"])) .footer {
+    flex-shrink: 0;
+  }
+  
+  /* Adjust main container when NOT on auth screen (dashboard, etc.) */
+  body:not(:has(#view-auth.view:not([aria-hidden="true"]))) .main {
+    min-height: calc(100vh - 56px - 42px); /* viewport - header - footer */
+    padding-top: calc(56px + 28px);
+    padding-bottom: 28px;
+  }
+  
+  /* Auth view: clean minimal container, no decoration */
+  #view-auth.view {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Sign-in card: ONE clean card, minimal Apple-standard design */
+  .signin-card {
+    max-width: 340px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 24px 20px !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+    border-radius: 16px !important;
+    background: rgba(11, 25, 41, 0.65) !important;
+    backdrop-filter: blur(24px) !important;
+    border: none !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    box-sizing: border-box !important;
+  }
+  
+  #step-signin {
+    /* Clean form, no wrapper decoration */
+  }
+  
+  #view-auth .input {
+    background: #0b1929 !important;
+    border: 1px solid #1e3a5f !important;
+    border-radius: 10px !important;
+    height: 46px !important;
+    padding: 0 14px !important;
+    font-size: 15px !important;
+    color: var(--h2s-text-main) !important;
+  }
+  
+  #view-auth .input:focus {
+    border-color: #1493ff !important;
+    background: #0d1f35 !important;
+    outline: 2px solid #1493ff !important;
+    outline-offset: 2px !important;
+    box-shadow: none !important;
+  }
+  
+  #view-auth .input::placeholder {
+    color: #64748b !important;
+  }
+  
+  /* Ensure inputs don't turn white on autofill */
+  #view-auth input:-webkit-autofill,
+  #view-auth input:-webkit-autofill:hover, 
+  #view-auth input:-webkit-autofill:focus, 
+  #view-auth input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #0b1929 inset !important;
+    -webkit-text-fill-color: #f7f9ff !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Mobile input and button overrides */
+  #view-auth input[type="email"],
+  #view-auth input[type="text"],
+  #view-auth input[inputmode="numeric"] {
+    font-size: 15px !important;
+    height: 44px !important;
+  }
+  
+  #view-auth #btnSignIn {
+    height: 45px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+  }
 }
 
 /* Desktop Grid for Actions */
@@ -590,16 +907,16 @@ select.input:hover,select.select:hover{
 }
 
 .btn.secondary{
-  background:var(--h2s-bg-shell);
-  border:1px solid var(--h2s-border-subtle);
+  background:var(--h2s-bg-card);
+  border:2px solid var(--h2s-border-subtle);
   color:var(--h2s-text-main);
   box-shadow:none;
 }
 .btn.secondary:hover{
-  background:var(--h2s-accent-soft);
-  border-color:rgba(148,163,184,0.3);
+  background:var(--h2s-bg-card-elevated);
+  border-color:var(--h2s-border-strong);
   transform:translateY(-1px);
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }
 
 /* ===== Time Off Modal (Modern Design) ===== */
@@ -644,11 +961,12 @@ select.input:hover,select.select:hover{
   box-shadow:0 1px 4px rgba(0,0,0,0.1);
 }
 .btn.warn{
-  background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);
-  border-color:#dc2626
+  background:var(--h2s-accent-danger);
+  border-color:var(--h2s-accent-danger)
 }
 .btn.warn:hover{
-  border-color:#ef4444
+  border-color:color-mix(in srgb, var(--h2s-accent-danger) 80%, white);
+  background:color-mix(in srgb, var(--h2s-accent-danger) 90%, white);
 }
 .muted{font-size:13px;opacity:.8;margin-top:6px;color:var(--h2s-text-muted)}
 .error{
@@ -673,7 +991,14 @@ select.input:hover,select.select:hover{
 }
 
 /* Footer */
-.footer{padding:18px clamp(16px,4vw,28px);font-size:14px;opacity:.9;background:var(--blue)}
+.footer{padding:18px 16px;font-size:14px;opacity:.9;background:var(--h2s-bg-shell);border-top:1px solid var(--h2s-border-subtle)}
+
+/* Desktop footer */
+@media (min-width:768px){
+  .footer{
+    padding:18px 24px;
+  }
+}
 
 /* Views */
 .view{
@@ -693,25 +1018,46 @@ select.input:hover,select.select:hover{
   overflow:hidden !important;
 }
 
+/* Hide menu and support buttons when on auth screen */
+#view-auth[aria-hidden="false"] ~ * #openMenu,
+#view-auth[aria-hidden="false"] ~ * #supportBtn {
+  display: none !important;
+}
+
 /* Dashboard should start at top when logged in */
 #view-portal{
   padding-top:24px;
 }
 
 /* Lists */
-.list{display:grid;gap:16px}
+.list{display:grid;gap:12px;margin-top:24px}
 .item{
   border:1px solid var(--h2s-border-subtle);
-  border-radius:18px;
-  padding:20px;
-  background:var(--h2s-bg-card-gradient);
+  border-radius:16px;
+  padding:12px 16px 14px 16px;
+  background:var(--h2s-bg-card);
   transition:all 160ms cubic-bezier(0.4,0,0.2,1);
   position:relative;
   contain:layout style paint;
   opacity:0;
   transform:translateY(10px);
   animation:itemFadeIn .4s cubic-bezier(0.4,0,0.2,1) forwards;
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  box-shadow:var(--shadow-sm);
+}
+
+/* Item padding scales on larger screens */
+@media (min-width:768px){
+  .item{
+    padding:20px;
+  }
+}
+@media (min-width:1024px){
+  .item{
+    padding:24px;
+  }
+  .list{
+    gap:16px;
+  }
 }
 @keyframes itemFadeIn{
   to{
@@ -822,8 +1168,8 @@ select.input:hover,select.select:hover{
 .delete-confirm .desc{font-size:13px; opacity:.85; margin-bottom:14px;}
 .delete-confirm .preview{border:1px solid rgba(255,255,255,.12); border-radius:12px; overflow:hidden; margin-bottom:14px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06)}
 .delete-confirm .actions{display:flex; gap:10px; justify-content:flex-end}
-.btn.danger{background:linear-gradient(135deg,#ef4444, #b91c1c); border-color:#ef4444}
-.btn.danger:hover{border-color:#f87171; box-shadow:0 8px 24px rgba(239,68,68,.35)}
+.btn.danger{background:var(--h2s-accent-danger); border-color:var(--h2s-accent-danger)}
+.btn.danger:hover{border-color:color-mix(in srgb, var(--h2s-accent-danger) 80%, white); box-shadow:0 8px 24px rgba(239,68,68,.35)}
 
 /* Loader + toast */
 .loader{
@@ -845,8 +1191,8 @@ select.input:hover,select.select:hover{
   width:40px;
   height:40px;
   border-radius:50%;
-  border:3px solid rgba(26,155,255,0.15);
-  border-top-color:#1A9BFF;
+  border:3px solid rgba(20,147,255,0.15);
+  border-top-color:var(--h2s-brand-azure);
   animation:sp 900ms ease-in-out infinite;
   position:relative;
   z-index:1;
@@ -883,17 +1229,14 @@ select.input:hover,select.select:hover{
   font-weight:900;
   font-size:clamp(36px,8vw,56px);
   margin:8px 0 12px;
-  background:linear-gradient(135deg,#10b981 0%,#059669 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
+  color:var(--h2s-brand-green);
   line-height:1.1
 }
 .kpis{display:flex;gap:12px;flex-wrap:wrap}
 .kpi{
-  background:var(--gradient-card);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:12px;
+  background:var(--h2s-bg-card);
+  border:1px solid var(--h2s-border-subtle);
+  border-radius:var(--br);
   padding:12px 16px;
   font-weight:700;
   font-size:15px;
@@ -901,26 +1244,27 @@ select.input:hover,select.select:hover{
 }
 .kpi:hover{
   transform:translateY(-2px);
-  box-shadow:var(--e2)
+  box-shadow:var(--shadow-lg);
+  border-color:var(--h2s-border-strong);
 }
-.period-head{margin-top:20px;font-weight:900;font-size:18px;color:#b8d9ff}
+.period-head{margin-top:20px;font-weight:900;font-size:18px;color:var(--h2s-text-main)}
 .row-pay{
   display:flex;
   justify-content:space-between;
   gap:10px;
   padding:12px 14px;
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:12px;
-  background:var(--gradient-card);
+  border:1px solid var(--h2s-border-subtle);
+  border-radius:var(--br);
+  background:var(--h2s-bg-card);
   transition:all .2s ease
 }
 .row-pay:hover{
-  border-color:rgba(255,255,255,.2);
-  box-shadow:var(--e1)
+  border-color:var(--h2s-border-strong);
+  box-shadow:var(--shadow-md)
 }
 .row-pay+.row-pay{margin-top:8px}
 .pay-left{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pay-amt{font-weight:900;color:#10b981;font-size:18px}
+.pay-amt{font-weight:900;color:var(--h2s-brand-green);font-size:18px}
 
 /* Modals */
 .modal{
@@ -938,8 +1282,8 @@ select.input:hover,select.select:hover{
   width:min(820px,94vw);
   max-height:90vh;
   overflow:auto;
-  background:var(--slate-800);
-  border:1px solid rgba(148,163,184,.15);
+  background:var(--h2s-bg-card);
+  border:1px solid var(--h2s-border-subtle);
   border-radius:var(--br-xl);
   box-shadow:var(--shadow-2xl);
   padding:32px;
@@ -953,7 +1297,7 @@ select.input:hover,select.select:hover{
   left:0;
   right:0;
   height:3px;
-  background:var(--gradient-primary);
+  background:var(--h2s-brand-azure);
   opacity:.9;
   border-radius:var(--br-xl) var(--br-xl) 0 0;
 }
@@ -961,15 +1305,14 @@ select.input:hover,select.select:hover{
   margin:0 0 20px;
   font-size:26px;
   font-weight:800;
-  color:var(--slate-50);
+  color:var(--h2s-text-main);
   line-height:1.2;
 }
 .payout{margin:12px 0}
 .payout .num{
   font-weight:900;
   font-size:32px;
-  background:linear-gradient(135deg,#10b981 0%,#059669 100%);
-  -webkit-background-clip:text;
+  color:var(--h2s-brand-green);
   -webkit-text-fill-color:transparent;
   background-clip:text
 }
@@ -2197,26 +2540,68 @@ select.input:hover,select.select:hover{
   
   /* Modal optimization */
   .modal{
-    padding:0 !important;
-    align-items:flex-end !important; /* Bottom sheet style */
+    padding:16px !important;
+    align-items:center !important;
+    justify-content:center !important;
   }
   .sheet{
-    width:100vw !important;
-    max-width:100vw !important;
-    border-radius:24px 24px 0 0 !important; /* Rounded top corners */
-    border-left:none !important;
-    border-right:none !important;
-    border-bottom:none !important;
+    width:min(420px,100%) !important;
+    max-width:420px !important;
+    border-radius:24px !important;
     padding:24px 20px !important;
-    max-height:92vh !important;
+    max-height:85vh !important;
     overflow-y:auto !important;
-    background:linear-gradient(180deg, #0f2d52 0%, #0a2a5a 100%) !important;
-    box-shadow:0 -10px 40px rgba(0,0,0,0.5) !important;
+    background:linear-gradient(155deg, #0a1628, #050c1a) !important;
+    border:1px solid rgba(255,255,255,0.12) !important;
+    box-shadow:0 24px 64px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4) !important;
+    margin:0 auto !important;
   }
   .sheet h3{
-    font-size:22px !important;
-    margin:0 0 20px !important;
+    font-size:18px !important;
+    margin:0 0 16px !important;
     line-height:1.3 !important;
+  }
+  
+  /* Modal sections with tight spacing */
+  .modal .kv {
+    grid-template-columns:110px 1fr !important;
+    gap:8px 12px !important;
+    font-size:13px !important;
+    line-height:1.5 !important;
+  }
+  
+  .modal .kv > div:nth-child(odd) {
+    font-weight:600 !important;
+    font-size:12px !important;
+    text-transform:uppercase !important;
+    letter-spacing:0.03em !important;
+    color:#94a3b8 !important;
+  }
+  
+  .modal .hr {
+    margin:14px 0 !important;
+  }
+  
+  .modal .subl {
+    font-size:12px !important;
+    font-weight:600 !important;
+    text-transform:uppercase !important;
+    letter-spacing:0.03em !important;
+    color:#94a3b8 !important;
+    margin-bottom:8px !important;
+  }
+  
+  .modal .payout {
+    margin:12px 0 16px !important;
+  }
+  
+  .modal .payout .num {
+    font-size:28px !important;
+  }
+  
+  .modal .row {
+    margin-top:16px !important;
+    gap:10px !important;
   }
   
   /* Grid adjustments */
@@ -3511,7 +3896,7 @@ a:focus-visible{
   
   /* Smaller spacing on mobile */
   .container{
-    padding:12px !important
+    padding: 0 !important
   }
   
   section{
@@ -3550,6 +3935,75 @@ a:focus-visible{
   #pfPhotoPreview {
     width: 100px !important;
     height: 100px !important;
+  }
+  
+  /* ===== MOBILE: Customer Cards - Compact, Tight Layout ===== */
+  #customers-list > div {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+  
+  /* Stack customer name + buttons vertically on mobile */
+  #customers-list > div > div:first-child {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  /* Customer info section */
+  #customers-list > div > div:first-child > div:first-child {
+    width: 100% !important;
+  }
+  
+  /* Customer name */
+  #customers-list > div > div:first-child > div:first-child > div:first-child {
+    font-size: 16px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  /* Context */
+  #customers-list > div > div:first-child > div:first-child > div:nth-child(2) {
+    font-size: 12px !important;
+    margin-bottom: 3px !important;
+  }
+  
+  /* Talking points */
+  #customers-list > div > div:first-child > div:first-child > div:nth-child(3) {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    margin-top: 3px !important;
+  }
+  
+  /* Button container */
+  #customers-list > div > div:first-child > div:last-child {
+    width: 100% !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+  
+  /* Buttons - side by side, equal width */
+  #customers-list > div > div:first-child > div:last-child > button {
+    flex: 1 !important;
+    width: auto !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Service/Address/Amount grid - tighter */
+  #customers-list > div > div:last-child {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding-top: 10px !important;
+  }
+  
+  /* Labels */
+  #customers-list > div > div:last-child > div > div:first-child {
+    font-size: 10px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  /* Values */
+  #customers-list > div > div:last-child > div > div:last-child {
+    font-size: 13px !important;
   }
 }
 
@@ -3597,6 +4051,619 @@ a:focus-visible{
   0% { background: rgba(102, 126, 234, 0.1); }
   50% { background: rgba(102, 126, 234, 0.2); }
   100% { background: transparent; }
+}
+
+/* ===== MOBILE OVERRIDES (M8, M9, M10, M13) ===== */
+@media (max-width: 768px) {
+  :root {
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --br: 14px;
+  }
+
+  body {
+    background: var(--h2s-bg);
+    padding-bottom: 0;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    padding-top: 0;
+    margin-top: 56px;
+  }
+  
+  .container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+  }
+
+  /* ===== M8.1 Mobile App Bar Header ===== */
+  .header, .h2s-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 56px;
+    min-height: 56px;
+    padding: 0 16px;
+    background: rgba(2, 9, 25, 0.95);
+    border-bottom: 1px solid var(--h2s-border-soft);
+    backdrop-filter: blur(14px) saturate(140%);
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .h2s-header-left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  
+  .h2s-logo {
+    max-height: 56px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  
+  .h2s-logo img {
+    max-height: 24px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+  
+  /* Hide desktop "Pro Portal" text on mobile */
+  .h2s-header-title {
+    display: none;
+  }
+  
+  /* Mobile page title - centered */
+  .h2s-mobile-title {
+    display: block;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0f2fe;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .h2s-header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  
+  /* ===== M8.2 Lightweight Icon Buttons ===== */
+  .h2s-header-right .h2s-header-icon,
+  .header-right .h2s-header-icon,
+  .support, .menu-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: 9999px;
+    color: var(--h2s-text-main);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .h2s-header-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* Hide support button on mobile - move to menu */
+  .h2s-header-support {
+    display: none !important;
+  }
+
+  /* ===== M9.2 Card Sizing ===== */
+  .card, .job-card, .item {
+    background: var(--h2s-bg-elevated);
+    border: 1px solid var(--h2s-border-soft);
+    padding: 14px 16px;
+    margin-bottom: var(--space-md);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  
+  /* Ensure cards don't use random colors */
+  .card[style*="background"], .item[style*="background"],
+  div[style*="background:linear-gradient(155deg, #071526, #040914)"] {
+    background: var(--h2s-bg-elevated) !important;
+  }
+  
+  /* Remove heavy nested cards */
+  .card .card, .item .card {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* ===== M11.1 Section Headings ===== */
+  .h1 { font-size: 22px; margin: 16px 0 12px; }
+  h2, .h2 { 
+    font-size: 16px; 
+    font-weight: 600;
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-sm);
+  }
+  
+  /* Buttons & Touch Targets */
+  .btn, button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+  
+  /* Primary Actions - Match Desktop Exactly */
+  .btn.primary, 
+  button[style*="var(--h2s-primary-cta)"], 
+  button[style*="#1493ff"],
+  .btn[style*="background:var(--h2s-primary-cta)"],
+  button[data-onway],
+  button[data-done],
+  button[data-act="accept"],
+  #md-accept {
+    background: #1493ff !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(20, 147, 255, 0.3) !important;
+    border: none !important;
+    height: 44px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    border-radius: 9999px !important;
+    padding: 0 20px !important;
+  }
+  
+  /* Ensure modal primary buttons are blue */
+  .modal .btn:not(.ghost):not(.secondary) {
+    background: #1493ff !important;
+    color: #fff !important;
+  }
+  
+  /* Secondary Actions */
+  .btn.secondary, 
+  button[data-photos],
+  button[data-sign],
+  button[data-act="decline"],
+  button[data-act="details"] {
+    background: rgba(41,47,102,0.4) !important;
+    color: var(--h2s-text-main) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    height: 40px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    padding: 0 12px !important;
+  }
+  
+  .btn.ghost {
+    background: transparent !important;
+    border: none !important;
+    color: var(--h2s-text-muted) !important;
+    padding: 4px 0 !important;
+    height: auto !important;
+  }
+  
+  /* ===== Appointment Action Buttons (Call / Reschedule) ===== */
+  .appointment-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .appointment-actions .appointment-action {
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .appointment-actions .appointment-action--primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+  }
+  
+  .appointment-actions .appointment-action--secondary {
+    background: rgba(41, 47, 102, 0.4);
+    color: var(--h2s-text-main);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  /* ===== Customer Tab Segmented Control ===== */
+  .customer-tabs {
+    display: flex;
+    gap: 0;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+  
+  .customer-tabs .customer-tab {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  
+  .customer-tabs .customer-tab.is-active {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    font-weight: 600;
+  }
+  
+  /* Override green buttons to match primary brand on mobile if they are primary CTAs */
+  button[style*="background:linear-gradient(135deg,#10b981"],
+  button[style*="background:linear-gradient(135deg, #10b981"] {
+    background: var(--h2s-primary) !important;
+    box-shadow: 0 2px 8px rgba(20, 147, 255, 0.25) !important;
+    border: none !important;
+  }
+  
+  /* ===== M13 Job Card Components ===== */
+  .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  
+  .service-chip {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--h2s-text-main);
+    background: var(--h2s-badge-bg);
+    border: 1px solid var(--h2s-border-soft);
+    border-radius: 9999px;
+    padding: 4px 10px;
+    max-width: 60%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  
+  .date-capsule {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--h2s-text-muted);
+    white-space: nowrap;
+  }
+  
+  .job-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: 10px;
+  }
+  
+  .job-info .line {
+    font-size: 13px;
+    color: var(--h2s-text-muted);
+  }
+  
+  .job-actions {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* M13.2 Primary Action */
+  .job-actions .btn-primary {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 0;
+    border-radius: 12px;
+    background: var(--h2s-primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(20,147,255,0.25);
+    cursor: pointer;
+  }
+  
+  /* M13.2 Secondary Actions Row */
+  .job-actions .btn-row {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  
+  .job-actions .btn-secondary {
+    flex: 1;
+    min-height: 40px;
+    padding: 8px 0;
+    border-radius: 10px;
+    background: var(--h2s-accent-purple);
+    color: var(--h2s-text-main);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--h2s-border-soft);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  /* M13.2 View Details Link */
+  .details-link {
+    text-align: right;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--h2s-text-muted);
+  }
+  
+  /* ===== M10 Slim Announcements Banner ===== */
+  #communicationHub, #activeAnnouncementsSection {
+    padding: 12px 14px !important;
+    margin-bottom: var(--space-lg) !important;
+    min-height: 64px;
+    max-height: 72px;
+    overflow: hidden;
+  }
+  
+  #communicationHub .announcement-icon {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+  }
+  
+  #communicationHub .announcement-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  
+  #communicationHub .announcement-title {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    line-height: 1.3;
+  }
+  
+  #communicationHub .announcement-subtitle {
+    font-size: 12px !important;
+    margin: 0 !important;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  #communicationHub .view-all-btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+  
+  /* Hide announcement cards container on mobile - only show header */
+  #announcementCardsContainer {
+    display: none !important;
+  }
+  
+  /* Layout Grids */
+  .grid-2, .grid-3, .learning-paths-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  
+  /* Inputs */
+  .input, .select, .textarea {
+    height: 44px;
+    font-size: 16px; /* Prevent iOS zoom */
+    background: var(--h2s-bg-input);
+    border-color: var(--h2s-border-soft);
+  }
+  
+  /* Badges */
+  .badge, .status-badge {
+    background: var(--h2s-badge-bg);
+    border: 1px solid var(--h2s-border-soft);
+  }
+  
+  /* ===== M14 Customers Tab Mobile Cleanup ===== */
+  /* Remove heavy inner stage - let content sit directly on page background */
+  #tab-customers {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 16px 16px !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Compact segmented control for To Call / History tabs */
+  .customer-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 12px auto 20px;
+    max-width: 280px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .customer-tabs .customer-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    min-width: 0;
+  }
+  
+  .customer-tabs .customer-tab.is-active {
+    background: #1493ff;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(20, 147, 255, 0.3);
+  }
+  
+  /* Ensure consistent vertical spacing in customer views */
+  #customers-to-call-view > div:first-child,
+  #customers-history-view > div:first-child {
+    margin-bottom: 16px !important;
+  }
+  
+  #customers-to-call-view h2,
+  #customers-history-view h2 {
+    font-size: 18px !important;
+    margin: 0 0 6px !important;
+  }
+  
+  #customers-to-call-view .muted,
+  #customers-history-view .muted {
+    font-size: 13px !important;
+  }
+  
+  #customers-list,
+  #customers-history-list {
+    gap: 12px !important;
+  }
+  
+  /* ===== M15 Dashboard Mobile Cleanup ===== */
+  /* Remove heavy inner stage from dashboard - let content sit directly on page background */
+  #tab-dash {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 16px 16px !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Vertical rhythm from header to content */
+  #tab-dash > *:first-child {
+    margin-top: 16px !important;
+  }
+  
+  /* Announcement cards - match job card styling system */
+  #announcementBanner,
+  #communicationHub {
+    background: var(--h2s-bg-elevated) !important;
+    border: 1px solid var(--h2s-border-soft) !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* New Announcement card spacing */
+  #announcementBanner {
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+  }
+  
+  /* Team Updates card spacing */
+  #communicationHub {
+    margin-top: 0 !important;
+    margin-bottom: 24px !important;
+  }
+  
+  /* Remove special gradients and glows on mobile */
+  #communicationHub {
+    background: var(--h2s-bg-elevated) !important;
+  }
+  
+  /* Icon sizing consistency */
+  #announcementBanner .announcement-icon,
+  #communicationHub .announcement-icon {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    flex-shrink: 0;
+  }
+  
+  #announcementBanner .announcement-icon svg,
+  #communicationHub .announcement-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Team Updates internal layout */
+  #communicationHub .announcement-header-clickable {
+    gap: 12px !important;
+    margin-bottom: 0 !important;
+  }
+  
+  #communicationHub .announcement-title {
+    font-size: 16px !important;
+    line-height: 1.3;
+  }
+  
+  #communicationHub .announcement-subtitle {
+    font-size: 13px !important;
+    line-height: 1.3;
+  }
+  
+  #communicationHub .view-all-btn {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+  
+  /* Hide announcement cards container on mobile - only show header */
+  #announcementCardsContainer {
+    display: none !important;
+  }
+  
+  /* Section headings - clear hierarchy and spacing */
+  #tab-dash h2 {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin-top: 24px !important;
+    margin-bottom: 12px !important;
+    color: #e0f2fe;
+  }
+  
+  /* First section heading after announcements gets extra space */
+  #communicationHub ~ h2 {
+    margin-top: 28px !important;
+  }
 }
 
 </style>
@@ -3779,21 +4846,26 @@ a:focus-visible{
 
 </head>
 <body>
-<header class="header">
-  <a class="h2s-logo" href="#" aria-label="Home2Smart home">
-    <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart logo" width="156" height="52" loading="eager" fetchpriority="high" decoding="async">
-  </a>
-  <div class="header-right">
-    <a id="supportLink" class="support" href="mailto:contact@home2smart.com">Support</a>
-    <button id="openMenu" class="menu-btn" aria-label="Open menu" type="button"><span class="menu-ic"></span></button>
+<header class="header h2s-header">
+  <div class="h2s-header-left">
+    <a class="h2s-logo" href="#" aria-label="Home2Smart home">
+      <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="156" height="52" loading="eager" fetchpriority="high" decoding="async">
+    </a>
+    <span class="h2s-header-title">Pro Portal</span>
+  </div>
+  <div class="h2s-mobile-title" id="mobilePageTitle">Dashboard</div>
+  <div class="header-right h2s-header-right">
+    <button id="openMenu" class="menu-btn h2s-header-icon h2s-header-menu" aria-label="Menu" type="button"><span class="menu-ic"></span></button>
   </div>
 </header>
 
 <div id="menu" class="menu-overlay" aria-hidden="true">
   <div class="menu-sheet" role="dialog" aria-labelledby="menuTitle">
-    <h2 id="menuTitle" class="visually-hidden">Navigation menu</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid rgba(59,130,246,0.1)">
+      <h2 id="menuTitle" style="margin:0;font-size:20px;font-weight:700;color:#e0f2fe;letter-spacing:-0.02em">Menu</h2>
+      <button id="closeMenu" type="button" style="width:40px;height:40px;border-radius:50%;background:rgba(15,23,42,0.6);border:1px solid rgba(59,130,246,0.15);color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.12)';this.style.borderColor='rgba(59,130,246,0.3)'" onmouseout="this.style.background='rgba(15,23,42,0.6)';this.style.borderColor='rgba(59,130,246,0.15)'">×</button>
+    </div>
     <div class="menu-row" id="menuItems"></div>
-    <div class="menu-close"><button id="closeMenu" class="btn secondary" type="button">Close</button></div>
   </div>
 </div>
 
@@ -3801,38 +4873,65 @@ a:focus-visible{
   <div class="container">
     <h1 class="h1" id="portalTitle">Pro portal</h1>
 
-    <section id="view-auth" class="view card" aria-hidden="false">
-      <div id="step-signin">
-        <div style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);letter-spacing:0.05em;margin-bottom:40px;text-align:left;opacity:0.7">Home2Smart Pro Portal</div>
-        <h2 style="font-size:26px;font-weight:500;margin:0 0 12px 0;text-align:center;color:var(--h2s-text-main);letter-spacing:-0.02em">Sign in</h2>
-        <p style="font-size:14px;color:var(--h2s-text-muted);text-align:center;margin:0 0 40px 0;line-height:1.5;opacity:0.85">Use your email and ZIP code to access offers, jobs, and payouts.</p>
-        <div style="display:flex;flex-direction:column;gap:20px">
-          <div>
-            <label class="label" for="siEmail" style="font-size:11px;font-weight:500;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.08em;text-transform:uppercase">Email</label>
-            <input id="siEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:15px;height:48px;padding:0 16px;border-radius:14px;background:var(--h2s-bg-card-gradient);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 140ms ease-out,box-shadow 140ms ease-out">
-          </div>
-          <div>
-            <label class="label" for="siZip" style="font-size:11px;font-weight:500;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.08em;text-transform:uppercase">ZIP Code</label>
-            <input id="siZip" class="input" inputmode="numeric" placeholder="#####" autocomplete="postal-code" style="font-size:15px;height:48px;padding:0 16px;border-radius:14px;background:var(--h2s-bg-card-gradient);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 140ms ease-out,box-shadow 140ms ease-out">
-          </div>
+    <section id="view-auth" class="view" aria-hidden="false">
+      <div id="step-signin" class="signin-card">
+        <!-- Logo -->
+        <div style="text-align:center;margin:0 0 20px 0">
+          <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" style="height:36px;width:auto;display:inline-block">
         </div>
-        <div style="margin:20px 0 0 0;display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="siRemember" checked style="width:18px;height:18px;accent-color:#1A9BFF;cursor:pointer">
-            <label for="siRemember" style="font-size:14px;color:var(--h2s-text-muted);cursor:pointer;user-select:none;opacity:0.85">Remember me</label>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-top:32px">
-          <button id="btnSignIn" class="btn" type="button" style="width:100%;height:48px;font-size:13px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;border-radius:9999px;background:var(--h2s-accent-primary);border:none;color:#fff;box-shadow:0 3px 12px rgba(26,155,255,0.25),0 1px 3px rgba(0,0,0,0.3);transition:transform 160ms ease-out,box-shadow 160ms ease-out">Sign In</button>
-          <div style="text-align:center;margin-top:4px">
-            <span style="font-size:13px;color:var(--h2s-text-muted)">First time? </span>
-            <button id="btnStartSignup" type="button" style="background:none;border:none;color:#1A9BFF;font-size:13px;font-weight:500;cursor:pointer;padding:0;text-decoration:none;transition:opacity 140ms ease-out">Sign up</button>
-          </div>
-        </div>
-        <div id="err" class="error" role="alert"></div>
         
-        <!-- Helpful reminder about last used email -->
-        <div id="lastEmailReminder" style="display:none;margin-top:24px;padding:14px 18px;background:var(--h2s-bg-card-gradient);border:1px solid var(--h2s-border-subtle);border-radius:14px">
-          <p style="margin:0;font-size:13px;color:var(--h2s-text-muted);line-height:1.6">
-            <strong style="color:#1A9BFF;font-weight:600">Tip:</strong> Last account created: <strong id="lastEmailUsed" style="color:var(--h2s-text-main);font-weight:500"></strong>
+        <!-- Page title and subtitle -->
+        <div style="text-align:center;margin:0 0 18px 0">
+          <h2 style="font-size:24px;font-weight:700;color:#f7f9ff;margin:0 0 4px 0;letter-spacing:-0.03em;line-height:1.2">Sign in</h2>
+          <p style="font-size:12px;color:#94a3b8;margin:0;line-height:1.4;opacity:0.85">Access your pro dashboard</p>
+        </div>
+
+        <!-- Input stack -->
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px">
+          <div>
+            <label for="siEmail" style="display:block;font-size:10px;font-weight:600;color:#cbd5e1;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Email</label>
+            <input id="siEmail" type="email" placeholder="you@example.com" autocomplete="email" style="width:100%;font-size:15px;height:44px;padding:0 13px;border-radius:10px;background:rgba(13,31,53,0.5);border:1px solid rgba(30,58,95,0.6);color:#f7f9ff;outline:none;transition:all 180ms ease;box-sizing:border-box" onfocus="this.style.borderColor='#1493ff';this.style.background='rgba(13,31,53,0.8)';this.style.boxShadow='0 0 0 3px rgba(20,147,255,0.12)'" onblur="this.style.borderColor='rgba(30,58,95,0.6)';this.style.background='rgba(13,31,53,0.5)';this.style.boxShadow='none'">
+          </div>
+          
+          <div>
+            <label for="siZip" style="display:block;font-size:10px;font-weight:600;color:#cbd5e1;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">ZIP Code</label>
+            <input id="siZip" inputmode="numeric" placeholder="12345" autocomplete="postal-code" style="width:100%;font-size:15px;height:44px;padding:0 13px;border-radius:10px;background:rgba(13,31,53,0.5);border:1px solid rgba(30,58,95,0.6);color:#f7f9ff;outline:none;transition:all 180ms ease;box-sizing:border-box" onfocus="this.style.borderColor='#1493ff';this.style.background='rgba(13,31,53,0.8)';this.style.boxShadow='0 0 0 3px rgba(20,147,255,0.12)'" onblur="this.style.borderColor='rgba(30,58,95,0.6)';this.style.background='rgba(13,31,53,0.5)';this.style.boxShadow='none'">
+          </div>
+        </div>
+
+        <!-- Remember me (minimal) -->
+        <label for="siRemember" style="display:inline-flex;align-items:center;gap:8px;margin:0 0 12px 0;cursor:pointer;padding:6px 0;min-height:36px">
+          <input type="checkbox" id="siRemember" checked class="custom-checkbox" style="-webkit-appearance:none;appearance:none;width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;max-width:18px!important;max-height:18px!important;cursor:pointer;margin:0;padding:0;flex-shrink:0;border:1px solid rgba(30,58,95,0.6);border-radius:4px;background:rgba(13,31,53,0.5);position:relative;transition:all 150ms ease;box-sizing:border-box;display:inline-block" onfocus="this.style.borderColor='#1493ff'" onblur="this.style.borderColor='rgba(30,58,95,0.6)'" onchange="if(this.checked){this.style.background='#1493ff';this.style.borderColor='#1493ff'}else{this.style.background='rgba(13,31,53,0.5)';this.style.borderColor='rgba(30,58,95,0.6)'}">
+          <span style="font-size:13px;color:#94a3b8;line-height:1.2;font-weight:400;user-select:none;opacity:0.85">Remember me</span>
+        </label>
+        <style>
+          .custom-checkbox:checked::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: translate(-50%, -50%) rotate(45deg);
+            margin-top: -1px;
+          }
+        </style>
+
+        <!-- Error message (reserved space, positioned above button) -->
+        <div id="err" class="error" role="alert" style="min-height:0;margin-bottom:10px;transition:all 200ms ease"></div>
+
+        <!-- Primary CTA -->
+        <button id="btnSignIn" type="button" style="width:100%;height:45px;font-size:15px;font-weight:600;border-radius:10px;background:#1493ff;border:none;color:#fff;cursor:pointer;margin-bottom:12px;transition:all 180ms ease;outline:none;box-shadow:0 4px 12px rgba(20,147,255,0.35);box-sizing:border-box" onmouseover="this.style.background='#0d7ae5';this.style.boxShadow='0 6px 16px rgba(20,147,255,0.45)'" onmouseout="this.style.background='#1493ff';this.style.boxShadow='0 4px 12px rgba(20,147,255,0.35)'" onfocus="this.style.boxShadow='0 4px 12px rgba(20,147,255,0.35), 0 0 0 3px rgba(20,147,255,0.2)'" onblur="this.style.boxShadow='0 4px 12px rgba(20,147,255,0.35)'">Sign in</button>
+
+        <!-- Sign up (secondary button with subtle styling) -->
+        <button id="btnStartSignup" type="button" style="width:100%;height:43px;font-size:14px;font-weight:500;border-radius:10px;background:rgba(11,25,41,0.3);border:1px solid rgba(30,58,95,0.5);color:#94c5ff;cursor:pointer;margin-bottom:0;transition:all 180ms ease;outline:none;box-sizing:border-box" onmouseover="this.style.background='rgba(20,147,255,0.08)';this.style.borderColor='rgba(20,147,255,0.4)';this.style.color='#1493ff'" onmouseout="this.style.background='rgba(11,25,41,0.3)';this.style.borderColor='rgba(30,58,95,0.5)';this.style.color='#94c5ff'" onfocus="this.style.boxShadow='0 0 0 3px rgba(20,147,255,0.12)'" onblur="this.style.boxShadow='none'">Sign up</button>
+        
+        <!-- Tip: last email used (minimal, no borders) -->
+        <div id="lastEmailReminder" style="display:none;margin-top:14px;padding:8px 0;background:transparent;border:none;opacity:0.7">
+          <p style="margin:0;font-size:10px;color:#64748b;line-height:1.45">
+            <strong style="color:#1493ff;font-weight:600">Tip:</strong> Last account: <strong id="lastEmailUsed" style="color:#94a3b8;font-weight:500"></strong>
           </p>
         </div>
       </div>
@@ -3867,8 +4966,8 @@ a:focus-visible{
         </div>
         <p class="muted" style="font-size:14px;color:rgba(255,255,255,0.6);margin:16px 0 24px 0;text-align:center">We use this to match you to nearby jobs.</p>
         <div style="display:flex;gap:12px">
-          <button id="finishStep1" class="btn" type="button" style="flex:1;height:52px;font-size:16px;font-weight:600;border-radius:12px">Create account</button>
-          <button id="backToInfo" class="btn secondary" type="button" style="width:100px;height:52px;font-size:15px;font-weight:500;border-radius:12px">Back</button>
+          <button id="finishStep1" class="btn" type="button" style="flex:1;height:46px;font-size:15px;font-weight:600;border-radius:12px">Create account</button>
+          <button id="backToInfo" class="btn secondary" type="button" style="width:100px;height:46px;font-size:15px;font-weight:500;border-radius:12px">Back</button>
         </div>
         <div id="err-address" class="error" role="alert"></div>
       </div>
@@ -3878,52 +4977,54 @@ a:focus-visible{
       <div id="tab-dash" class="card">
         
         <!-- Legacy Announcement Banner (Restored for compatibility) -->
-        <div id="announcementBanner" style="display:none;background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(37,99,235,0.1) 100%);border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:16px;margin-bottom:20px;cursor:pointer" onclick="openAnnouncementsModal()">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div id="announcementIcon" style="width:32px;height:32px;background:rgba(59,130,246,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">📢</div>
-            <div style="flex:1">
-              <div style="display:flex;align-items:center;gap:8px">
-                <h3 id="announcementTitle" style="margin:0;font-size:15px;font-weight:600;color:#e0f2fe">New Announcement</h3>
-                <span id="announcementBadge" style="background:#3b82f6;color:white;font-size:11px;font-weight:700;padding:2px 6px;border-radius:99px">1</span>
-              </div>
-              <p id="announcementPreview" style="margin:4px 0 0 0;font-size:13px;color:#94a3b8">Click to view updates from dispatch</p>
+        <div id="announcementBanner" style="display:none;background:var(--h2s-bg-card-elevated);border:1px solid var(--h2s-border-strong);border-radius:16px;padding:20px;margin-bottom:24px;cursor:pointer;box-shadow:var(--shadow-sm)" onclick="openAnnouncementsModal()">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div id="announcementIcon" style="width:40px;height:40px;background:rgba(20,147,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#3b82f6">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             </div>
-            <div style="color:#64748b">→</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:10px">
+                <h3 id="announcementTitle" style="margin:0;font-size:16px;font-weight:600;color:#e0f2fe">New Announcement</h3>
+                <span id="announcementBadge" style="background:#3b82f6;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px">1</span>
+              </div>
+              <p id="announcementPreview" style="margin:4px 0 0 0;font-size:14px;color:#94a3b8">Click to view updates from dispatch</p>
+            </div>
+            <div style="color:#64748b;font-size:18px">→</div>
           </div>
         </div>
 
-        <!-- COMMUNICATION HUB - Always visible culture/announcement section -->
-        <div id="communicationHub" style="background:linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(16,185,129,0.08) 100%);border:1px solid rgba(59,130,246,0.25);border-radius:16px;padding:24px;margin-bottom:28px;position:relative;overflow:hidden">
+        <!-- Section 4.3: Team Updates with soft blue glow, no harsh square overlay -->
+        <div id="communicationHub" style="background:linear-gradient(135deg, #071b30 0%, #0b2238 100%);border:1px solid rgba(20,147,255,0.2);border-radius:20px;padding:24px;margin-bottom:28px;position:relative;overflow:hidden;box-shadow:0 0 24px rgba(20,147,255,0.15), 0 8px 16px rgba(2,12,35,0.4)">
           
           <!-- Default Culture Message (shows when no announcements) -->
           <div id="cultureSloganSection" style="display:none;text-align:center">
-            <h3 style="margin:0 0 10px 0;font-size:22px;font-weight:700;color:#e0f2fe;letter-spacing:-0.02em">Excellence in Every Service</h3>
-            <p style="margin:0;font-size:15px;color:#94a3b8;line-height:1.6;max-width:600px;margin:0 auto">Home2Smart pros deliver premium service with professionalism, integrity, and care. Every job is an opportunity to exceed expectations.</p>
+            <h3 style="margin:0 0 10px 0;font-size:22px;font-weight:700;color:#f7f9ff;letter-spacing:-0.02em">Excellence in Every Service</h3>
+            <p style="margin:0;font-size:15px;color:#9fb4d6;line-height:1.6;max-width:600px;margin:0 auto">Home2Smart pros deliver premium service with professionalism, integrity, and care. Every job is an opportunity to exceed expectations.</p>
           </div>
 
           <!-- Active Announcements Section (shows when announcements exist) -->
           <div id="activeAnnouncementsSection" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
               <div style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openAnnouncementsModal()" class="announcement-header-clickable">
-                <div style="width:44px;height:44px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(59,130,246,0.3);color:white" class="announcement-icon">
+                <div style="width:44px;height:44px;background:#1493ff;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(20,147,255,0.3);color:white" class="announcement-icon">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V2.54a.5.5 0 0 0-.74-.43l-8.55 5.03a2 2 0 0 1-.97.25H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.5a2 2 0 0 1 .8.17l3.7 1.48a2 2 0 0 0 1.6.04l6.66-2.66a.5.5 0 0 0 .74-.43V8.35z"></path><path d="M22 8.35A5.5 5.5 0 0 1 22 18.5"></path></svg>
                 </div>
                 <div>
-                  <h3 style="margin:0;font-size:19px;font-weight:700;color:#f1f5f9;letter-spacing:-0.01em" class="announcement-title">Team Updates</h3>
-                  <p style="margin:0;font-size:13px;color:#94a3b8;margin-top:2px" id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
+                  <h3 style="margin:0;font-size:19px;font-weight:700;color:#f7f9ff;letter-spacing:-0.01em" class="announcement-title">Team Updates</h3>
+                  <p style="margin:0;font-size:13px;color:#9fb4d6;margin-top:2px" id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
                 </div>
               </div>
-              <button id="btnViewAllAnnouncements" onclick="openAnnouncementsModal()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;padding:8px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.25)'" onmouseout="this.style.background='rgba(59,130,246,0.15)'" class="view-all-btn">View All</button>
+              <button id="btnViewAllAnnouncements" onclick="openAnnouncementsModal()" style="background:rgba(20,147,255,0.15);border:1px solid rgba(20,147,255,0.3);color:#1493ff;padding:8px 18px;border-radius:9999px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(20,147,255,0.25)'" onmouseout="this.style.background='rgba(20,147,255,0.15)'" class="view-all-btn">View All</button>
             </div>
 
             <!-- Announcement Cards Container -->
-            <div id="announcementCardsContainer" style="display:flex;flex-direction:column;gap:14px">
+            <div id="announcementCardsContainer" style="display:flex;flex-direction:column;gap:16px">
               <!-- Dynamically populated announcement cards -->
             </div>
           </div>
 
-          <!-- Decorative gradient overlay -->
-          <div style="position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%);pointer-events:none;opacity:0.6"></div>
+          <!-- Soft inner gradient glow instead of decorative overlay -->
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);width:60%;height:60%;background:radial-gradient(circle at center, rgba(20,147,255,0.06) 0%, transparent 70%);pointer-events:none;z-index:0"></div>
         </div>
 
         <h2 style="margin-top:32px">Pending offers</h2>
@@ -3941,12 +5042,12 @@ a:focus-visible{
 
       <div id="tab-customers" class="card" style="display:none">
         <!-- Tab Switcher -->
-        <div style="display:flex;gap:12px;margin-bottom:32px;border-bottom:2px solid rgba(148,163,184,.1);padding-bottom:0">
-          <button id="btnCustomersToCall" class="customer-tab-btn active" onclick="switchCustomerTab('to-call')" type="button" style="background:none;border:none;padding:16px 24px;font-size:15px;font-weight:700;color:#60a5fa;cursor:pointer;position:relative;transition:all .2s;border-bottom:3px solid #3b82f6">
-            To Call
+        <div class="customer-tabs">
+          <button id="btnCustomersToCall" class="customer-tab is-active" onclick="switchCustomerTab('to-call')" type="button">
+            📞 To Call
           </button>
-          <button id="btnCustomersHistory" class="customer-tab-btn" onclick="switchCustomerTab('history')" type="button" style="background:none;border:none;padding:16px 24px;font-size:15px;font-weight:700;color:#64748b;cursor:pointer;position:relative;transition:all .2s;border-bottom:3px solid transparent">
-            📋 Customer History
+          <button id="btnCustomersHistory" class="customer-tab" onclick="switchCustomerTab('history')" type="button">
+            📋 History
           </button>
         </div>
 
@@ -4060,8 +5161,8 @@ a:focus-visible{
           <p class="muted" style="margin:0;font-size:15px">See what customers are saying about your work</p>
         </div>
         <div id="reviews-list">
-           <div style="text-align:center;padding:40px 20px;color:#475569">
-              <div style="font-size:15px">No reviews yet.</div>
+           <div class="item" style="text-align:center;padding:40px 20px">
+              <div style="font-size:15px;color:var(--h2s-text-muted)">No reviews yet.</div>
            </div>
         </div>
       </div>
@@ -4345,57 +5446,53 @@ a:focus-visible{
       </div>
 
       <div id="tab-schedule" class="card" style="display:none">
-        <div class="page-header-modern">
-          <div class="page-header-content">
-            <div class="page-icon-circle" style="background:var(--gradient-purple)">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-            </div>
-            <div>
-              <h2 class="page-title-modern">Time Off</h2>
-              <p class="page-subtitle-modern">Request days when you're unavailable to work</p>
-            </div>
-          </div>
+        <!-- Intro Block -->
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="font-size:48px;margin-bottom:12px">📅</div>
+          <h2 style="font-size:24px;font-weight:700;color:#e0f2fe;margin:0 0 6px 0">Time Off</h2>
+          <p style="font-size:14px;color:#94a3b8;margin:0">Request days when you're unavailable to work</p>
         </div>
 
-        <!-- Request Time Off Button -->
-        <div class="modern-section" style="margin-bottom:var(--spacing-xl)">
-          <div id="btnOpenTimeOffModal" style="background:linear-gradient(155deg, #071526, #040914);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all var(--transition-standard);position:relative;overflow:hidden">
-            <div style="position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,rgba(245,158,11,.4) 0%,rgba(245,158,11,.2) 50%,rgba(245,158,11,.05) 100%)"></div>
-            <div style="width:48px;height:48px;margin:0 auto 16px;background:rgba(26,155,255,.1);border:1px solid rgba(26,155,255,.25);border-radius:12px;display:flex;align-items:center;justify-content:center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A9BFF" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+        <!-- Action Cards -->
+        <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
+          <!-- Request Time Off (Primary) -->
+          <div id="btnOpenTimeOffModal" style="background:linear-gradient(135deg,rgba(59,130,246,.12) 0%,rgba(37,99,235,.08) 100%);border:1px solid rgba(59,130,246,.3);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="width:44px;height:44px;background:rgba(59,130,246,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                  <line x1="12" y1="14" x2="12" y2="18"></line>
+                  <line x1="10" y1="16" x2="14" y2="16"></line>
+                </svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="font-size:16px;font-weight:600;color:#e0f2fe;margin:0 0 4px 0">Request Time Off</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0">Block dates when you can't take jobs</p>
+              </div>
+              <div style="color:#60a5fa;font-size:20px;flex-shrink:0">›</div>
             </div>
-            <h3 style="font-size:16px;font-weight:600;color:#e0f2fe;margin-bottom:6px">Request Time Off</h3>
-            <p style="font-size:13px;color:#64748b;margin-bottom:0">Block dates when you can't take jobs</p>
           </div>
-        </div>
 
-        <!-- Requested Time Off List -->
-        <div class="modern-section">
-          <div class="section-header-modern">
-            <div class="section-icon-modern" style="background:rgba(26,155,255,.1);color:#1A9BFF">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+          <!-- My Requests (Secondary) -->
+          <div style="background:rgba(15,23,42,0.5);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+              <div style="width:44px;height:44px;background:rgba(148,163,184,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div style="flex:1">
+                <h3 style="font-size:16px;font-weight:600;color:#cbd5e1;margin:0 0 4px 0">My Requests</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0">Status of your time off requests</p>
+              </div>
             </div>
-            <div>
-              <h3 class="section-title-modern">My Requests</h3>
-              <p class="section-subtitle-modern">Status of your time off requests</p>
-            </div>
-          </div>
-          <div id="time-off-list">
+            <div id="time-off-list">
              <!-- Populated by JS -->
           </div>
         </div>
@@ -4592,25 +5689,25 @@ a:focus-visible{
 <footer class="footer">© Home2Smart • <a href="mailto:contact@home2smart.com" style="color:#9bc8ff;text-decoration:none">contact@home2smart.com</a></footer>
 
 <!-- Announcements Modal (Pro View) -->
-<div id="announcementsModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.97);backdrop-filter:blur(12px);z-index:10000;padding:20px;overflow-y:auto;animation:fadeIn 0.2s ease">
-  <div style="max-width:900px;margin:40px auto;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-radius:20px;box-shadow:0 25px 80px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.12);overflow:hidden">
+<div id="announcementsModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(2,6,23,0.97);backdrop-filter:blur(12px);z-index:10000;padding:20px;overflow-y:auto;animation:fadeIn 0.2s ease">
+  <div style="max-width:900px;margin:40px auto;background:var(--h2s-bg-card);border-radius:20px;box-shadow:var(--shadow-2xl);border:1px solid var(--h2s-border-subtle);overflow:hidden">
     <!-- Header -->
-    <div style="padding:28px 32px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center;background:rgba(30,41,59,0.5)">
+    <div style="padding:28px 32px;border-bottom:1px solid var(--h2s-border-subtle);display:flex;justify-content:space-between;align-items:center;background:var(--h2s-bg-card-elevated)">
       <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,rgba(59,130,246,0.2) 0%,rgba(37,99,235,0.1) 100%);display:flex;align-items:center;justify-content:center;color:#60a5fa">
+        <div style="width:42px;height:42px;border-radius:12px;background:rgba(20,147,255,0.15);display:flex;align-items:center;justify-content:center;color:var(--h2s-brand-azure)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V2.54a.5.5 0 0 0-.74-.43l-8.55 5.03a2 2 0 0 1-.97.25H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.5a2 2 0 0 1 .8.17l3.7 1.48a2 2 0 0 0 1.6.04l6.66-2.66a.5.5 0 0 0 .74-.43V8.35z"></path><path d="M22 8.35A5.5 5.5 0 0 1 22 18.5"></path></svg>
         </div>
-        <h2 style="margin:0;font-size:26px;font-weight:700;background:linear-gradient(135deg,#60a5fa 0%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">All Announcements</h2>
+        <h2 style="margin:0;font-size:26px;font-weight:700;color:var(--h2s-text-main)">All Announcements</h2>
       </div>
-      <button onclick="closeAnnouncementsModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#cbd5e1;width:40px;height:40px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:20px;font-weight:300" onmouseover="this.style.background='rgba(239,68,68,0.2)';this.style.borderColor='rgba(239,68,68,0.4)';this.style.color='#f87171'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.borderColor='rgba(255,255,255,0.12)';this.style.color='#cbd5e1'">&times;</button>
+      <button onclick="closeAnnouncementsModal()" style="background:rgba(255,255,255,0.05);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);width:40px;height:40px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:20px;font-weight:300" onmouseover="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='var(--h2s-accent-danger)';this.style.color='var(--h2s-accent-danger)'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='var(--h2s-border-subtle)';this.style.color='var(--h2s-text-muted)'">&times;</button>
     </div>
     
     <!-- Announcements List with Custom Scrollbar -->
     <div id="announcementsListPro" style="padding:24px 32px;max-height:calc(100vh - 240px);overflow-y:auto;
       /* Custom Scrollbar Styling */
       scrollbar-width:thin;
-      scrollbar-color:rgba(59,130,246,0.4) rgba(255,255,255,0.05)">
-      <p style="color:#64748b;text-align:center">Loading announcements...</p>
+      scrollbar-color:rgba(20,147,255,0.4) rgba(255,255,255,0.05)">
+      <p style="color:var(--h2s-text-muted);text-align:center">Loading announcements...</p>
     </div>
   </div>
 </div>
@@ -5406,12 +6503,12 @@ async function initRealtimeSync() {
         if (status === 'SUBSCRIBED') {
           console.log('[Realtime] ✅ Live updates active');
           if (typeof showToast === 'function') {
-            showToast('🔴 Live updates active', 'success');
+            showToast('Live updates active', 'success');
           }
         } else if (status === 'CLOSED') {
           console.warn('[Realtime] ⚠️ Connection closed');
           if (typeof showToast === 'function') {
-            showToast('⚠️ Live updates disconnected', 'warning');
+            showToast('Live updates disconnected', 'warning');
           }
         }
       });
@@ -5455,12 +6552,12 @@ function updateConnectionIndicator(status) {
     connectionIndicator.style.color = '#fff';
     dot.style.background = '#4ade80';
     dot.style.boxShadow = '0 0 8px #4ade80';
-    connectionIndicator.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;box-shadow:0 0 8px #4ade80;animation:pulse 2s infinite;"></span> 🔴 LIVE';
+    connectionIndicator.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;box-shadow:0 0 8px #4ade80;animation:pulse 2s infinite;"></span> LIVE';
   } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
     connectionIndicator.style.background = '#ef4444';
     connectionIndicator.style.color = '#fff';
     dot.style.background = '#fbbf24';
-    connectionIndicator.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;"></span> ⚠️ Disconnected';
+    connectionIndicator.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;"></span> Disconnected';
   } else {
     connectionIndicator.style.background = '#6b7280';
     connectionIndicator.style.color = '#fff';
@@ -5476,13 +6573,13 @@ function handleJobUpdate(payload) {
   // Show notification (dedupe new job toasts to avoid noise on rejoin)
   if (eventType === 'INSERT') {
     if (shouldNotifyNewJob(newRecord.job_id)) {
-      showToast(`✨ New job created: ${newRecord.service_id || 'Job'}`, 'info');
+      showToast(`New job created: ${newRecord.service_id || 'Job'}`, 'info');
       playNotificationSound();
     }
   } else if (eventType === 'UPDATE') {
-    showToast(`🔄 Job updated: ${newRecord.job_id?.substring(0, 8)}`, 'info');
+    showToast(`Job updated: ${newRecord.job_id?.substring(0, 8)}`, 'info');
   } else if (eventType === 'DELETE') {
-    showToast(`🗑️ Job deleted`, 'info');
+    showToast(`Job deleted`, 'info');
   }
   
   // Auto-refresh job list if in admin view
@@ -5510,11 +6607,11 @@ function handleAssignmentUpdate(payload) {
   
   if (eventType === 'INSERT' && newRecord.state === 'offer_sent') {
     if (shouldNotifyNewJob(newRecord.job_id)) {
-      showToast(`📬 New job offer received!`, 'success');
+      showToast(`New job offer received!`, 'success');
       playNotificationSound();
     }
   } else if (eventType === 'UPDATE' && newRecord.state === 'accepted') {
-    showToast(`✅ Job accepted`, 'success');
+    showToast(`Job accepted`, 'success');
   }
   
   // Auto-refresh if viewing relevant data
@@ -6442,6 +7539,8 @@ function doSignOut() {
   localStorage.removeItem(LS_TOKEN);
   sessionStorage.removeItem(LS_TOKEN);
   localStorage.removeItem(LS_ADMIN_TOKEN);
+  localStorage.removeItem("h2s_is_authenticated"); // Clear auth flag
+  localStorage.removeItem("h2s_active_view");      // Clear view state
   token = ""; adminToken = ""; me = null; isAdmin = false;
   
   // Clear in-memory cache
@@ -6456,16 +7555,30 @@ function doSignOut() {
 document.addEventListener("click", e => { if (e.target.id === "signOut") doSignOut(); });
 
 function showMenuButton() {
-  const b = $("openMenu");
-  b.style.display = "flex";
-  b.dataset.on = "1";
-  $("supportLink").style.display = "inline-block";
+  const menuBtn = $("openMenu");
+  const supportBtn = $("supportBtn");
+  
+  if (menuBtn) {
+    menuBtn.style.display = "flex";
+    menuBtn.dataset.on = "1";
+  }
+  
+  if (supportBtn) {
+    supportBtn.style.display = "flex";
+  }
 }
 function hideMenuButton() {
-  const b = $("openMenu");
-  b.style.display = "none";
-  b.dataset.on = "";
-  $("supportLink").style.display = "none";
+  const menuBtn = $("openMenu");
+  const supportBtn = $("supportBtn");
+  
+  if (menuBtn) {
+    menuBtn.style.display = "none";
+    menuBtn.dataset.on = "";
+  }
+  
+  if (supportBtn) {
+    supportBtn.style.display = "none";
+  }
 }
 
 /* ===== VIEW SWITCH ===== */
@@ -6569,21 +7682,26 @@ function renderMenuItems() {
       const b = document.createElement("button");
       b.className = "menu-item";
       b.type = "button";
-      b.textContent = label;
+      b.innerHTML = `<span>${label}</span>${go !== 'signout' ? '<span style="color:#64748b;font-size:18px">›</span>' : ''}`;
       if (go === "signout") b.id = "signOut";
       else b.dataset.go = go;
       box.appendChild(b);
     });
   } else {
     box.innerHTML = `
-      <button class="menu-item" data-go="dash" type="button">Dashboard</button>
-      <button class="menu-item" data-go="customers" type="button">Customers</button>
-      <button class="menu-item" data-go="schedule" type="button">Schedule</button>
-      <button class="menu-item" data-go="payouts" type="button">Payouts</button>
-      <button class="menu-item" data-go="reviews" type="button">Reviews</button>
-      <button class="menu-item" data-go="training" type="button">Training</button>
-      <button class="menu-item" data-go="profile" type="button">Account</button>
-      <button class="menu-item" id="signOut" type="button">Sign out</button>
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 8px 4px">Main</div>
+      <button class="menu-item" data-go="dash" type="button"><span>Dashboard</span><span style="color:#64748b;font-size:18px">›</span></button>
+      <button class="menu-item" data-go="customers" type="button"><span>Customers</span><span style="color:#64748b;font-size:18px">›</span></button>
+      <button class="menu-item" data-go="schedule" type="button"><span>Schedule</span><span style="color:#64748b;font-size:18px">›</span></button>
+      <button class="menu-item" data-go="payouts" type="button"><span>Payouts</span><span style="color:#64748b;font-size:18px">›</span></button>
+      
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin:16px 0 8px 4px">Tools</div>
+      <button class="menu-item" data-go="reviews" type="button"><span>Reviews</span><span style="color:#64748b;font-size:18px">›</span></button>
+      <button class="menu-item" data-go="training" type="button"><span>Training</span><span style="color:#64748b;font-size:18px">›</span></button>
+      
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin:16px 0 8px 4px">Profile</div>
+      <button class="menu-item" data-go="profile" type="button"><span>Account</span><span style="color:#64748b;font-size:18px">›</span></button>
+      <button class="menu-item" id="signOut" type="button" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2);color:#fca5a5"><span>Sign out</span></button>
     `;
   }
 }
@@ -6688,12 +7806,33 @@ async function hydrateMe() {
 }
 
 /* ===== TABS (pro) ===== */
+function updateMobilePageTitle(tab) {
+  const titleEl = document.getElementById('mobilePageTitle');
+  if (!titleEl) return;
+  
+  const titles = {
+    'dash': 'Dashboard',
+    'customers': 'Customers',
+    'schedule': 'Schedule',
+    'payouts': 'Payouts',
+    'reviews': 'Reviews',
+    'training': 'Training',
+    'profile': 'Account'
+  };
+  
+  titleEl.textContent = titles[tab] || 'Dashboard';
+}
+
 function switchTab(which) {
   currentTab = which;
   // ✅ PERSISTENCE: Save current tab to localStorage
   localStorage.setItem('h2s_last_tab', which);
+  localStorage.setItem('h2s_active_view', which); // Explicit persistence per brief
   // Also save view state for refresh resilience
   if (typeof saveViewState === 'function') saveViewState();
+  
+  // Update mobile page title
+  updateMobilePageTitle(which);
   
   ["dash","customers","payouts","reviews","training","profile","schedule"].forEach(k => {
     const el = document.getElementById("tab-" + k);
@@ -6910,6 +8049,22 @@ function showJobDetails(job) {
     return;
   }
   
+  // ✅ DEBUG: Log job object to verify field mapping
+  console.log('[Job Details] Job object:', {
+    job_id: job.job_id,
+    service_name: job.service_name,
+    address: job.address,
+    service_address: job.service_address,
+    city: job.city,
+    service_city: job.service_city,
+    state: job.state,
+    service_state: job.service_state,
+    customer_phone: job.customer_phone,
+    phone: job.phone,
+    window: job.window,
+    start_iso: job.start_iso
+  });
+  
   // Populate modal with job details
   let title = job.service_name || "Job Details";
   // Apply operational language to title as well
@@ -6920,10 +8075,13 @@ function showJobDetails(job) {
   const dateText = job.window || job.start_iso || "Scheduling Pending";
   $("md-date").textContent = dateText === "TBD" ? "Scheduling Pending" : dateText;
   
-  $("md-addr").textContent = (job.address || "") + (job.city ? (", " + job.city + " " + (job.state || "") + " " + (job.zip || "")) : "");
+  // ✅ ADDRESS: Use same fields as cards (service_address, service_city, etc.)
+  const fullAddress = (job.address || job.service_address || "") + 
+    (job.city || job.service_city ? (", " + (job.city || job.service_city) + " " + (job.state || job.service_state || "") + " " + (job.zip || job.service_zip || "")) : "");
+  $("md-addr").textContent = fullAddress || "Not yet assigned";
   
-  // ✅ CUSTOMER PHONE: Show with click-to-call link
-  const customerPhone = job.customer_phone || "";
+  // ✅ CUSTOMER PHONE: Show with click-to-call link (use customer_phone or phone field)
+  const customerPhone = job.customer_phone || job.phone || "";
   const phoneEl = $("md-customer-phone");
   if (customerPhone) {
     phoneEl.innerHTML = `<a href="tel:${esc(customerPhone)}" style="color:#1A9BFF;text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:opacity 160ms ease-out" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
@@ -7104,7 +8262,10 @@ function showOfferDetails(job) {
   const dateText = job.window || job.start_iso || "Scheduling Pending";
   $("md-date").textContent = dateText === "TBD" ? "Scheduling Pending" : dateText;
   
-  $("md-addr").textContent = (job.address || job.service_address || "") + (job.city||job.service_city ? (", " + (job.city||job.service_city) + " " + (job.state||job.service_state||"") + " " + (job.zip||job.service_zip||"")) : "");
+  // ✅ ADDRESS: Use same fields as cards
+  const fullAddress = (job.address || job.service_address || "") + 
+    (job.city || job.service_city ? (", " + (job.city || job.service_city) + " " + (job.state || job.service_state || "") + " " + (job.zip || job.service_zip || "")) : "");
+  $("md-addr").textContent = fullAddress || "Not yet assigned";
   
   // ✅ INTELLIGENCE: Show line items in resources if available
   let resourcesText = job.resources_needed || "None specified";
@@ -8189,6 +9350,7 @@ function renderOffersSync(list, box) {
     // 💰 Use payout from API (metadata.estimated_payout)
     let payoutLabel = 'Estimated payout';
     let payoutAmount = 0;
+    let isTeam = false;
     try {
       // FIXED: Use payout_estimated from API response (from job.metadata)
       if (j.payout_estimated && j.payout_estimated > 0) {
@@ -8202,7 +9364,7 @@ function renderOffersSync(list, box) {
       
       // Team split handling
       const splitStr = j.payout_split || '';
-      const isTeam = !!(j.is_team_job || (j.team_size && Number(j.team_size) > 1) || (splitStr && splitStr.includes('/')));
+      isTeam = !!(j.is_team_job || (j.team_size && Number(j.team_size) > 1) || (splitStr && splitStr.includes('/')));
       if (isTeam) {
         let share = 0.5; // Default 50/50
         if (splitStr && splitStr.includes('/')) {
@@ -8219,85 +9381,93 @@ function renderOffersSync(list, box) {
     }
     
     // ✅ URGENCY & DATE DISPLAY (ROBUST)
-    let dateHtml = '';
-    let urgencyHtml = '';
+    let dateStr = '';
+    let badgeHtml = '';
     
     // Try to get a valid date object
-    // FALLBACK: Check metadata for window/date if top-level is missing
     let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
     let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
-    
     let targetDate = rawDate ? new Date(rawDate) : null;
-    
+
     if (targetDate && !isNaN(targetDate)) {
-        const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const timeStr = rawWindow || targetDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         
-        // Urgency
+        // Urgency logic
         const now = new Date();
         const diffHrs = (targetDate - now) / 36e5;
         
-        let badgeColor = '#3b82f6'; // blue default
-        let badgeText = '';
-        
-        if (diffHrs < 0) { badgeText = 'OVERDUE'; badgeColor = '#ef4444'; }
-        else if (diffHrs < 4) { badgeText = 'SOON'; badgeColor = '#f59e0b'; }
-        else if (diffHrs < 24) { badgeText = 'TODAY'; badgeColor = '#10b981'; }
-        
-        if (badgeText) {
-            urgencyHtml = `<div style="background:${badgeColor};color:white;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:2px">${badgeText}</div>`;
+        if (diffHrs < 0) { 
+            badgeHtml = `<div style="background:rgba(239,68,68,0.15);color:#f87171;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;display:inline-block;">OVERDUE</div>`;
+        } else if (diffHrs < 4) { 
+            badgeHtml = `<div style="background:rgba(245,158,11,0.15);color:#fbbf24;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;display:inline-block;">SOON</div>`;
+        } else if (diffHrs < 24) { 
+            badgeHtml = `<div style="background:rgba(16,185,129,0.15);color:#34d399;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;display:inline-block;">TODAY</div>`;
+        } else {
+            badgeHtml = `<div style="color:var(--h2s-text-muted);font-size:12px;font-weight:500;">${dateStr}</div>`;
         }
-        
-        dateHtml = `
-            <div style="text-align:right; min-width:80px">
-                ${urgencyHtml}
-                <div style="font-weight:700;color:#fff;font-size:14px">${dateStr}</div>
-                <div style="font-size:12px;color:#94a3b8">${timeStr}</div>
-            </div>
-        `;
     } else if (rawWindow) {
-        // Fallback for text-only window
-        dateHtml = `
-            <div style="text-align:right; min-width:80px">
-                <div style="font-weight:700;color:#fff;font-size:13px">Scheduled</div>
-                <div style="font-size:12px;color:#94a3b8">${esc(rawWindow)}</div>
-            </div>
-        `;
+        badgeHtml = `<div style="color:var(--h2s-text-muted);font-size:12px;font-weight:500;">${esc(rawWindow)}</div>`;
     } else {
-        // No date info at all
-         dateHtml = `
-            <div style="text-align:right; min-width:80px; opacity:0.5">
-                <div style="font-size:12px;color:#94a3b8">No Date</div>
-            </div>
-        `;
+        badgeHtml = `<div style="color:var(--h2s-text-muted);font-size:12px;font-weight:500;opacity:0.5">No Date</div>`;
     }
 
-    // New Flex Header
+    if (isTeam) {
+        badgeHtml = `<div style="background:rgba(59,130,246,0.15);color:#60a5fa;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;display:inline-block;margin-right:4px">Team Job</div>` + badgeHtml;
+    }
+
+    // Section 4.1: Compact Pending Offers Card Layout
     const headerHtml = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
-            <div>
-                <h3 style="margin:0;font-size:16px;line-height:1.3">${esc(j.service_name||j.service_id||"Service")}</h3>
-                <div class="meta" style="margin-top:4px">
-                    <strong>Job ID:</strong> ${esc(j.job_id||"N/A").substring(0,8)}... • ${distanceText}
-                </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">
+            <h3 style="margin:0;font-size:16px;font-weight:700;color:var(--h2s-text-main);line-height:1.3;flex:1">${esc(j.service_name||j.service_id||"Service")}</h3>
+            <div style="text-align:right">${badgeHtml}</div>
+        </div>
+    `;
+
+    const metaHtml = `
+        <div style="color:var(--h2s-text-secondary);font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span>${esc(j.service_city||j.city||"Location")}</span>
+            <span style="color:var(--h2s-border-subtle)">•</span>
+            <span>${distanceText}</span>
+            ${j.notes_from_customer||j.notes ? `<span style="color:var(--h2s-border-subtle)">•</span><span style="font-style:italic;opacity:0.8">Note attached</span>` : ''}
+        </div>
+    `;
+
+    // Section 4.1: Payout row
+    const payoutHtml = `
+        <div style="margin-bottom:14px;display:flex;align-items:baseline;gap:8px">
+            <span style="color:var(--h2s-text-soft);font-size:13px">${esc(payoutLabel)}</span>
+            <span style="color:var(--h2s-brand-azure);font-size:16px;font-weight:700;letter-spacing:-0.02em">${fmtMoney(payoutAmount)}</span>
+        </div>
+    `;
+
+    // Section 4.1: Button hierarchy - Accept full-width, Decline+Details in row
+    const actionsHtml = `
+        <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button" 
+                style="width:100%;background:#1493ff;border:none;color:#fff;font-weight:600;font-size:15px;padding:12px 0;border-radius:9999px;box-shadow:0 2px 8px rgba(20,147,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center">
+                Accept Job${isOutOfRange ? ' Anyway' : ''}
+            </button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button class="btn secondary" data-act="decline" data-job="${esc(j.job_id)}" type="button" 
+                    style="background:rgba(41,47,102,0.4);border:1px solid rgba(255,255,255,0.08);color:var(--h2s-text-secondary);font-weight:500;font-size:14px;padding:10px 0;border-radius:9999px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                    Decline
+                </button>
+                <button class="btn" data-act="details" data-job="${esc(j.job_id)}" type="button" 
+                    style="background:rgba(41,47,102,0.4);border:1px solid rgba(255,255,255,0.08);color:var(--h2s-text-main);font-weight:500;font-size:14px;padding:10px 0;border-radius:9999px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+                    Details
+                </button>
             </div>
-            ${dateHtml}
         </div>
     `;
 
     el.innerHTML = `
       ${headerHtml}
-      <div class="meta">
-        ${esc(j.service_address||j.address||"")} ${j.service_city||j.city ? ("• "+esc(j.service_city||j.city)) : ""}
-        ${j.notes_from_customer||j.notes ? '<br><em>' + esc(j.notes_from_customer||j.notes) + '</em>' : ''}
-      </div>
-      ${serviceDetails}
-      <div class="payout"><div class="num">${fmtMoney(payoutAmount)}</div><div class="subl">${esc(payoutLabel)}</div></div>
-      <div class="actions-grid">
-        <button class="btn" data-act="accept" data-job="${esc(j.job_id)}" type="button" style="background:var(--h2s-accent-primary);border:none;color:#fff;font-weight:600;font-size:14px;border-radius:9999px;box-shadow:0 3px 10px rgba(26,155,255,0.3)">Accept${isOutOfRange ? ' Anyway' : ''}</button>
-        <button class="btn secondary" data-act="decline" data-job="${esc(j.job_id)}" type="button" style="background:var(--h2s-bg-card-gradient);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);font-weight:400;font-size:14px;border-radius:14px">Decline</button>
-        <button class="btn" data-act="details" data-job="${esc(j.job_id)}" type="button" style="grid-column:span 2;background:transparent;border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);font-weight:400;font-size:14px;border-radius:14px">Details</button>
-      </div>`;
+      ${metaHtml}
+      ${serviceDetails ? `<div style="margin-bottom:8px">${serviceDetails}</div>` : ''}
+      ${payoutHtml}
+      ${actionsHtml}
+    `;
     fragment.appendChild(el);
   });
   
@@ -8473,6 +9643,11 @@ function renderUpcoming(list) {
       }
     }
     
+    // ✅ DATE/TIME PARSING: Extract date and window from job data
+    let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
+    let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
+    let targetDate = rawDate ? new Date(rawDate) : null;
+    
     // ✅ COMPLETION STATUS CHECK
     const hasPhotos = photoOnFile[j.job_id];
     const hasSignature = signatureOnFile[j.job_id];
@@ -8498,58 +9673,106 @@ function renderUpcoming(list) {
       : "Complete & Submit Job";
     const doneBtnLabel = (hasPhotos && hasSignature) ? "Complete Job" : "Complete Job (Locked)";
 
-    // ✅ DATE DISPLAY (ROBUST)
-    let dateDisplay = '';
-    // Try to get a valid date object
-    let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
-    let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
-    
-    let targetDate = rawDate ? new Date(rawDate) : null;
-
+    // Section 4.2: Date/time as single centered block
+    let dateTimeBlock = '';
     if (targetDate && !isNaN(targetDate)) {
         const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const timeStr = targetDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const timeDisplay = rawWindow || timeStr;
         
-        dateDisplay = `<div style="font-size:15px;font-weight:700;color:#e0f2fe;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-          <span>${dateStr}</span>
-          <span style="opacity:0.6">•</span>
-          <span>${timeDisplay}</span>
+        dateTimeBlock = `<div style="text-align:center;font-size:14px;font-weight:600;color:var(--h2s-text-main);margin:10px 0;padding:8px;background:rgba(20,147,255,0.08);border-radius:8px">
+          ${dateStr} • ${timeDisplay}
         </div>`;
     } else if (rawWindow) {
-         dateDisplay = `<div style="font-size:15px;font-weight:700;color:#e0f2fe;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-          <span>Scheduled</span>
-          <span style="opacity:0.6">•</span>
-          <span>${esc(rawWindow)}</span>
+         dateTimeBlock = `<div style="text-align:center;font-size:14px;font-weight:600;color:var(--h2s-text-main);margin:10px 0;padding:8px;background:rgba(20,147,255,0.08);border-radius:8px">
+          Scheduled • ${esc(rawWindow)}
         </div>`;
+    }
+
+    // ✅ ADDRESS & PAYOUT - Use same fields as Pending Offers
+    const address = j.address || j.service_address || j.service_city || j.city || "Location pending";
+    let payoutHtml = '';
+    if (j.payout_estimated) {
+        payoutHtml = `<div style="font-size:13px;color:var(--h2s-accent-positive);font-weight:600">$${j.payout_estimated}</div>`;
     }
 
     const el = document.createElement("div");
     el.className = "item";
+    
+    // M13: Match Pending Offers Layout - Service pill, date/time row, location, payout, buttons
+    let dateRow = '';
+    if (targetDate && !isNaN(targetDate)) {
+        const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const timeStr = rawWindow || targetDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        dateRow = `<div style="font-size:13px;color:var(--h2s-text-secondary);margin-bottom:10px">${dateStr} • ${timeStr}</div>`;
+    } else if (rawWindow) {
+        dateRow = `<div style="font-size:13px;color:var(--h2s-text-secondary);margin-bottom:10px">${esc(rawWindow)}</div>`;
+    }
+    
+    // Service code pill (match desktop style)
+    const serviceCode = j.service_id || j.service_name || 'Service';
+    const servicePill = `<div style="display:inline-block;font-size:12px;font-weight:600;color:var(--h2s-text-main);background:var(--h2s-badge-bg);border:1px solid var(--h2s-border-soft);border-radius:9999px;padding:4px 10px;margin-bottom:8px">${esc(serviceCode)}</div>`;
+    
+    // Location and payout row
+    const locationRow = `<div style="color:var(--h2s-text-secondary);font-size:13px;margin-bottom:4px">${esc(address)}</div>`;
+    const payoutRow = j.payout_estimated ? `<div style="color:var(--h2s-brand-azure);font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px">$${j.payout_estimated}</div>` : '<div style="margin-bottom:12px"></div>';
+    
+    // Determine Primary Action
+    let primaryBtnHtml = '';
+    let secondaryRowHtml = '';
+    
+    if (hasPhotos && hasSignature) {
+        // Ready to complete
+        primaryBtnHtml = `
+        <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;transition:all 0.2s;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-bottom:8px" type="button">
+            Complete Job
+        </button>`;
+        
+        secondaryRowHtml = `
+        <div style="display:flex;gap:8px">
+            <button class="btn secondary" data-photos="${esc(j.job_id)}" style="flex:1;background:var(--h2s-secondary);border:none;color:var(--h2s-text-main);font-weight:500;font-size:13px;height:40px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Photos
+            </button>
+            <button class="btn secondary" data-sign="${esc(j.job_id)}" style="flex:1;background:var(--h2s-secondary);border:none;color:var(--h2s-text-main);font-weight:500;font-size:13px;height:40px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Signed
+            </button>
+        </div>`;
+    } else {
+        // Not ready to complete
+        primaryBtnHtml = `
+        <button class="btn" data-onway="${esc(j.job_id)}" type="button" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            On My Way
+        </button>`;
+        
+        secondaryRowHtml = `
+        <div style="display:flex;gap:8px">
+            <button class="btn secondary" data-photos="${esc(j.job_id)}" style="flex:1;background:var(--h2s-secondary);border:none;color:var(--h2s-text-main);font-weight:500;font-size:13px;height:40px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" type="button">
+                ${hasPhotos ? 
+                  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Photos` : 
+                  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> Photos`}
+            </button>
+            <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="flex:1;background:var(--h2s-secondary);border:none;color:var(--h2s-text-main);font-weight:500;font-size:13px;height:40px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;${!hasPhotos ? 'opacity:0.5' : ''}" type="button">
+                ${hasSignature ? 
+                  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Signed` : 
+                  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Sign`}
+            </button>
+        </div>`;
+    }
+
+    // Build final card HTML
+    
     el.innerHTML = `
-      <div style="background:linear-gradient(135deg,var(--h2s-bg-shell),var(--h2s-bg-card));padding:12px 16px;margin:-20px -20px 16px -20px;border-radius:var(--br-lg) var(--br-lg) 0 0;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:16px;font-weight:600;color:var(--h2s-text-main);margin-bottom:2px">${serviceTitle}</div>
-          ${dateDisplay ? dateDisplay.replace('font-size:15px;font-weight:700;color:#e0f2fe;margin-bottom:6px', 'font-size:14px;font-weight:500;color:var(--h2s-text-muted);margin:0') : ''}
-        </div>
-        ${rawDate && new Date(rawDate) > new Date() && new Date(rawDate) - new Date() < 86400000 ? '<span style="padding:4px 10px;background:var(--h2s-accent-soft);color:var(--h2s-text-main);border-radius:9999px;font-size:12px;font-weight:600">Today</span>' : ''}
-      </div>
-      
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <button class="btn" data-onway="${esc(j.job_id)}" type="button" style="background:var(--h2s-accent-primary);border:none;color:#fff;font-weight:600;font-size:14px;border-radius:9999px;box-shadow:0 3px 10px rgba(26,155,255,0.3);transition:transform 160ms ease-out,box-shadow 160ms ease-out;width:100%">On My Way</button>
-        
-        <div style="border-top:1px solid var(--h2s-border-subtle);padding-top:14px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-            <button class="btn secondary" data-photos="${esc(j.job_id)}" style="${photoBtnStyle.includes('10b981') ? 'background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#10b981' : 'background:var(--h2s-bg-shell);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main)'};font-weight:500;font-size:14px;border-radius:14px;transition:all 160ms ease-out" type="button">${photoBtnLabel}</button>
-            <button class="${sigBtnClass}" data-sign="${esc(j.job_id)}" style="${hasSignature ? 'background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#10b981' : (!hasPhotos ? 'background:var(--h2s-bg-shell);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);opacity:0.5' : 'background:var(--h2s-bg-shell);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main)')};font-weight:500;font-size:14px;border-radius:14px;transition:all 160ms ease-out" type="button">${sigBtnLabel}</button>
-          </div>
-          
-          <button class="${doneBtnClass}" data-done="${esc(j.job_id)}" title="${doneBtnTitle}" style="${(hasPhotos && hasSignature) ? 'background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:600;box-shadow:0 3px 12px rgba(16,185,129,0.3)' : 'background:var(--h2s-bg-shell);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);opacity:0.5;cursor:not-allowed'};font-size:14px;border-radius:14px;width:100%;transition:all 160ms ease-out" type="button">${doneBtnLabel}</button>
-        </div>
-        
-        <div style="text-align:right;margin-top:4px">
-          <button data-details="${esc(j.job_id)}" type="button" style="background:none;border:none;color:#1A9BFF;font-size:13px;font-weight:500;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 8px;transition:opacity 160ms ease-out,transform 80ms ease-out" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='scale(1)'">Details</button>
-        </div>
+      ${servicePill}
+      ${dateRow}
+      ${locationRow}
+      ${payoutRow}
+      ${primaryBtnHtml}
+      ${secondaryRowHtml}
+      <div style="text-align:center;margin-top:6px">
+        <button class="btn ghost" data-details="${esc(j.job_id)}" type="button" style="background:transparent;border:none;color:var(--h2s-text-muted);font-size:12px;font-weight:500;padding:4px 0;cursor:pointer">
+          View details →
+        </button>
       </div>
     `;
     // Hidden file input for photo uploads (per job)
@@ -8729,18 +9952,20 @@ function renderUpcoming(list) {
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
         modal.innerHTML = `
           <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(139,92,246,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
-            <div style="font-size:72px;margin-bottom:16px">✍️</div>
+            <div style="width:72px;height:72px;margin:0 auto 16px;background:rgba(139,92,246,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>
             <h2 style="margin:0 0 12px;font-size:22px;color:#a78bfa">Get Customer Signature</h2>
             <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
-              Photos uploaded! ✓<br><br>
+              Photos uploaded!<br><br>
               Now get the customer's signature to confirm they're satisfied with the work.
             </p>
             <div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
               <div style="font-weight:700;color:#a78bfa;margin-bottom:10px;font-size:14px">Progress:</div>
               <div style="font-size:14px;opacity:.9;line-height:1.8">
-                <div style="opacity:.5;text-decoration:line-through">1. 📸 Upload photos</div>
-                <div style="color:#fbbf24">2. ✍️ Get customer signature ← You are here</div>
-                <div style="opacity:.5">3. ✅ Complete job</div>
+                <div style="opacity:.5;text-decoration:line-through">1. Upload photos</div>
+                <div style="color:#fbbf24">2. Get customer signature ← You are here</div>
+                <div style="opacity:.5">3. Complete job</div>
               </div>
             </div>
             <button onclick="this.closest('.modal').remove()" class="btn" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);padding:14px;font-size:15px">
@@ -8767,7 +9992,9 @@ function renderUpcoming(list) {
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
       modal.innerHTML = `
         <div style="background:linear-gradient(135deg,rgba(10,42,90,.98),rgba(8,32,68,.95));border:2px solid rgba(16,185,129,.4);border-radius:16px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);text-align:center">
-          <div style="font-size:72px;margin-bottom:16px">✅</div>
+          <div style="width:72px;height:72px;margin:0 auto 16px;background:rgba(16,185,129,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
           <h2 style="margin:0 0 12px;font-size:22px;color:#10b981">Ready to Complete?</h2>
           <p style="margin:0 0 24px;opacity:.9;line-height:1.6;font-size:15px">
             All requirements satisfied!
@@ -8775,9 +10002,9 @@ function renderUpcoming(list) {
           <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:16px;margin-bottom:24px;text-align:left">
             <div style="font-weight:700;color:#10b981;margin-bottom:10px;font-size:14px">Checklist Complete:</div>
             <div style="font-size:14px;opacity:.9;line-height:1.8">
-              <div>✓ Photos uploaded</div>
-              <div>✓ Signature collected</div>
-              <div>✓ Work area cleaned up</div>
+              <div>Photos uploaded</div>
+              <div>Signature collected</div>
+              <div>Work area cleaned up</div>
             </div>
           </div>
           <p style="margin:0 0 20px;font-size:13px;opacity:.7;line-height:1.5">
@@ -8868,14 +10095,75 @@ function renderCompleted(list) {
   // ✅ PERFORMANCE: Use DocumentFragment for batch DOM updates
   const fragment = document.createDocumentFragment();
   paginatedList.forEach(j => {
+    // ✅ ADDRESS & PAYOUT
+    const address = j.address || j.service_city || j.city || "Location pending";
+    let payoutHtml = '';
+    if (j.payout_estimated) {
+        payoutHtml = `<div style="font-size:13px;color:var(--h2s-accent-positive);font-weight:600">$${j.payout_estimated}</div>`;
+    }
+
+    // ✅ DATE
+    let dateDisplay = '';
+    let rawDate = j.start_iso || j.metadata?.start_iso || j.metadata?.date;
+    let rawWindow = j.window || j.metadata?.window || j.metadata?.time_window || j.metadata?.arrival_window;
+    let targetDate = rawDate ? new Date(rawDate) : null;
+
+    if (targetDate && !isNaN(targetDate)) {
+        const dateStr = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        dateDisplay = `<div style="font-size:13px;font-weight:500;color:var(--h2s-text-main)">${dateStr}</div>`;
+    } else if (rawWindow) {
+         dateDisplay = `<div style="font-size:13px;font-weight:500;color:var(--h2s-text-main)">${esc(rawWindow)}</div>`;
+    }
+
+    // ✅ ACTIONS
+    // Check for photos (assuming photoOnFile is global or we check j.photos)
+    const hasPhotos = (typeof photoOnFile !== 'undefined' && photoOnFile[j.job_id]) || (j.photos && j.photos.length > 0);
+    
+    let primaryBtnHtml = '';
+    
+    if (hasPhotos) {
+        primaryBtnHtml = `
+        <button class="btn" onclick="viewPhotos('${esc(j.job_id)}')" type="button" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> View Photos
+        </button>`;
+    } else {
+        primaryBtnHtml = `
+        <button class="btn" data-details="${esc(j.job_id)}" type="button" style="background:var(--h2s-primary-cta);border:none;color:var(--h2s-text-main);font-weight:600;font-size:15px;height:44px;border-radius:9999px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+            View Details
+        </button>`;
+    }
+
+    // M13: Compact Mobile Card Structure
+    let dateCapsule = '';
+    if (targetDate && !isNaN(targetDate)) {
+        dateCapsule = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (rawWindow) {
+        dateCapsule = esc(rawWindow);
+    } else {
+        dateCapsule = 'Completed';
+    }
+
     const el = document.createElement("div");
     el.className = "item";
     el.innerHTML = `
-      <h3>${esc(j.service_name||"Service")} : ${esc(fmtWindow(j))}</h3>
-      <div class="meta">${esc(j.address||"")} ${j.city ? ("• "+esc(j.city)+" "+esc(j.state||"")+" "+esc(j.zip||"")) : ""} • ${esc(j.completed_label||"Completed")}</div>
-      <div class="actions-grid">
-        <button class="btn secondary" onclick="viewPhotos('${esc(j.job_id)}')" type="button">View Photos</button>
-        <button class="btn secondary" data-details="${esc(j.job_id)}" type="button">Details</button>
+      <div class="job-header">
+        <div class="service-chip">${esc(j.service_name||"Service")}</div>
+        <div class="date-capsule">${dateCapsule}</div>
+      </div>
+
+      <div class="job-info">
+        <div class="line">${esc(address)}</div>
+        ${payoutHtml ? `<div class="line" style="color:var(--h2s-accent-positive);font-weight:600">${payoutHtml.replace(/<[^>]*>/g, '')}</div>` : ''}
+      </div>
+
+      <div class="job-actions">
+        ${primaryBtnHtml}
+        
+        <div class="details-link">
+            <button class="btn ghost" data-details="${esc(j.job_id)}" type="button" style="background:transparent;border:none;color:var(--h2s-text-muted);font-size:12px;font-weight:500;padding:0;cursor:pointer" type="button">
+                View details →
+            </button>
+        </div>
       </div>`;
     fragment.appendChild(el);
   });
@@ -9391,10 +10679,10 @@ async function loadCustomers() {
     
     customers.forEach(c => {
       const card = document.createElement('div');
-      card.style.cssText = 'background:linear-gradient(135deg,rgba(59,130,246,.08) 0%,rgba(37,99,235,.06) 100%);border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:20px;transition:all .3s';
+      card.style.cssText = 'background:linear-gradient(135deg,rgba(59,130,246,.08) 0%,rgba(37,99,235,.06) 100%);border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:16px;transition:all .3s';
       
       const callStatus = c.last_called_at 
-        ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px">Last called: ${new Date(c.last_called_at).toLocaleDateString()} - ${esc(c.last_call_outcome || 'Unknown')}</div>`
+        ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px">Last called: ${new Date(c.last_called_at).toLocaleDateString()} - ${esc(c.last_call_outcome || 'Unknown')}</div>`
         : '';
       
       // Determine context and talking points
@@ -9427,37 +10715,38 @@ async function loadCustomers() {
       }
 
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:18px;font-weight:700;color:#e0f2fe;margin-bottom:6px">${esc(c.customer_name || 'Customer')}</div>
-            <div style="font-size:14px;color:#94a3b8;margin-bottom:4px">${esc(context)}</div>
-            <div style="font-size:13px;color:#60a5fa;margin-top:4px;font-style:italic;background:rgba(59,130,246,.1);padding:6px 10px;border-radius:6px;display:inline-block">
-               ${talkingPoints}
-            </div>
-            ${callStatus}
+        <div style="margin-bottom:12px">
+          <div style="font-size:17px;font-weight:700;color:#e0f2fe;margin-bottom:4px">${esc(c.customer_name || 'Customer')}</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">${esc(context)}</div>
+          <div style="font-size:12px;color:#60a5fa;background:rgba(59,130,246,.1);padding:8px 10px;border-radius:8px;line-height:1.4">
+             ${talkingPoints}
           </div>
-          <div style="display:flex;gap:8px;flex-direction:column;align-items:flex-end">
-            <button class="btn" onclick="handleCustomerCallClick(event, '${esc(c.order_id)}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border-color:#10b981;color:#fff;padding:12px 20px;font-size:14px;font-weight:600;white-space:nowrap;width:100%">
-              📞 Call Customer
-            </button>
-            <button class="btn secondary" onclick="handleCustomerRescheduleClick(event, '${esc(c.order_id)}', '${esc(c.customer_name || 'Customer')}')" style="padding:8px 16px;font-size:13px;white-space:nowrap;width:100%">
-              📅 Reschedule
-            </button>
+          ${callStatus}
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:12px">
+          <div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Service</div>
+            <div style="font-size:13px;color:#e0f2fe;font-weight:600;line-height:1.3">${serviceTitle}</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Amount</div>
+            <div style="font-size:13px;color:#10b981;font-weight:700">${c.amount_total ? fmtMoney(c.amount_total) : 'N/A'}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
-          <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Service</div>
-            <div style="font-size:14px;color:#e0f2fe;font-weight:600">${serviceTitle}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Address</div>
-            <div style="font-size:14px;color:#e0f2fe;font-weight:600">${esc(c.service_address || 'N/A')}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Amount</div>
-            <div style="font-size:14px;color:#10b981;font-weight:700">${c.amount_total ? fmtMoney(c.amount_total) : 'N/A'}</div>
-          </div>
+        
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Address</div>
+          <div style="font-size:13px;color:#e0f2fe;font-weight:500;line-height:1.3">${esc(c.service_address || 'N/A')}</div>
+        </div>
+        
+        <div class="appointment-actions">
+          <button class="appointment-action appointment-action--primary" onclick="handleCustomerCallClick(event, '${esc(c.order_id)}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')">
+            📞 Call
+          </button>
+          <button class="appointment-action appointment-action--secondary" onclick="handleCustomerRescheduleClick(event, '${esc(c.order_id)}', '${esc(c.customer_name || 'Customer')}')">
+            📅 Reschedule
+          </button>
         </div>
       `;
       
@@ -9605,25 +10894,21 @@ let currentCustomerTab = 'to-call';
 window.switchCustomerTab = function(tab) {
   currentCustomerTab = tab;
   
-  // Update button styles
+  // Update button styles using class toggle
   const toCallBtn = $('btnCustomersToCall');
   const historyBtn = $('btnCustomersHistory');
   
   if (tab === 'to-call') {
-    toCallBtn.style.color = '#60a5fa';
-    toCallBtn.style.borderBottomColor = '#3b82f6';
-    historyBtn.style.color = '#64748b';
-    historyBtn.style.borderBottomColor = 'transparent';
+    toCallBtn.classList.add('is-active');
+    historyBtn.classList.remove('is-active');
     
     $('customers-to-call-view').style.display = 'block';
     $('customers-history-view').style.display = 'none';
     
     loadCustomers();
   } else {
-    toCallBtn.style.color = '#64748b';
-    toCallBtn.style.borderBottomColor = 'transparent';
-    historyBtn.style.color = '#60a5fa';
-    historyBtn.style.borderBottomColor = '#3b82f6';
+    toCallBtn.classList.remove('is-active');
+    historyBtn.classList.add('is-active');
     
     $('customers-to-call-view').style.display = 'none';
     $('customers-history-view').style.display = 'block';
@@ -9682,49 +10967,44 @@ async function loadCustomerHistory() {
     
     customers.forEach(c => {
       const card = document.createElement('div');
-      card.style.cssText = 'background:linear-gradient(135deg,rgba(100,116,139,.08) 0%,rgba(71,85,105,.06) 100%);border:1px solid rgba(100,116,139,.2);border-radius:14px;padding:18px;transition:all .3s;cursor:pointer';
+      card.style.cssText = 'background:linear-gradient(135deg,rgba(59,130,246,.08) 0%,rgba(37,99,235,.06) 100%);border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:16px;transition:all .3s';
       
       const totalJobsText = c.total_jobs === 1 ? '1 job' : `${c.total_jobs} jobs`;
       const daysSince = Math.floor((new Date() - new Date(c.last_job_date)) / (1000 * 60 * 60 * 24));
       const lastJobText = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : `${daysSince} days ago`;
       
       const callStatus = c.last_called_at 
-        ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px">📞 Last called: ${new Date(c.last_called_at).toLocaleDateString()} (${esc(c.last_call_outcome || 'Unknown')})</div>`
+        ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px">📞 Last called: ${new Date(c.last_called_at).toLocaleDateString()} - ${esc(c.last_call_outcome || 'Unknown')}</div>`
         : '';
 
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:17px;font-weight:700;color:#e0f2fe;margin-bottom:4px">${esc(c.customer_name || 'Customer')}</div>
-            <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">
-              ${esc(c.service_address || '')}, ${esc(c.service_city || '')} ${esc(c.service_state || '')}
-            </div>
-            <div style="font-size:12px;color:#64748b;display:flex;align-items:center;gap:8px;margin-top:6px">
-              <span style="background:rgba(59,130,246,.15);color:#60a5fa;padding:4px 10px;border-radius:6px;font-weight:600">${totalJobsText}</span>
-              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:4px 10px;border-radius:6px;font-weight:600">${c.total_revenue ? fmtMoney(c.total_revenue) : '$0'} lifetime</span>
-            </div>
-            ${callStatus}
+        <div style="margin-bottom:12px">
+          <div style="font-size:17px;font-weight:700;color:#e0f2fe;margin-bottom:4px">${esc(c.customer_name || 'Customer')}</div>
+          <div style="font-size:13px;color:#94a3b8;margin-bottom:8px;line-height:1.4">
+            ${esc(c.service_address || '')}, ${esc(c.service_city || '')} ${esc(c.service_state || '')}
           </div>
-          <button class="btn secondary" onclick="handleCustomerCallClick(event, '${esc(c.order_id || '')}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')" style="padding:10px 16px;font-size:13px;font-weight:600;white-space:nowrap">
-            📞 Call
-          </button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="background:rgba(59,130,246,.12);color:#60a5fa;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600">${totalJobsText}</span>
+            <span style="background:rgba(16,185,129,.12);color:#10b981;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600">${c.total_revenue ? fmtMoney(c.total_revenue) : '$0'} lifetime</span>
+          </div>
+          ${callStatus}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.05)">
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:12px">
           <div>
             <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Last Service</div>
-            <div style="font-size:13px;color:#cbd5e1;font-weight:600">${esc(c.last_service_name || 'N/A')}</div>
+            <div style="font-size:13px;color:#cbd5e1;font-weight:600;line-height:1.3">${esc(c.last_service_name || 'N/A')}</div>
           </div>
           <div>
             <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Last Contact</div>
             <div style="font-size:13px;color:#cbd5e1;font-weight:600">${lastJobText}</div>
           </div>
         </div>
+        
+        <button onclick="handleCustomerCallClick(event, '${esc(c.order_id || '')}', '${esc(c.customer_phone)}', '${esc(c.customer_name || 'Customer')}')" style="width:100%;min-height:44px;padding:10px 0;border-radius:12px;background:#1493ff;color:#fff;font-size:15px;font-weight:600;border:none;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(20,147,255,0.25);cursor:pointer;gap:8px">
+          📞 Call
+        </button>
       `;
-      
-      // Click to expand/show more details (future enhancement)
-      card.onclick = () => {
-        toast(`📋 Customer profile: ${c.customer_name || 'Customer'}`);
-      };
       
       historyList.appendChild(card);
     });
@@ -10078,8 +11358,10 @@ $("replyOK").addEventListener("click", async () => {
 
 /* ===== AUTH HANDLERS ===== */
 document.getElementById("btnSignIn").addEventListener("click", async function() {
+  console.log("🔐 [LOGIN DEBUG] Sign in button clicked!");
   const email = document.getElementById("siEmail").value.trim();
   const zip = document.getElementById("siZip").value.trim();
+  console.log(`🔐 [LOGIN DEBUG] Email: ${email}, ZIP: ${zip}`);
   const errDiv = document.getElementById("err");
   errDiv.style.display = "none";
   
@@ -10134,6 +11416,9 @@ document.getElementById("btnSignIn").addEventListener("click", async function() 
         sessionStorage.setItem(LS_TOKEN, token);
         localStorage.removeItem(LS_TOKEN); // Ensure local is clear if not remembering
     }
+    
+    // ✅ PERSISTENCE: Mark as authenticated
+    localStorage.setItem("h2s_is_authenticated", "true");
     
     const hydrated = await hydrateMe();
     
@@ -14291,23 +15576,36 @@ window.addEventListener("beforeunload", () => {
       const cachedJobs = getCache('dash');
       
       // ✅ PERSISTENCE: Restore last used tab
-      const lastTab = localStorage.getItem('h2s_last_tab') || 'dash';
+      const lastTab = localStorage.getItem('h2s_active_view') || localStorage.getItem('h2s_last_tab') || 'dash';
+      const isAuthed = localStorage.getItem("h2s_is_authenticated") === "true";
       
-      if (cachedJobs) {
-        console.log("⚡ Rendering cached dashboard instantly...");
+      // 🚀 OPTIMISTIC LOAD: If authenticated, show portal immediately
+      if (isAuthed && (token || cachedJobs)) {
+        console.log("⚡ Optimistic load: User is authenticated, showing portal immediately");
+        showPortal();
+        switchTab(lastTab);
+        if (cachedJobs) {
+          currentJobsData = cachedJobs;
+          renderOffers(cachedJobs.offers || []);
+          renderUpcoming(cachedJobs.upcoming || []);
+          renderCompleted(cachedJobs.completed || []);
+          restoreViewState();
+        } else {
+          loading(true); // Show loader if no cache but we are authed
+        }
+      } else if (cachedJobs) {
+        // Legacy fallback: Cache exists but maybe no auth flag (older session)
+        console.log("⚡ Rendering cached dashboard (legacy mode)...");
         currentJobsData = cachedJobs;
         renderOffers(cachedJobs.offers || []);
         renderUpcoming(cachedJobs.upcoming || []);
         renderCompleted(cachedJobs.completed || []);
-        // Restore last tab and view state
         switchTab(lastTab);
         restoreViewState();
-        console.log(`⚡ Instant render complete: ${Math.round(performance.now() - perfStart)}ms`);
       } else {
-        // No cache, show loading for first-time users
-        loading(true);
-        switchTab(lastTab);
-        restoreViewState();
+        // No cache, no auth flag -> show loading or auth
+        if (token) loading(true);
+        else showAuth();
       }
       
       // Validate token in background (doesn't block render)
@@ -14316,6 +15614,9 @@ window.addEventListener("beforeunload", () => {
         
         if (hydrated) {
           console.log("✅ Pro session valid - staying logged in");
+          // Ensure auth flag is set (migration for existing users)
+          localStorage.setItem("h2s_is_authenticated", "true");
+          
           checkAndShowWelcome(); // Show welcome modal if profile incomplete
           
           // Refresh dashboard with fresh data (background update)
@@ -14326,6 +15627,9 @@ window.addEventListener("beforeunload", () => {
             console.log("🔄 Soft refresh: updating cache in background");
             loadJobs();
           }
+          
+          // 📢 Load announcements now that we have a valid user session
+          loadProAnnouncements();
 
           // Keep view state consistent on successful hydration
           restoreViewState();
@@ -14645,27 +15949,27 @@ function renderAnnouncements(announcements) {
     const createdDate = new Date(a.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
     
     return `
-      <div style="background:${bgColor};border-left:4px solid ${color};border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid ${color}20;transition:all 0.2s;position:relative" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="background:${bgColor};border-left:4px solid ${color};border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid ${color}20;transition:all 0.2s;position:relative" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px">
           <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-              <span style="font-size:28px;font-weight:bold;color:${color}">${icon}</span>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+              <span style="font-size:28px;font-weight:bold;color:${color};line-height:1">${icon}</span>
               <div>
                 <h3 style="margin:0;font-size:18px;font-weight:700;color:#e0f2fe">${a.title}</h3>
-                <div style="display:flex;gap:12px;align-items:center;margin-top:4px">
-                  <span style="font-size:12px;color:#64748b">${createdDate}</span>
+                <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
+                  <span style="font-size:13px;color:#64748b">${createdDate}</span>
                   ${!a.is_active?'<span style="background:#ef4444;color:#fff;font-size:11px;padding:3px 10px;border-radius:6px;font-weight:600">Inactive</span>':''}
                 </div>
               </div>
             </div>
           </div>
           <div style="display:flex;gap:8px">
-            <button onclick="editAnnouncement('${a.announcement_id}')" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.25)'" onmouseout="this.style.background='rgba(59,130,246,0.15)'">Edit</button>
-            <button id="delete_${a.announcement_id}" onclick="deleteAnnouncement('${a.announcement_id}','${a.title.replace(/'/g,"\\'")}') "style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">Delete</button>
+            <button onclick="editAnnouncement('${a.announcement_id}')" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s" onmouseover="this.style.background='rgba(59,130,246,0.25)'" onmouseout="this.style.background='rgba(59,130,246,0.15)'">Edit</button>
+            <button id="delete_${a.announcement_id}" onclick="deleteAnnouncement('${a.announcement_id}','${a.title.replace(/'/g,"\\'")}') "style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:8px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s" onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">Delete</button>
           </div>
         </div>
-        ${a.message?`<p style="margin:12px 0;color:#cbd5e1;font-size:15px;line-height:1.6;padding-left:40px">${a.message}</p>`:''}
-        <div style="display:flex;gap:20px;font-size:13px;color:#64748b;margin-top:16px;padding-left:40px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">
+        ${a.message?`<p style="margin:12px 0;color:#cbd5e1;font-size:15px;line-height:1.6;padding-left:42px">${a.message}</p>`:''}
+        <div style="display:flex;gap:20px;font-size:13px;color:#64748b;margin-top:16px;padding-left:42px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)">
           <span style="display:flex;align-items:center;gap:6px">Priority: <strong style="color:#94a3b8">${a.priority}</strong></span>
           <span style="display:flex;align-items:center;gap:6px">Expires: <strong style="color:#94a3b8">${a.expires_at?new Date(a.expires_at).toLocaleDateString():'Never'}</strong></span>
           ${a.video_url?'<span style="display:flex;align-items:center;gap:6px;color:#10b981"><strong>Video attached</strong></span>':''}
@@ -14822,7 +16126,12 @@ let viewedAnnouncementIds = new Set();
 // proAnnouncementsRefreshTimer moved to top of file (line ~5283)
 
 async function loadProAnnouncements() {
-  if (!me || !me.email) return;
+  if (!me || !me.email) {
+    console.log('[Announcements] ⚠️ Skipping load - no user logged in', {me: !!me, hasEmail: me ? !!me.email : false});
+    return;
+  }
+  
+  console.log('[Announcements] 📡 Loading announcements for:', me.email);
   
   // 🚀 FAST LOAD: Check cache first (5-min TTL for announcements)
   const cached = getCache('announcements');
@@ -14830,18 +16139,24 @@ async function loadProAnnouncements() {
     console.log(`[Announcements] ⚡ Using cached data (age: ${Math.round((Date.now() - cached._timestamp)/1000)}s)`);
     proAnnouncementsCache = cached.announcements || [];
     viewedAnnouncementIds = new Set(cached.viewed_ids || []);
+    console.log(`[Announcements] 📦 Cached: ${proAnnouncementsCache.length} announcements`);
     updateAnnouncementBanner();
     updateCommunicationHub();
     return;
   }
   
   try {
+    console.log('[Announcements] 🔄 Fetching from API...');
     const result = await GET("portal_announcements_list", { token });
+    
+    console.log('[Announcements] 📥 API Response:', result);
     
     if (!result.ok) throw new Error(result.error || 'Failed to load');
     
     proAnnouncementsCache = result.announcements || [];
     viewedAnnouncementIds = new Set(result.viewed_ids || []);
+    
+    console.log(`[Announcements] ✅ Loaded ${proAnnouncementsCache.length} announcements`);
     
     // 🚀 CACHE IT: Store for 5 minutes
     setCache('announcements', {
@@ -15032,12 +16347,24 @@ async function markAnnouncementAsViewed(announcementId) {
 /* ===== COMMUNICATION HUB (PRO DASHBOARD) ===== */
 
 function updateCommunicationHub() {
+  console.log('[CommunicationHub] 🔄 Updating with', proAnnouncementsCache.length, 'announcements');
+  
   const cultureSloganSection = $("cultureSloganSection");
   const activeAnnouncementsSection = $("activeAnnouncementsSection");
   const announcementCardsContainer = $("announcementCardsContainer");
   const announcementCount = $("announcementCount");
   
-  if (!cultureSloganSection || !activeAnnouncementsSection) return;
+  console.log('[CommunicationHub] DOM elements:', {
+    cultureSloganSection: !!cultureSloganSection,
+    activeAnnouncementsSection: !!activeAnnouncementsSection,
+    announcementCardsContainer: !!announcementCardsContainer,
+    announcementCount: !!announcementCount
+  });
+  
+  if (!cultureSloganSection || !activeAnnouncementsSection) {
+    console.warn('[CommunicationHub] ⚠️ Missing required DOM elements');
+    return;
+  }
   
   // Filter active, non-expired announcements
   // ✅ FIX: Be permissive with is_active (treat undefined as true) to ensure announcements show up
@@ -15046,30 +16373,69 @@ function updateCommunicationHub() {
     (a.is_active !== false) && (!a.expires_at || new Date(a.expires_at) > now)
   );
   
+  console.log(`[CommunicationHub] 📊 Filtered: ${activeAnnouncements.length} active announcements`);
+  
   if (activeAnnouncements.length === 0) {
+    console.log('[CommunicationHub] 💬 No active announcements - showing culture slogan');
     cultureSloganSection.style.display = "block";
     activeAnnouncementsSection.style.display = "none";
   } else {
+    console.log('[CommunicationHub] 📢 Showing announcements section');
     cultureSloganSection.style.display = "none";
     activeAnnouncementsSection.style.display = "block";
     
     const unreadCount = activeAnnouncements.filter(a => !viewedAnnouncementIds.has(a.announcement_id)).length;
     
-    announcementCount.textContent = unreadCount > 0 
-      ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''} from dispatch`
-      : `${activeAnnouncements.length} active message${activeAnnouncements.length > 1 ? 's' : ''}`;
+    console.log(`[CommunicationHub] 📬 Unread: ${unreadCount}, Total: ${activeAnnouncements.length}`);
+    
+    if (announcementCount) {
+      announcementCount.textContent = unreadCount > 0 
+        ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''} from dispatch`
+        : `${activeAnnouncements.length} active message${activeAnnouncements.length > 1 ? 's' : ''}`;
+    }
     
     // Render top 2 announcements
+    console.log('[CommunicationHub] 🎨 Rendering announcement cards...');
+    
+    if (!announcementCardsContainer) {
+      console.error('[CommunicationHub] ❌ announcementCardsContainer not found!');
+      return;
+    }
+    
     announcementCardsContainer.innerHTML = activeAnnouncements.slice(0, 2).map(a => {
       const isUnread = !viewedAnnouncementIds.has(a.announcement_id);
       // Clean date format: "Nov 27" instead of verbose timestamp
       const createdDate = new Date(a.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
       
       const typeStyles = {
-        info: { bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.3)', icon: 'ℹ️', color: '#60a5fa', label: 'Info' },
-        update: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', icon: '📢', color: '#34d399', label: 'Update' },
-        warning: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', icon: '⚠️', color: '#fbbf24', label: 'Warning' },
-        urgent: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', icon: '🚨', color: '#f87171', label: 'Urgent' }
+        info: { 
+            bg: 'rgba(59,130,246,0.08)', 
+            border: 'rgba(59,130,246,0.2)', 
+            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', 
+            color: '#60a5fa', 
+            label: 'Info' 
+        },
+        update: { 
+            bg: 'rgba(16,185,129,0.08)', 
+            border: 'rgba(16,185,129,0.2)', 
+            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>', 
+            color: '#34d399', 
+            label: 'Update' 
+        },
+        warning: { 
+            bg: 'rgba(245,158,11,0.08)', 
+            border: 'rgba(245,158,11,0.2)', 
+            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', 
+            color: '#fbbf24', 
+            label: 'Warning' 
+        },
+        urgent: { 
+            bg: 'rgba(239,68,68,0.08)', 
+            border: 'rgba(239,68,68,0.2)', 
+            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>', 
+            color: '#f87171', 
+            label: 'Urgent' 
+        }
       };
       
       const style = typeStyles[a.type] || typeStyles.info;
@@ -15081,20 +16447,20 @@ function updateCommunicationHub() {
         const ytMatch = a.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
         
         if (loomMatch) {
-          videoEmbed = `<div style="margin-top:14px;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#000"><iframe src="https://www.loom.com/embed/${loomMatch[1]}" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="width:100%;height:100%"></iframe></div>`;
+          videoEmbed = `<div style="margin-top:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.2)"><iframe src="https://www.loom.com/embed/${loomMatch[1]}" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="width:100%;height:100%"></iframe></div>`;
         } else if (ytMatch) {
-          videoEmbed = `<div style="margin-top:14px;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#000"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen style="width:100%;height:100%"></iframe></div>`;
+          videoEmbed = `<div style="margin-top:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.2)"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen style="width:100%;height:100%"></iframe></div>`;
         }
       }
       
-      return `<div onclick="openAnnouncementsModal()" style="background:${style.bg};border:1px solid ${style.border};border-radius:12px;padding:18px;position:relative;${isUnread ? 'box-shadow:0 0 0 2px rgba(59,130,246,0.15)' : ''};cursor:pointer;transition:all 0.2s" class="announcement-card" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='${isUnread ? '0 0 0 2px rgba(59,130,246,0.15)' : ''}'">
-          ${isUnread ? `<div style="position:absolute;top:12px;right:12px;width:10px;height:10px;background:#3b82f6;border-radius:50%;box-shadow:0 0 8px rgba(59,130,246,0.6)" class="unread-dot"></div>` : ''}
-          <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:10px">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:24px" class="announcement-card-icon">${style.icon}</div>
+      return `<div onclick="openAnnouncementsModal()" style="background:${style.bg};border:1px solid ${style.border};border-radius:16px;padding:20px;position:relative;${isUnread ? 'box-shadow:0 0 0 2px rgba(59,130,246,0.15)' : ''};cursor:pointer;transition:all 0.2s;margin-bottom:0" class="announcement-card" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='${isUnread ? '0 0 0 2px rgba(59,130,246,0.15)' : ''}'">
+          ${isUnread ? `<div style="position:absolute;top:16px;right:16px;width:10px;height:10px;background:#3b82f6;border-radius:50%;box-shadow:0 0 8px rgba(59,130,246,0.6)" class="unread-dot"></div>` : ''}
+          <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="color:${style.color};display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(255,255,255,0.1);border-radius:10px" class="announcement-card-icon">${style.icon}</div>
               <div>
                 <h4 style="margin:0;font-size:17px;font-weight:700;color:#f1f5f9;line-height:1.3" class="announcement-card-title">${a.title}</h4>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
                   <span style="font-size:11px;font-weight:600;color:${style.color};text-transform:uppercase;letter-spacing:0.5px">${style.label}</span>
                   <span style="color:#64748b;font-size:12px">• ${createdDate}</span>
                   ${a.priority > 50 ? `<span style="background:rgba(239,68,68,0.15);color:#f87171;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">Priority ${a.priority}</span>` : ''}
@@ -15105,11 +16471,13 @@ function updateCommunicationHub() {
           ${a.message ? `<p style="margin:10px 0 0 0;color:#cbd5e1;font-size:14px;line-height:1.6" class="announcement-preview">${a.message.split('\n').slice(0, 3).join('<br>')}</p>` : ''}
           ${videoEmbed}
           <div style="margin-top:14px;display:flex;gap:10px;align-items:center" class="announcement-actions">
-            ${isUnread ? `<button onclick="event.stopPropagation();markAnnouncementAsViewed('${a.announcement_id}')" style="background:${style.color};border:none;color:#0f172a;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Mark as Read</button>` : `<span style="color:#64748b;font-size:13px">✓ Read</span>`}
-            ${a.video_url ? `<a href="${a.video_url}" target="_blank" onclick="event.stopPropagation()" style="color:${style.color};font-size:13px;font-weight:600;text-decoration:none" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Open Video →</a>` : ''}
+            ${isUnread ? `<button onclick="event.stopPropagation();markAnnouncementAsViewed('${a.announcement_id}')" style="background:${style.color};border:none;color:#0f172a;padding:8px 16px;border-radius:12px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.1)" onmouseover="this.style.opacity='0.9';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">Mark as Read</button>` : `<span style="color:#64748b;font-size:13px;display:flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Read</span>`}
+            ${a.video_url ? `<a href="${a.video_url}" target="_blank" onclick="event.stopPropagation()" style="color:${style.color};font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Open Video <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>` : ''}
           </div>
         </div>`;
     }).join('');
+    
+    console.log(`[CommunicationHub] ✅ Rendered ${activeAnnouncements.slice(0, 2).length} announcement cards`);
   }
 }
 
@@ -15469,7 +16837,7 @@ $("btnViewHistory").addEventListener("click", () => {
       <!-- Calendar Widget (Adapted from Bundles) -->
       <p style="margin: 0 0 12px; color: #b8d9ff; font-size: 14px;">Pick a date and time window.</p>
       
-      <div id="custRescheduleCalendar" style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); color: #0a2a5a;"></div>
+      <div id="custRescheduleCalendar" style="background:var(--h2s-bg-elevated);border-radius:14px;padding:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.3);color:var(--h2s-text-main);border:1px solid var(--h2s-border-soft)"></div>
       
       <div id="custTimeWindowSection" style="display:none; margin-bottom:16px;">
         <label style="display:block; font-weight:600; font-size:14px; margin-bottom:8px; color:#b8d9ff;">Select Time Window</label>

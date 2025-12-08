@@ -1,7 +1,7 @@
 // Home2Smart Dispatch Portal - Service Worker
 // Provides offline capability and performance optimization through caching
 
-const CACHE_VERSION = 'h2s-portal-v1';
+const CACHE_VERSION = 'h2s-portal-v2-login-fix';
 const CACHE_ASSETS = [
   '/',
   '/portalv3.html',

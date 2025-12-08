@@ -2719,9 +2719,8 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,'Arc
 <script>
 'use strict';
 
-// Micro-optimization: Defer heavy operations until after initial paint
-const deferredInit = () => {
-  console.log('[BundlesJS] Deferred init executing');
+// Execute immediately - NO deferredInit wrapper
+console.log('[BundlesJS] Script executing');
 
 function byId(id){ return document.getElementById(id); }
 
@@ -3239,14 +3238,8 @@ function renderShop(){
   }
 }
 
-window.navSet = function navSet(params){
-  const u = new URL(location.href);
-  Object.entries(params||{}).forEach(([k,v])=>{
-    if(v==null) u.searchParams.delete(k); else u.searchParams.set(k,v);
-  });
-  history.pushState({}, '', u.toString());
-  route();
-};
+// Connect route handler for navSet
+window._routeHandler = route;
 
 function getParam(k){
   const u = new URL(location.href);
@@ -6897,14 +6890,21 @@ window.initAddressAutocomplete = function() {
   console.log('[Address Autocomplete] ✓ Initialized with backend proxy');
 };
 
-}; // End deferredInit
-
-// Execute deferred initialization
+// Initialize everything when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', deferredInit, { once: true });
+  document.addEventListener('DOMContentLoaded', init, { once: true });
 } else {
-  deferredInit();
+  init();
 }
+
+function init() {
+  console.log('[BundlesJS] Initializing...');
+  loadData();
+  wireCart();
+  route();
+  window.addEventListener('popstate', route, { passive: true });
+}
+
 </script>
 
 <!-- Performance metrics moved to deferred module to avoid main-thread work affecting LCP -->
