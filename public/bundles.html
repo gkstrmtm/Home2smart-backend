@@ -33,9 +33,9 @@
 <link rel="preconnect" href="https://h2s-backend.vercel.app">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://js.stripe.com">
-<link rel="preconnect" href="https://connect.facebook.net">
+<link rel="preconnect" href="https://www.googletagmanager.com">
 <link rel="dns-prefetch" href="https://maps.googleapis.com">
-<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+<link rel="dns-prefetch" href="https://connect.facebook.net">
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
 
 <!-- Fonts: fully deferred -->
@@ -3073,7 +3073,7 @@ async function init(){
           };
           
           // Delay pixel load to ensure LCP is done
-          setTimeout(loadPixel, 6000);
+          setTimeout(loadPixel, 8000);
         } catch(e) { console.warn('Pixel init failed', e); }
       }, { timeout: 8000 });
     }
