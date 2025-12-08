@@ -32,7 +32,10 @@
 <!-- Performance: Critical Resource Hints -->
 <link rel="preconnect" href="https://h2s-backend.vercel.app">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://js.stripe.com">
+<link rel="preconnect" href="https://connect.facebook.net">
 <link rel="dns-prefetch" href="https://maps.googleapis.com">
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
 
 <!-- Fonts: fully deferred -->
@@ -2750,28 +2753,18 @@ const DASH_URL = 'https://h2s-backend.vercel.app/api/track';
 const CAL_FORM_URL = 'https://api.leadconnectorhq.com/widget/booking/RjwOQacM3FAjRNCfm6uU';
 const PIXEL_ID = '2384221445259822';
 
-// === PERFORMANCE: Defer Data Fetch Until DOM Ready ===
-// Start fetch after DOM interactive to prioritize initial paint
-let bundlesFetchPromise = null;
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
-      cache: 'default',
-      headers: { 'Accept': 'application/json' }
-    }).then(res => res.json()).catch(err => {
-      console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
-      return null;
-    });
-  }, { once: true });
-} else {
-  bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
-    cache: 'default',
-    headers: { 'Accept': 'application/json' }
-  }).then(res => res.json()).catch(err => {
-    console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
-    return null;
-  });
-}
+// === PERFORMANCE: Start Data Fetch Early (Parallel to DOM Parse) ===
+// Fetch starts immediately but doesn't block rendering
+const bundlesFetchPromise = fetch(BUNDLES_DATA_API, { 
+  cache: 'default',
+  headers: { 'Accept': 'application/json' },
+  priority: 'high'
+}).then(res => res.json()).catch(err => {
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+  return null;
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+  return null;
+});
 
 // Session ID for tracking (defer generation if needed)
 let SESSION_ID = sessionStorage.getItem('h2s_session_id');
@@ -2832,7 +2825,11 @@ const queueRenderRecsPanel = () => {
     if(window.renderRecsPanel) window.renderRecsPanel();
     window._queuedRecs = false;
   });
-  ('requestIdleCallback' in window) ? requestIdleCallback(invoke, {timeout:3000}) : setTimeout(invoke, 1500);
+  if('requestIdleCallback' in window) {
+    requestIdleCallback(invoke, {timeout:3000});
+  } else {
+    setTimeout(invoke, 100);
+  }
 };
 
 // === LOADER ===
@@ -2944,14 +2941,10 @@ async function init(){
   const checkoutBtn = byId('checkoutBtn');
   if(checkoutBtn) {
     checkoutBtn.addEventListener('click', function(e) {
-      console.log('[Checkout] Button clicked via event listener');
       e.preventDefault();
       e.stopPropagation();
       checkout();
-    });
-    console.log('[Init] Checkout button event listener attached');
-  } else {
-    console.error('[Init] Checkout button not found!');
+    }, { once: false }); // Not passive since we preventDefault
   }
   
   try {
@@ -5131,10 +5124,10 @@ function setupAddressAutocomplete() {
   // Prevent scroll propagation from dropdown to modal/body
   dropdown.addEventListener('touchstart', (e) => {
     e.stopPropagation();
-  });
+  }, { passive: false });
   dropdown.addEventListener('touchmove', (e) => {
     e.stopPropagation();
-  });
+  }, { passive: false });
   dropdown.addEventListener('wheel', (e) => {
     e.stopPropagation();
   });
