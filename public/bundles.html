@@ -2721,6 +2721,10 @@ body{font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,'Arc
 
 <script>
 'use strict';
+
+// Execute immediately - NO deferredInit wrapper
+console.log('[BundlesJS] Script executing');
+
 function byId(id){ return document.getElementById(id); }
 
 // === UTILITY FUNCTIONS ===
@@ -2756,6 +2760,9 @@ const bundlesFetchPromise = fetch(BUNDLES_DATA_API, {
   headers: { 'Accept': 'application/json' },
   priority: 'high'
 }).then(res => res.json()).catch(err => {
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
+  return null;
+  console.warn('[Bundles] Aggregated fetch failed, will fallback:', err);
   return null;
 });
 
@@ -2993,17 +3000,18 @@ async function init(){
 
             // Initialize hero reviews immediately for real names/words
             if(!isSpecialView){
-              try { initHeroReviews(); } catch(e) {}
+              try { initHeroReviews(); } catch(e) { console.warn('initHeroReviews error', e); }
               // Defer renderReviews to idle to avoid blocking main thread
               if('requestIdleCallback' in window){
-                requestIdleCallback(() => { try { renderReviews(); } catch(e) {} }, {timeout: 3000});
+                requestIdleCallback(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, {timeout: 2000});
               } else {
-                setTimeout(() => { try { renderReviews(); } catch(e) {} }, 2500);
+                setTimeout(() => { try { renderReviews(); } catch(e) { console.warn('renderReviews error', e); } }, 1500);
               }
             }
           }
         } else {
           // === FALLBACK PATH ===
+          console.warn('[Bundles] Aggregated data missing, using fallback');
           fetch(API + '?action=catalog').then(r => r.json()).then(d => {
             if(d.ok) catalog = d.catalog || catalog;
           });
@@ -3066,7 +3074,7 @@ async function init(){
           
           // Delay pixel load to ensure LCP is done
           setTimeout(loadPixel, 8000);
-        } catch(e) {}
+        } catch(e) { console.warn('Pixel init failed', e); }
       }, { timeout: 8000 });
     }
     
@@ -3087,9 +3095,9 @@ async function init(){
 
 // Ensure init runs after DOM is ready
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', () => { try{ init(); }catch(e){} });
+  document.addEventListener('DOMContentLoaded', () => { try{ init(); }catch(e){ console.error('[Init] Failed:', e); } });
 } else {
-  try{ init(); }catch(e){}
+  try{ init(); }catch(e){ console.error('[Init] Failed:', e); }
 }
 
 // Fetch latest catalog from backend. If cacheBust is true, append a timestamp to force bypass.
@@ -3305,6 +3313,7 @@ window.toggleMenu = function toggleMenu(){
 }
 
 window.toggleCart = function toggleCart(){
+  console.log('[Cart] toggleCart() called');
   const drawer = document.getElementById('cartDrawer');
   const backdrop = document.getElementById('backdrop');
   
