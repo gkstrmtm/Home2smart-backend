@@ -35,9 +35,7 @@
 <link rel="dns-prefetch" href="https://maps.googleapis.com">
 <link rel="preload" href="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" as="image" fetchpriority="high">
 
-<!-- Fonts: async non-blocking -->
-<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Fonts: fully deferred -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&display=swap" rel="stylesheet"></noscript>
 
@@ -53,41 +51,10 @@
 
 <style>
 /* === CRITICAL CSS === */
-:root {
-  --cobalt: #0a2a5a;
-  --azure: #1493ff;
-  --ink: #0b1420;
-  --bg: #ffffff;
-  --border: #e1e6ed;
-  --muted: #6b778c;
-  --shadow-sm: 0 2px 8px rgba(11,20,32,.06);
-  --shadow-md: 0 4px 16px rgba(11,20,32,.08);
-  --shadow-lg: 0 8px 24px rgba(11,20,32,.12);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-  scroll-behavior: smooth;
-  background: var(--cobalt);
-  overscroll-behavior-y: none;
-}
-
-body {
-  font-family: Archivo, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Archivo-fallback', Arial, sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  line-height: 1.6;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-}
+:root{--cobalt:#0a2a5a;--azure:#1493ff;--ink:#0b1420;--bg:#fff;--border:#e1e6ed;--muted:#6b778c;--shadow-sm:0 2px 8px rgba(11,20,32,.06);--shadow-md:0 4px 16px rgba(11,20,32,.08);--shadow-lg:0 8px 24px rgba(11,20,32,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth;background:var(--cobalt);overscroll-behavior-y:none}
+body{font-family:Archivo,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,'Archivo-fallback',Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;overflow-x:hidden;margin:0;padding:0;min-height:100vh}
 
 #pageShell {
   background: #fff;
@@ -2754,7 +2721,14 @@ body {
 
 // Micro-optimization: Defer heavy operations until after initial paint
 const deferredInit = () => {
-  console.log('[BundlesJS] Script loaded and executing');
+  console.log('[BundlesJS] Deferred init executing');
+
+// Immediately define critical functions for onclick handlers
+window.toggleCart = window.toggleCart || function(){};
+window.toggleMenu = window.toggleMenu || function(){};
+window.closeAll = window.closeAll || function(){};
+window.navSet = window.navSet || function(){};
+window.scrollToSection = window.scrollToSection || function(){};
 
 function byId(id){ return document.getElementById(id); }
 
@@ -2839,46 +2813,35 @@ if (document.readyState === 'loading') {
 }
 
 // === EXTRA DEFERRED LOADER (Recommendations) ===
-// Defers rule-based recommendations parsing & rendering to shrink initial JS parse.
 let _extraDeferredPromise = null;
-function loadExtraDeferred(){
-  if(_extraDeferredPromise) return _extraDeferredPromise;
-  _extraDeferredPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'bundles-extra-deferred.js';
-    s.async = true;
-    s.onload = resolve;
-    s.onerror = reject;
-    document.body.appendChild(s);
-  });
-  return _extraDeferredPromise;
-}
+const loadExtraDeferred = () => _extraDeferredPromise || (_extraDeferredPromise = new Promise((resolve, reject) => {
+  const s = document.createElement('script');
+  s.src = 'bundles-extra-deferred.js';
+  s.async = true;
+  s.onload = resolve;
+  s.onerror = reject;
+  document.body.appendChild(s);
+}));
+
 // === BUNDLES DEFERRED LOADER (Checkout, Success, Auth) ===
 let _bundlesDeferredPromise = null;
-function loadBundlesDeferred(){
-  if(_bundlesDeferredPromise) return _bundlesDeferredPromise;
-  _bundlesDeferredPromise = new Promise((resolve, reject)=>{
-    const s = document.createElement('script');
-    s.src = 'bundles-deferred.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.body.appendChild(s);
-  });
-  return _bundlesDeferredPromise;
-}
-function queueRenderRecsPanel(){
-  if(window._queuedRecs) return; // collapse bursts
+const loadBundlesDeferred = () => _bundlesDeferredPromise || (_bundlesDeferredPromise = new Promise((resolve, reject)=>{
+  const s = document.createElement('script');
+  s.src = 'bundles-deferred.js';
+  s.onload = resolve;
+  s.onerror = reject;
+  document.body.appendChild(s);
+}));
+
+const queueRenderRecsPanel = () => {
+  if(window._queuedRecs) return;
   window._queuedRecs = true;
   const invoke = ()=> loadExtraDeferred().then(()=>{
     if(window.renderRecsPanel) window.renderRecsPanel();
     window._queuedRecs = false;
   });
-  if('requestIdleCallback' in window){
-    requestIdleCallback(invoke, {timeout:3000});
-  } else {
-    setTimeout(invoke, 1500);
-  }
-}
+  ('requestIdleCallback' in window) ? requestIdleCallback(invoke, {timeout:3000}) : setTimeout(invoke, 1500);
+};
 
 // === LOADER ===
 let loaderBuilt = false;
