@@ -8842,12 +8842,12 @@ async function showPhotoUploadPreview(files, jobId) {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.96);backdrop-filter:blur(12px);z-index:30000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;animation:fadeIn 0.2s ease';
     
     modal.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(10,42,90,.98) 0%,rgba(8,32,68,.95) 100%);border:2px solid rgba(96,181,255,.25);border-radius:16px;padding:28px;max-width:650px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);animation:slideUp 0.3s ease">
+      <div style="background:linear-gradient(135deg,rgba(10,42,90,.98) 0%,rgba(8,32,68,.95) 100%);border:2px solid rgba(20,147,255,.35);border-radius:16px;padding:28px;max-width:650px;width:100%;box-shadow:0 25px 70px rgba(0,0,0,.5);animation:slideUp 0.3s ease">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
           <div style="font-size:32px">📸</div>
-          <h2 style="margin:0;font-size:22px;color:#fff;flex:1">Review Your Photos</h2>
+          <h2 style="margin:0;font-size:22px;color:#e7f1ff;flex:1;font-weight:600">Review Your Photos</h2>
         </div>
-        <p style="margin:0 0 24px 44px;opacity:.8;font-size:14px;line-height:1.5">
+        <p style="margin:0 0 24px 44px;opacity:.8;font-size:14px;line-height:1.5;color:#9bc8ff">
           Make sure these are the correct photos for this job.<br>
           You can remove any before uploading.
         </p>
@@ -8858,16 +8858,16 @@ async function showPhotoUploadPreview(files, jobId) {
               <span style="font-size:20px">⚠️</span>
               <span>${invalidPreviews.length} file${invalidPreviews.length > 1 ? 's' : ''} cannot be uploaded:</span>
             </div>
-            ${invalidPreviews.map(p => `<div style="font-size:13px;opacity:.9;margin-left:28px;margin-top:4px">• <strong>${esc(p.file.name)}</strong>: ${esc(p.error)}</div>`).join('')}
+            ${invalidPreviews.map(p => `<div style="font-size:13px;opacity:.9;margin-left:28px;margin-top:4px;color:#ffd7db">• <strong>${esc(p.file.name)}</strong>: ${esc(p.error)}</div>`).join('')}
           </div>
         ` : ''}
         
         ${validPreviews.length > 0 ? `
-          <div id="preview-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-bottom:20px;max-height:450px;overflow-y:auto;padding:6px;background:rgba(0,0,0,.15);border-radius:12px;border:1px solid rgba(96,181,255,.1)">
+          <div id="preview-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-bottom:20px;max-height:450px;overflow-y:auto;padding:12px;background:rgba(8,32,68,.4);border-radius:12px;border:1px solid rgba(20,147,255,.2)">
             ${validPreviews.map((p, idx) => `
-              <div data-preview-idx="${idx}" style="position:relative;border-radius:12px;overflow:hidden;border:2px solid rgba(96,181,255,.35);background:#0a1628;transition:all 0.2s ease" 
-                   onmouseover="this.style.borderColor='rgba(96,181,255,.6)';this.style.transform='scale(1.02)'"
-                   onmouseout="this.style.borderColor='rgba(96,181,255,.35)';this.style.transform='scale(1)'">
+              <div data-preview-idx="${idx}" style="position:relative;border-radius:12px;overflow:hidden;border:2px solid rgba(20,147,255,.4);background:rgba(10,42,90,.6);transition:all 0.2s ease" 
+                   onmouseover="this.style.borderColor='rgba(20,147,255,.8)';this.style.transform='scale(1.02)';this.style.boxShadow='0 4px 16px rgba(20,147,255,.3)'"
+                   onmouseout="this.style.borderColor='rgba(20,147,255,.4)';this.style.transform='scale(1)';this.style.boxShadow='none'">
                 <img src="${p.dataUrl}" style="width:100%;height:130px;object-fit:cover;display:block" alt="Preview">
                 <button 
                   onclick="this.closest('[data-preview-idx]').remove();const count=document.querySelectorAll('[data-preview-idx]').length;document.getElementById('preview-count').textContent=count;document.getElementById('confirm-upload-text').textContent=count;document.getElementById('confirm-upload').disabled=count===0"
@@ -8875,28 +8875,28 @@ async function showPhotoUploadPreview(files, jobId) {
                   onmouseover="this.style.background='rgba(220,38,38,1)';this.style.transform='scale(1.15)'"
                   onmouseout="this.style.background='rgba(239,68,68,.96)';this.style.transform='scale(1)'"
                   title="Remove this photo">×</button>
-                <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, rgba(0,0,0,.9) 0%, transparent 100%);padding:6px 8px 4px;font-size:10px;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.file.name)}">${esc(p.file.name)}</div>
+                <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, rgba(10,42,90,.95) 0%, transparent 100%);padding:6px 8px 4px;font-size:10px;color:#9bc8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.file.name)}">${esc(p.file.name)}</div>
               </div>
             `).join('')}
           </div>
           
-          <div style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:12px;margin-bottom:24px;display:flex;align-items:center;gap:10px">
+          <div style="background:rgba(20,147,255,.12);border:1px solid rgba(20,147,255,.3);border-radius:10px;padding:12px;margin-bottom:24px;display:flex;align-items:center;gap:10px">
             <span style="font-size:24px">📊</span>
-            <div style="flex:1;font-size:14px">
-              <strong id="preview-count">${validPreviews.length}</strong> photo${validPreviews.length !== 1 ? 's' : ''} ready to upload
-              <div style="opacity:.7;font-size:12px;margin-top:2px">Total size: ${Math.round(validPreviews.reduce((sum, p) => sum + p.file.size, 0) / 1024 / 1024 * 10) / 10}MB</div>
+            <div style="flex:1;font-size:14px;color:#e7f1ff">
+              <strong id="preview-count" style="color:#60b5ff">${validPreviews.length}</strong> photo${validPreviews.length !== 1 ? 's' : ''} ready to upload
+              <div style="opacity:.7;font-size:12px;margin-top:2px;color:#9bc8ff">Total size: ${Math.round(validPreviews.reduce((sum, p) => sum + p.file.size, 0) / 1024 / 1024 * 10) / 10}MB</div>
             </div>
           </div>
         ` : `
-          <div style="text-align:center;padding:40px 20px;opacity:.6">
+          <div style="text-align:center;padding:40px 20px;opacity:.6;color:#9bc8ff">
             <div style="font-size:48px;margin-bottom:12px">🚫</div>
             <div>No valid photos to upload</div>
           </div>
         `}
         
         <div style="display:flex;gap:12px">
-          <button id="cancel-upload" class="btn ghost" style="flex:1;font-size:15px;padding:14px">Cancel</button>
-          <button id="confirm-upload" class="btn" style="flex:1;font-size:15px;padding:14px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);box-shadow:0 4px 14px rgba(16,185,129,.3)" ${validPreviews.length === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>
+          <button id="cancel-upload" class="btn ghost" style="flex:1;font-size:15px;padding:14px;border-color:rgba(20,147,255,.4);color:#9bc8ff">Cancel</button>
+          <button id="confirm-upload" class="btn" style="flex:1;font-size:15px;padding:14px;background:linear-gradient(135deg,#1493ff 0%,#0f7acc 100%);box-shadow:0 4px 14px rgba(20,147,255,.4);border:none;color:#fff;font-weight:600" ${validPreviews.length === 0 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>
             ✅ Upload <span id="confirm-upload-text">${validPreviews.length}</span> Photo${validPreviews.length !== 1 ? 's' : ''}
           </button>
         </div>
