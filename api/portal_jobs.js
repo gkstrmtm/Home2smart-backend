@@ -256,8 +256,8 @@ export default async function handler(req, res) {
     if (orderIds.length > 0) {
         promises.push(
             supabase
-                .from('h2s_orders')
-                .select('order_id, delivery_date, delivery_time, created_at, service_name, items')
+              .from('h2s_orders')
+              .select('order_id, delivery_date, delivery_time, created_at, service_name, items, customer_name, customer_phone, customer_email, shipping_city, shipping_state, shipping_zip')
                 .in('order_id', orderIds)
                 .then(({ data }) => {
                     (data || []).forEach(o => {
@@ -352,15 +352,22 @@ export default async function handler(req, res) {
       let window = job.window;
       let serviceName = serviceNamesMap[job.service_id];
       
-      if (order) {
+        if (order) {
           if (!startIso && order.delivery_date) startIso = order.delivery_date;
           if (!window && order.delivery_time) window = order.delivery_time;
-          
           // If service name is missing or generic, try order's service name
           if ((!serviceName || serviceName === 'Service') && order.service_name) {
-              serviceName = order.service_name;
+            serviceName = order.service_name;
           }
-      }
+          // Enrich customer fields if missing on job
+          job.customer_name = job.customer_name || order.customer_name || job.metadata?.customer_name || '';
+          job.customer_phone = job.customer_phone || order.customer_phone || job.metadata?.customer_phone || '';
+          job.customer_email = job.customer_email || order.customer_email || job.metadata?.customer_email || '';
+          // Enrich location if missing
+          job.city = job.city || order.shipping_city || job.metadata?.city || job.service_city || '';
+          job.state = job.state || order.shipping_state || job.metadata?.state || job.service_state || '';
+          job.zip = job.zip || order.shipping_zip || job.metadata?.zip || job.service_zip || '';
+        }
       
       if (!serviceName) serviceName = "Service";
 
@@ -422,15 +429,22 @@ export default async function handler(req, res) {
       let window = job.window;
       let serviceName = serviceNamesMap[job.service_id];
       
-      if (order) {
+        if (order) {
           if (!startIso && order.delivery_date) startIso = order.delivery_date;
           if (!window && order.delivery_time) window = order.delivery_time;
-          
           // If service name is missing or generic, try order's service name
           if ((!serviceName || serviceName === 'Service') && order.service_name) {
-              serviceName = order.service_name;
+            serviceName = order.service_name;
           }
-      }
+          // Enrich customer fields if missing on job
+          job.customer_name = job.customer_name || order.customer_name || job.metadata?.customer_name || '';
+          job.customer_phone = job.customer_phone || order.customer_phone || job.metadata?.customer_phone || '';
+          job.customer_email = job.customer_email || order.customer_email || job.metadata?.customer_email || '';
+          // Enrich location if missing
+          job.city = job.city || order.shipping_city || job.metadata?.city || job.service_city || '';
+          job.state = job.state || order.shipping_state || job.metadata?.state || job.service_state || '';
+          job.zip = job.zip || order.shipping_zip || job.metadata?.zip || job.service_zip || '';
+        }
       
       if (!serviceName) serviceName = "Service";
 
