@@ -103,29 +103,41 @@ export default async function handler(req, res) {
 
     console.log('[portal_on_my_way] ✅ Status updated to en_route');
 
-    // TODO: Send notification to customer
-    // When you're ready to add email notifications, add Resend here:
-    /*
-    if (job.customer_email) {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
-        },
-        body: JSON.stringify({
-          from: 'Home2 Services <jobs@home2services.com>',
-          to: job.customer_email,
-          subject: 'Your technician is on the way! 🚗',
-          html: `<p>Good news! Your technician is heading to your location now.</p>`
-        })
-      });
+    // Send SMS notification to customer
+    if (job.customer_phone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      try {
+        const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`;
+        const customerName = job.customer_name || 'Customer';
+        const message = `Hi ${customerName}! Your Home2Smart technician is on the way to your location. See you soon! 🚗`;
+        
+        const response = await fetch(twilioUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
+          },
+          body: new URLSearchParams({
+            From: process.env.TWILIO_PHONE_NUMBER,
+            To: job.customer_phone,
+            Body: message
+          })
+        });
+        
+        if (response.ok) {
+          console.log('[portal_on_my_way] ✅ SMS sent to customer:', job.customer_phone);
+        } else {
+          const errorData = await response.json();
+          console.error('[portal_on_my_way] ❌ SMS failed:', errorData);
+        }
+      } catch (smsError) {
+        console.error('[portal_on_my_way] SMS error:', smsError);
+        // Don't fail the whole request if SMS fails
+      }
     }
-    */
 
     return res.json({ 
       ok: true,
-      message: 'Status updated'
+      message: 'Status updated and customer notified'
     });
 
   } catch (error) {

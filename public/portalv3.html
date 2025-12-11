@@ -10745,7 +10745,7 @@ async function loadPayouts(forceRefresh = false) {
       }
 
       // This week's earnings shown when approved/paid
-      const earnedDate = r.earned_at ? new Date(r.earned_at) : (r.completed_at ? new Date(r.completed_at) : null);
+      const earnedDate = r.earned_at ? new Date(r.earned_at) : (r.completed_at ? new Date(r.completed_at) : (r.created_at ? new Date(r.created_at) : null));
       if (earnedDate && earnedDate >= weekStart) {
         // Count jobs if they are approved, paid, OR pending (as per user request)
         if (state === "approved" || state === "paid" || state === "pending") {
