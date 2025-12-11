@@ -198,11 +198,15 @@ export default async function handler(req, res) {
       .eq('job_id', jobId)
       .single();
 
+    let jobUpdateError = null;
+
     if (!jobStatusRow || jobStatusRow.status !== 'accepted') {
-      const { error: jobUpdateError } = await supabase
+      const { error: updateErr } = await supabase
         .from('h2s_dispatch_jobs')
         .update({ status: 'accepted' })
         .eq('job_id', jobId);
+      
+      jobUpdateError = updateErr;
 
       if (jobUpdateError) {
         console.error('[portal_accept] ⚠️ Warning: Failed to update job status:', jobUpdateError);

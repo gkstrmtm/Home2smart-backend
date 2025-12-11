@@ -132,32 +132,43 @@ export default async function handler(req, res) {
     }
 
     // Mark as completed (with retry)
+    // ✅ CRITICAL: Update BOTH assignment AND job status atomically with retries
+    const completedAt = new Date().toISOString();
+    
     try {
       await retryWithBackoff(async () => {
-        const { error } = await supabase
+        // Update assignment state
+        const { error: assignError } = await supabase
           .from('h2s_dispatch_job_assignments')
           .update({
             state: 'completed',
-            completed_at: new Date().toISOString()
+            completed_at: completedAt
           })
           .eq('assign_id', assignments.assign_id);
         
-        if (error) throw error;
+        if (assignError) throw assignError;
+        
+        // Update job status (do this in same transaction-like block)
+        const { error: jobError } = await supabase
+          .from('h2s_dispatch_jobs')
+          .update({ 
+            status: 'completed', 
+            completed_at: completedAt 
+          })
+          .eq('job_id', jobId);
+        
+        if (jobError) throw jobError;
+        
+        console.log(`[MARK DONE] ✅ Both assignment and job status updated to 'completed' for ${jobId}`);
       }, 3, 100);
     } catch (updateError) {
-      console.error('Failed to mark done:', updateError);
+      console.error('[MARK DONE] ❌ Failed to mark done:', updateError);
       return res.status(500).json({
         ok: false,
         error: 'Failed to mark done. Please try again.',
         error_code: 'db_error'
       });
     }
-
-    // Update job status and timestamp
-    await supabase
-      .from('h2s_dispatch_jobs')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
-      .eq('job_id', jobId);
 
     // Create payout record
     try {
@@ -229,18 +240,24 @@ export default async function handler(req, res) {
       // Insert payouts
       const createdPayouts = [];
       for (const p of payoutsToCreate) {
+        // --- FIX: SHIM LEGACY TABLE FOR FK CONSTRAINT ---
+        const { error: shimErr } = await supabase.from('h2s_jobs').insert({
+            job_id: jobId,
+            status: 'completed',
+            service_id: 'svc_maintenance',
+            created_at: new Date().toISOString()
+        });
+        if (shimErr && !shimErr.message.includes('duplicate key')) {
+             console.log(`[FK Fix] Warning: ${shimErr.message}`);
+        }
+
         const payoutEntry = {
           pro_id: p.pro_id,
           job_id: jobId,
           total_amount: p.amount,
-          amount: p.amount, // ensure legacy consumers see value
-          base_amount: p.amount,
-          service_name: job.resources_needed || 'Service',
-          variant_code: job.variant_code || 'STANDARD',
-          state: 'approved', // Immediately approved for routing/payment
-          earned_at: new Date().toISOString(),
-          customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
-          note: p.note
+          amount: p.amount, 
+          state: 'pending' // Default to pending for dispatcher validation
+          // Removed invalid columns: base_amount, service_name, variant_code, earned_at, customer_total, note
         };
         console.log('[PAYOUT CREATE] Attempting insert:', payoutEntry);
         
@@ -322,6 +339,17 @@ export default async function handler(req, res) {
         }
 
         if (amountForPro > 0) {
+          // --- FIX: SHIM LEGACY TABLE FOR FK CONSTRAINT ---
+          const { error: shimErr } = await supabase.from('h2s_jobs').insert({
+              job_id: a.job_id,
+              status: 'completed',
+              service_id: 'svc_maintenance',
+              created_at: new Date().toISOString()
+          });
+          if (shimErr && !shimErr.message.includes('duplicate key')) {
+               console.log(`[FK Fix] Warning: ${shimErr.message}`);
+          }
+
           const { error: reconError } = await supabase
             .from('h2s_payouts_ledger')
             .insert({
@@ -329,13 +357,8 @@ export default async function handler(req, res) {
               job_id: a.job_id,
               total_amount: amountForPro,
               amount: amountForPro,
-              base_amount: amountForPro,
-              service_name: job2?.resources_needed || 'Service',
-              variant_code: job2?.variant_code || 'STANDARD',
-              state: 'approved',
-              earned_at: a.completed_at || new Date().toISOString(),
-              customer_total: job2?.metadata?.items_json ? job2.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
-              note: 'Reconciled: completed without ledger'
+              state: 'pending' // Default to pending for dispatcher validation
+              // Removed invalid columns
             });
           if (reconError) {
             console.error('[RECONCILIATION] Failed to insert ledger for job', a.job_id, ':', reconError);

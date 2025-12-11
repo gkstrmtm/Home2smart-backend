@@ -78,6 +78,7 @@ window.checkout = async function(){
     const promoCode = localStorage.getItem('h2s_promo_code');
 
     // Create Checkout Session
+    // IMPORTANT: Stripe metadata values have 500-char limit per key
     const payload = {
       __action: 'create_checkout_session',
       line_items,
@@ -86,10 +87,10 @@ window.checkout = async function(){
       customer_email: user?.email,
       client_reference_id: user?.id || SESSION_ID,
       metadata: {
-        session_id: SESSION_ID,
+        session_id: SESSION_ID.substring(0, 100),
         source: 'shop_v2',
-        customer_name: user?.name || '',
-        customer_phone: user?.phone || ''
+        customer_name: (user?.name || '').substring(0, 100),
+        customer_phone: (user?.phone || '').substring(0, 20)
       }
     };
     
@@ -222,9 +223,14 @@ function showCheckoutForm(){
     </div>
   `;
   
+  // Use proper modal-open system to prevent mobile trap
+  const scrollY = window.scrollY;
+  document.body.style.top = `-${scrollY}px`;
+  document.body.classList.add('modal-open');
+  modal._savedScrollY = scrollY;
+  
   modal.classList.add('show');
   backdrop.classList.add('show');
-  document.body.style.overflow = 'hidden';
   
   setTimeout(() => {
     const nameInput = document.getElementById('checkoutName');
@@ -240,7 +246,12 @@ window.closeCheckoutForm = function(){
   
   if(modal) modal.classList.remove('show');
   if(backdrop) backdrop.classList.remove('show');
-  document.body.style.overflow = '';
+  
+  // Properly restore scroll position
+  const scrollY = modal?._savedScrollY || 0;
+  document.body.classList.remove('modal-open');
+  document.body.style.top = '';
+  window.scrollTo(0, scrollY);
   
   // Reset checkout button
   const btn = document.getElementById('checkoutBtn');
@@ -340,6 +351,7 @@ async function processCheckoutForm(){
 
     // Create Checkout Session with customer data
     // Include flag to auto-create account after successful payment
+    // IMPORTANT: Stripe metadata values have 500-char limit per key
     const payload = {
       __action: 'create_checkout_session',
       line_items,
@@ -348,14 +360,14 @@ async function processCheckoutForm(){
       customer_email: email,
       client_reference_id: SESSION_ID,
       metadata: {
-        session_id: SESSION_ID,
+        session_id: SESSION_ID.substring(0, 100),
         source: 'shop_v2',
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email,
-        service_address: address,
-        service_city: city,
-        service_zip: zip,
+        customer_name: name.substring(0, 100),
+        customer_phone: phone.substring(0, 20),
+        customer_email: email.substring(0, 100),
+        service_address: address.substring(0, 150),
+        service_city: city.substring(0, 50),
+        service_zip: zip.substring(0, 10),
         create_account: createAccount ? 'true' : 'false'
       }
     };

@@ -99,6 +99,32 @@ export default async function handler(req, res) {
 
     console.log('[admin_dispatch] ✅ Admin session valid');
 
+    // --- ACTION: ASSIGN PRO ---
+    if (action === 'assign') {
+        const { pro_id, pro_name } = body;
+        if (!pro_id) return res.status(400).json({ ok: false, error: 'Missing pro_id' });
+
+        // 1. Update Job
+        const { error: updateError } = await supabase
+            .from('h2s_dispatch_jobs')
+            .update({
+                assigned_pro_id: pro_id,
+                assigned_pro_name: pro_name, // Optional, but good for cache
+                status: 'accepted', // Force accept for manual assignment
+                updated_at: new Date().toISOString()
+            })
+            .eq('job_id', job_id);
+
+        if (updateError) throw updateError;
+
+        // 2. Create Notification (Optional but recommended)
+        // await createNotification(pro_id, 'New Job Assigned', `You have been assigned job ${job_id}`);
+
+        return res.json({ ok: true, message: 'Job assigned successfully' });
+    }
+
+    // --- ACTION: FIND MATCHES ---
+
     // Get job details
     const { data: job, error: jobError } = await supabase
       .from('h2s_dispatch_jobs')

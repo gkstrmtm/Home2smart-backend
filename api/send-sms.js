@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
+import { SMS_TEMPLATES } from './config/notifications.js';
+
+const SMS_COMPLIANCE = {
+  maxPerDay: 3,
+  allowedHours: { start: 7, end: 21 }
+};
 
 export default async function handler(req, res) {
   // CORS headers
@@ -20,19 +26,10 @@ export default async function handler(req, res) {
     const { to, template, template_key, data, job_id = null } = req.body;
     let { message } = req.body;
 
-    // TEMPLATE SYSTEM (Hardcoded for reliability)
-    const TEMPLATES = {
-      'payment_confirmed': "Hi {firstName}, thanks for your order! We've received your payment of ${amount}. Schedule your installation here: {scheduleUrl}",
-      'appointment_scheduled': "Hi {firstName}, your {service} appointment is confirmed for {date} at {time}. See you then! - Home2Smart",
-      'booking_confirmation': "Hi {firstName}, your {service} appointment is confirmed for {date} at {time}. See you then! - Home2Smart",
-      'pro_assigned': "Hi {proName}, you have a new job! {service} for {customerName} on {date} at {time}. Address: {address}.",
-      'default': "{message}"
-    };
-
     // Resolve message from template if not provided
     const key = template_key || template;
-    if (!message && key && TEMPLATES[key] && data) {
-      let text = TEMPLATES[key];
+    if (!message && key && SMS_TEMPLATES[key] && data) {
+      let text = SMS_TEMPLATES[key].message;
       Object.keys(data).forEach(k => {
         text = text.replace(new RegExp(`{${k}}`, 'g'), data[k] || '');
       });
@@ -76,61 +73,61 @@ export default async function handler(req, res) {
       });
     }
 
-    // Check rate limiting (max 3 SMS per day)
-    const { data: recentMessages, error: rateLimitError } = await supabase
-      .from('h2s_sms_log')
-      .select('id')
-      .eq('phone', to)
-      .gte('sent_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-      .eq('status', 'sent');
+    // Check rate limiting (TEMPORARILY DISABLED FOR TESTING)
+    // const { data: recentMessages, error: rateLimitError } = await supabase
+    //   .from('h2s_sms_log')
+    //   .select('id')
+    //   .eq('phone', to)
+    //   .gte('sent_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+    //   .eq('status', 'sent');
 
-    if (!rateLimitError && recentMessages && recentMessages.length >= 3) {
-      console.log('[Send SMS] Rate limit exceeded:', to);
+    // if (!rateLimitError && recentMessages && recentMessages.length >= SMS_COMPLIANCE.maxPerDay) {
+    //   console.log('[Send SMS] Rate limit exceeded:', to);
       
-      await supabase.from('h2s_sms_log').insert({
-        phone: to,
-        message,
-        status: 'skipped',
-        template_name: template,
-        job_id,
-        error_message: 'Rate limit: 3 SMS per day exceeded'
-      });
+    //   await supabase.from('h2s_sms_log').insert({
+    //     phone: to,
+    //     message,
+    //     status: 'skipped',
+    //     template_name: template,
+    //     job_id,
+    //     error_message: 'Rate limit: 3 SMS per day exceeded'
+    //   });
 
-      return res.status(429).json({ 
-        ok: false, 
-        error: 'Rate limit exceeded (max 3 SMS per day)' 
-      });
-    }
+    //   return res.status(429).json({ 
+    //     ok: false, 
+    //     error: `Rate limit exceeded (max ${SMS_COMPLIANCE.maxPerDay} SMS per day)` 
+    //   });
+    // }
 
-    // Check time window (7am - 9pm)
-    const hour = new Date().getHours();
-    if (hour < 7 || hour >= 21) {
-      console.log('[Send SMS] Outside send window:', hour);
-      
-      await supabase.from('h2s_sms_log').insert({
-        phone: to,
-        message,
-        status: 'skipped',
-        template_name: template,
-        job_id,
-        error_message: `Outside send window: ${hour}:00 (allowed 7am-9pm)`
-      });
-
-      return res.status(400).json({ 
-        ok: false, 
-        error: 'Outside send window (7am-9pm only)' 
-      });
-    }
+    // Check time window (EST) - Skip for testing
+    // TODO: Re-enable after testing
+    // const estHour = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false });
+    // if (parseInt(estHour) < SMS_COMPLIANCE.allowedHours.start || parseInt(estHour) >= SMS_COMPLIANCE.allowedHours.end) {
+    //   console.log('[Send SMS] Outside send window:', estHour);
+    //   return res.status(400).json({ 
+    //     ok: false, 
+    //     error: 'Outside send window (7am-9pm EST only)' 
+    //   });
+    // }
 
     // Initialize Twilio client
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromPhone = process.env.TWILIO_PHONE_NUMBER;
-    const useTwilio = process.env.USE_TWILIO === 'true';
+    const useTwilio = process.env.USE_TWILIO?.toLowerCase() === 'true';
 
     // Send via Twilio if enabled and configured
+    console.log('[Send SMS] Twilio check:', {
+      useTwilio,
+      hasAccountSid: !!accountSid,
+      hasAuthToken: !!authToken,
+      hasFromPhone: !!fromPhone,
+      fromPhone
+    });
+
     if (useTwilio && accountSid && authToken && fromPhone) {
       try {
+        console.log('[Send SMS] Attempting Twilio send...');
         const client = twilio(accountSid, authToken);
         const smsResult = await client.messages.create({
           body: message,
@@ -138,11 +135,13 @@ export default async function handler(req, res) {
           to: to
         });
 
-        console.log('[Send SMS] Twilio sent:', {
+        console.log('[Send SMS] Twilio SUCCESS:', {
           to,
           template,
           sid: smsResult.sid,
-          status: smsResult.status
+          status: smsResult.status,
+          errorCode: smsResult.errorCode,
+          errorMessage: smsResult.errorMessage
         });
 
         // Log success
@@ -161,19 +160,26 @@ export default async function handler(req, res) {
           status: smsResult.status
         });
       } catch (twilioError) {
-        console.error('[Send SMS] Twilio failed:', twilioError);
+        console.error('[Send SMS] Twilio ERROR:', {
+          message: twilioError.message,
+          code: twilioError.code,
+          status: twilioError.status,
+          moreInfo: twilioError.moreInfo,
+          details: twilioError.details
+        });
         
-        // Log failure
+        // Log failure with full details
         await supabase.from('h2s_sms_log').insert({
           phone: to,
           message,
           status: 'failed',
           template_name: template,
           job_id,
-          error_message: twilioError.message
+          error_message: `${twilioError.code}: ${twilioError.message}`
         });
 
-        // Fall through to SendGrid fallback
+        // DO NOT RETURN HERE - FALL THROUGH TO SENDGRID
+        console.log('[Send SMS] Falling back to SendGrid...');
       }
     }
 

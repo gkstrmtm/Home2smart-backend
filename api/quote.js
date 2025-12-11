@@ -2,6 +2,19 @@
 // Endpoint: /api/quote
 
 import { createClient } from '@supabase/supabase-js';
+import sgMail from '@sendgrid/mail';
+
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
+
+// Email configuration
+const SENDGRID_CONFIG = {
+  fromEmail: "contact@home2smart.com",
+  fromName: "Home2Smart",
+  replyTo: "contact@home2smart.com",
+  quoteNotifications: "dispatch@home2smart.com"
+};
 
 export default async function handler(req, res) {
   // CORS headers
@@ -19,7 +32,10 @@ export default async function handler(req, res) {
 
   try {
     // Validate environment
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    // Use Service Role Key to bypass RLS for backend operations
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    
+    if (!process.env.SUPABASE_URL || !supabaseKey) {
       throw new Error('Missing Supabase credentials');
     }
 
@@ -43,7 +59,7 @@ export default async function handler(req, res) {
 
     const supabase = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
+      supabaseKey
     );
 
     // Insert quote request into database
@@ -64,56 +80,97 @@ export default async function handler(req, res) {
 
     if (insertError) {
       console.error('[Quote API] Database error:', insertError);
-      throw new Error('Failed to save quote request');
+      // Return specific database error for debugging
+      throw new Error(`Database error: ${insertError.message || JSON.stringify(insertError)}`);
     }
 
     console.log('[Quote API] Quote saved:', quote.quote_id);
 
-    // Send email notification (if configured)
-    if (process.env.QUOTE_NOTIFICATION_EMAIL) {
-      try {
-        await sendEmailNotification({
-          to: process.env.QUOTE_NOTIFICATION_EMAIL,
-          quote: {
-            id: quote.quote_id,
-            name,
-            email,
-            phone,
-            details,
-            package_type,
-            created_at: quote.created_at
+    // === NOTIFY MANAGEMENT OF QUOTE REQUEST ===
+    // This handles both SMS and Email notifications via the central notification service
+    try {
+      const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'https://h2s-backend.vercel.app';
+        
+      await fetch(`${baseUrl}/api/notify-management`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'quoteRequest',
+          data: {
+            customerName: name,
+            email: email, // Added email for template
+            phone: phone,
+            service: package_type,
+            details: details
           }
-        });
-        console.log('[Quote API] Email notification sent');
-      } catch (emailError) {
-        console.error('[Quote API] Email notification failed:', emailError);
-        // Don't fail the request if email fails
-      }
+        })
+      });
+      console.log('[Quote API] Management notification sent');
+    } catch (mgmtError) {
+      console.error('[Quote API] Management notification failed (non-critical):', mgmtError);
     }
 
-    // Optional: Webhook to Go High Level or other CRM
+    // Send to GoHighLevel CRM
     if (process.env.GHL_WEBHOOK_URL) {
       try {
-        await fetch(process.env.GHL_WEBHOOK_URL, {
+        const ghlResponse = await fetch(process.env.GHL_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name,
+            firstName: name.split(' ')[0],
+            lastName: name.split(' ').slice(1).join(' ') || name,
             email,
             phone,
-            notes: details,
-            source: 'Shop Quote Request',
-            customField: {
+            source: 'Website - Custom Quote',
+            tags: ['quote-request', package_type.toLowerCase().replace(/\s+/g, '-')],
+            customFields: {
               package_type,
-              quote_id: quote.quote_id
-            }
+              quote_id: quote.quote_id,
+              project_details: details,
+              quote_date: new Date().toISOString()
+            },
+            notes: `Custom Quote Request\n\nPackage: ${package_type}\n\nProject Details:\n${details || 'No details provided'}\n\nQuote ID: ${quote.quote_id}`
           })
         });
-        console.log('[Quote API] GHL webhook sent');
+        
+        if (ghlResponse.ok) {
+          console.log('[Quote API] GHL contact created successfully');
+        } else {
+          const errorText = await ghlResponse.text();
+          console.error('[Quote API] GHL webhook failed:', errorText);
+        }
       } catch (webhookError) {
-        console.error('[Quote API] GHL webhook failed:', webhookError);
+        console.error('[Quote API] GHL webhook failed:', webhookError.message);
         // Don't fail the request if webhook fails
       }
+    }
+
+    // === NOTIFY MANAGEMENT OF QUOTE REQUEST ===
+    // This handles both SMS and Email notifications via the central notification service
+    try {
+      const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'https://h2s-backend.vercel.app';
+        
+      await fetch(`${baseUrl}/api/notify-management`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'quoteRequest',
+          data: {
+            customerName: name,
+            email: email, // Added email for template
+            phone: phone,
+            service: package_type,
+            details: details
+          }
+        })
+      });
+      console.log('[Quote API] Management notification sent');
+    } catch (mgmtError) {
+      console.error('[Quote API] Management notification failed (non-critical):', mgmtError);
     }
 
     return res.status(200).json({
@@ -126,49 +183,8 @@ export default async function handler(req, res) {
     console.error('[Quote API] Error:', error.message);
     return res.status(500).json({
       ok: false,
-      error: 'Failed to process quote request. Please try again.'
+      error: error.message, // Expose full error message for debugging
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
-}
-
-// Email notification helper (using fetch to external service)
-async function sendEmailNotification({ to, quote }) {
-  // Using simple email service (you can replace with SendGrid, Resend, etc.)
-  const emailBody = `
-New Quote Request #${quote.id}
-
-Customer: ${quote.name}
-Email: ${quote.email}
-Phone: ${quote.phone}
-Package Type: ${quote.package_type}
-
-Project Details:
-${quote.details || 'No details provided'}
-
-Submitted: ${new Date(quote.created_at).toLocaleString()}
-
----
-View in dashboard or call customer ASAP!
-  `.trim();
-
-  // For now, just log (you'll need to configure an email service)
-  console.log('[Email] Would send to:', to);
-  console.log('[Email] Subject: New Quote Request #' + quote.id);
-  console.log('[Email] Body:', emailBody);
-  
-  // TODO: Integrate with your email service
-  // Example with Resend:
-  // const response = await fetch('https://api.resend.com/emails', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-  //     'Content-Type': 'application/json'
-  //   },
-  //   body: JSON.stringify({
-  //     from: 'quotes@home2smart.com',
-  //     to: [to],
-  //     subject: `New Quote Request #${quote.id} - ${quote.name}`,
-  //     text: emailBody
-  //   })
-  // });
 }

@@ -10,25 +10,38 @@ export const config = {
 };
 
 async function validateAdmin(token) {
-  // Basic session validation; treat dispatch/admin sessions differently if you have a table.
-  // For now, reuse h2s_sessions and require role=admin if present.
-  const { data, error } = await supabase
-    .from('h2s_sessions')
-    .select('pro_id, role, expires_at')
+  if (!token) return null;
+  
+  // Check dispatch admin sessions table (try session_id first)
+  let { data, error } = await supabase
+    .from('h2s_dispatch_admin_sessions')
+    .select('admin_email')
     .eq('session_id', token)
+    .gte('expires_at', new Date().toISOString())
     .single();
 
+  // Fallback to token field
+  if (error || !data) {
+    const res = await supabase
+      .from('h2s_dispatch_admin_sessions')
+      .select('admin_email')
+      .eq('token', token)
+      .gte('expires_at', new Date().toISOString())
+      .single();
+    
+    data = res.data;
+    error = res.error;
+  }
+
   if (error || !data) return null;
-  if (new Date() > new Date(data.expires_at)) return null;
-  if (data.role && String(data.role).toLowerCase() !== 'admin') return null;
 
-  supabase
-    .from('h2s_sessions')
+  // Update last seen (try both fields)
+  await supabase
+    .from('h2s_dispatch_admin_sessions')
     .update({ last_seen_at: new Date().toISOString() })
-    .eq('session_id', token)
-    .then(() => {});
+    .eq('session_id', token);
 
-  return { admin_id: data.pro_id || 'admin' };
+  return { admin_email: data.admin_email };
 }
 
 export default async function handler(req, res) {
@@ -56,6 +69,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ ok: false, error: 'Unauthorized', error_code: 'bad_session' });
     }
 
+    // 1. Fetch Payouts
     let query = supabase
       .from('h2s_payouts_ledger')
       .select('*');
@@ -63,18 +77,47 @@ export default async function handler(req, res) {
     if (status === 'approved' || status === 'pending' || status === 'paid') {
       query = query.eq('state', status);
     }
-    if (start) query = query.gte('earned_at', start);
-    if (end) query = query.lte('earned_at', end);
+    if (start) query = query.gte('created_at', start);
+    if (end) query = query.lte('created_at', end);
 
-    const { data: rows, error } = await query.order('earned_at', { ascending: false });
+    const { data: rows, error } = await query.order('created_at', { ascending: false });
     if (error) {
       console.error('Admin payouts query error:', error);
       return res.status(500).json({ ok: false, error: 'Query failed', error_code: 'query_error' });
     }
 
+    // 2. Fetch Associated Jobs (Manual Join for Safety)
+    const jobIds = [...new Set((rows || []).map(r => r.job_id).filter(Boolean))];
+    const jobsMap = {};
+    
+    if (jobIds.length > 0) {
+        const { data: jobs } = await supabase
+            .from('h2s_dispatch_jobs')
+            .select('job_id, customer_name, service_address, service_city, service_state, service_zip, metadata')
+            .in('job_id', jobIds);
+            
+        (jobs || []).forEach(j => jobsMap[j.job_id] = j);
+    }
+
+    // 3. Merge Data
+    const enrichedRows = (rows || []).map(r => {
+        const job = jobsMap[r.job_id] || {};
+        const meta = job.metadata || {};
+        
+        return {
+            ...r,
+            customer_name: r.customer_name || job.customer_name || meta.customer_name || meta.shipping_name || 'Customer',
+            service_address: r.service_address || job.service_address || meta.service_address || meta.address || '',
+            service_city: r.service_city || job.service_city || meta.service_city || meta.city || '',
+            service_state: r.service_state || job.service_state || meta.service_state || meta.state || '',
+            service_zip: r.service_zip || job.service_zip || meta.service_zip || meta.zip || '',
+            job_metadata: meta // Pass metadata for frontend service parsing
+        };
+    });
+
     // Aggregate by pro
     const byPro = {};
-    for (const r of rows || []) {
+    for (const r of enrichedRows) {
       const key = r.pro_id || 'unknown';
       if (!byPro[key]) {
         byPro[key] = {
@@ -96,7 +139,7 @@ export default async function handler(req, res) {
 
     const summary = Object.values(byPro).sort((a,b) => b.totals.approved - a.totals.approved);
 
-    return res.json({ ok: true, summary, rows: rows || [] });
+    return res.json({ ok: true, summary, rows: enrichedRows });
   } catch (e) {
     console.error('Admin payouts error:', e);
     return res.status(500).json({ ok: false, error: 'Server error: ' + e.message, error_code: 'server_error' });

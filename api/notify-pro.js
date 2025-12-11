@@ -231,6 +231,7 @@ Complete now: https://home2smart.com/portal?complete=${job_id}`;
     // Handle single recipient or multiple (array)
     const recipients = Array.isArray(recipient) ? recipient : [recipient];
     const smsResults = [];
+    const emailResults = [];
 
     for (const phone of recipients) {
       const smsResponse = await fetch(`${req.headers.host}/api/send-sms`, {
@@ -246,12 +247,48 @@ Complete now: https://home2smart.com/portal?complete=${job_id}`;
       smsResults.push({ phone, result: smsResult });
     }
 
+    // Also send email if pro has email address
+    if (pro && pro.email && process.env.SENDGRID_ENABLED !== 'false') {
+      try {
+        const emailData = {
+          proName: pro.name,
+          customerName: job.customer_name,
+          service: job.service_name || job.service_type,
+          date: jobDate,
+          time: jobTime,
+          address: job.service_address,
+          city: job.service_city,
+          state: job.service_state,
+          customerPhone: job.customer_phone,
+          notes: job.notes_from_customer || ''
+        };
+
+        const emailResponse = await fetch(`${req.headers.host}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: pro.email,
+            template_key: `pro_${type}`,
+            data: emailData,
+            order_id: job.order_id
+          })
+        });
+
+        const emailResult = await emailResponse.json();
+        emailResults.push({ email: pro.email, result: emailResult });
+        console.log(`[Notify Pro] Email sent to ${pro.email}`);
+      } catch (err) {
+        console.error('[Notify Pro] Email error:', err);
+      }
+    }
+
     return res.status(200).json({
       status: 'notification_sent',
       type,
       job_id,
       recipients,
-      sms_results: smsResults
+      sms_results: smsResults,
+      email_results: emailResults
     });
 
   } catch (error) {

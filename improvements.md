@@ -1,222 +1,406 @@
-You are updating the Home2Smart Pro Portal front-end.
-Your job is to bring the mobile experience up to the same standard as desktop and fix layout bugs.
-Do not change the desktop layout or color palette. Only refine styles and layout at mobile breakpoints.
+You are the dev agent responsible for **fixing the Home2Smart “Bundles” purchase → schedule → order history flow** and the **custom quote digestion logic**.
 
-Brand + layout rules
+Stop inventing new UI or half-fixes. The UI is mostly there. The problem is correctness, data flow, and mobile behavior.
 
-This is dark, minimal UI.
+Your job in this pass is to **audit and repair everything around:**
 
-Keep the existing palette: deep navy background, bright Home2Smart blue as the primary CTA, purple as secondary, white/near-white text.
+1. Cart + discounts for bundles
+2. Custom quote digestion (including mount selection logic)
+3. Schedule widget (calendar + time window)
+4. Order confirmation + previous orders display
+5. How all of that writes to / reads from the backend
 
-Do not introduce washed-out blues, greys, greens, or golds.
+Do not touch unrelated pages.
 
-Use rounded corners and soft shadows, not sharp boxes.
+---
 
-Mobile breakpoint to target: @media (max-width: 768px); design should look tight at ~360–400px width.
+## 0. Ground rules
 
-Cards should feel compact:
+* Work in the existing stack (Stripe checkout + whatever backend is running under `home2smart.com`).
+* Use the **terminal, devtools, and logs**. This is debugging, not guessing.
+* Do not add “diagnostic buttons” to the UI. Use console logs and back-end logs instead.
+* Keep the current visual style. Only change layout/markup when necessary to fix issues or make mobile sane.
 
-horizontal padding ~16px, vertical padding ~12–16px
+---
 
-consistent 12–16px gap between stacked elements
+## 1. Fix cart + discount logic for bundles
 
-no unnecessary empty vertical space.
+Right now the cart math and discount handling are not bulletproof.
 
-When you finish, visually compare desktop vs mobile and make sure colors, button treatments, radius, and typography feel like the same product.
+**Goals**
 
-1. Customers tab (Upcoming Appointments cards)
+* Cart totals are always correct.
+* Discounts always apply when they should, never when they shouldn’t.
+* No raw JSON or internal data ever leaks into the UI.
 
-Goal: make the customer cards feel tighter and less boxy.
+**Tasks**
 
-Requirements
+1. **Trace the pricing pipeline**
 
-Reduce overall card height on mobile. Remove any hardcoded min-height that makes them huge. Let content drive height.
+   * Find the source of truth for:
 
-Use a single consistent radius for all cards and buttons inside them so they don’t look like unrelated blocks.
+     * Base bundle prices
+     * Add-on prices
+     * Any discount rules (percent, fixed, multi-item, etc.)
+   * Confirm there is **one canonical price per item** coming from the backend or config, not “magic numbers” scattered in the frontend.
 
-Tighten vertical spacing:
+2. **Normalize cart data**
 
-Name + role at top
+   * Whatever structure you store (likely JSON from the “Items” field in the screenshot), define a strict schema, for example:
 
-Service, address, amount stacked with small gaps
+     ```ts
+     type CartItem = {
+       type: "package" | "addon" | "custom_quote";
+       service_code: string;
+       label: string;
+       qty: number;
+       unit_price: number;
+       discount_code?: string | null;
+       discount_amount?: number;
+       subtotal: number;
+     };
+     ```
 
-Notes and actions grouped together
+   * Ensure the **cart total is computed from this structure only**, on both:
 
-Rebalance buttons:
+     * The backend (for Stripe / order storage)
+     * The frontend (for display)
 
-Call Customer remains the primary CTA: full-width or nearly full-width, but not edge-to-edge with zero breathing room.
+3. **Discount rules**
 
-Reschedule uses the secondary style and is visually subordinate.
+   * Implement a single function that:
 
-Make sure icons and labels in these buttons are perfectly vertically centered and not cramped against the edges.
+     * Takes the cart items
+     * Applies all discount rules in a deterministic order
+     * Returns:
 
-Check this screen on a 360px wide viewport and adjust until each customer card reads clearly without feeling like a tall column of empty air.
+       * adjusted line items
+       * `discount_total`
+       * `grand_total`
+   * Guardrails:
 
-2. Hamburger menu / nav drawer
+     * No stacking the same discount twice.
+     * If a rule depends on quantity or combination, validate that explicitly.
+     * If user manipulates the DOM, the backend still refuses invalid discounts.
 
-The current drawer looks like a stack of giant, boxy pills and wastes vertical space.
+4. **Order confirmation / previous orders totals**
 
-Requirements
+   * Whatever total you show in:
 
-Reduce the height of each menu item at mobile. These should read like a simple, clean list, not big CTA cards.
+     * Order confirmation page
+     * “Previous orders” card
+   * Must be **the exact same value** that was charged (or is expected to be charged) via Stripe.
+   * Use the backend “order” record as the source, not a fresh recompute from possibly stale JSON.
 
-Use consistent spacing between menu items, and keep left/right padding comfortable but not excessive.
+5. **Testing for cart/discounts**
 
-Keep the same nav order and labels (Dashboard, Customers, Schedule, Payouts, Reviews, Training, Account, Sign out).
+   * In a dev environment, run **several complete checkouts**:
 
-The “Close” button at the bottom should:
+     * Bundle only
+     * Bundle + multiple add-ons
+     * Whatever discount scenarios exist
+   * Verify with:
 
-Be visually distinct as a secondary action
+     * Frontend cart total
+     * Stripe payment (amount)
+     * Stored order record
+     * “Previous orders” display
+   * They must all match down to the cent.
 
-Not be oversized or taller than menu items
+---
 
-Stay fully visible on small screens without forcing extra scrolling.
+## 2. Make custom quote digestion fully robust (including mount selection)
 
-Test by opening the menu on a 360px viewport and confirm items are readable, not cramped, and the drawer does not feel like a stack of blunt rectangles.
+There is a **custom quote flow** that feeds into the cart/order system. It now supports more detailed mount selection (different mount types, sizes, combinations, etc.). This logic must be upgraded and made bulletproof.
 
-3. Reviews tab (No reviews yet state)
+**Goals**
 
-Right now, there is a tiny card near the top and then a huge empty column of navy.
+* Any custom quote produced by the quote builder is correctly translated into normalized cart items.
+* Mount selection and other structured options are interpreted intelligently and consistently.
+* Pricing for custom quotes matches the same rules as standard bundles, including discounts, taxes (if any), and totals.
 
-Requirements
+**Tasks**
 
-Center the empty-state card vertically within the viewport on mobile when there are no reviews.
+1. **Locate the custom quote ingestion path**
 
-The card should be a single, clean panel with:
+   * Find where quote builder output is:
 
-Heading / short description
+     * Created on the frontend
+     * Posted to the backend
+     * Converted into `CartItem` records and/or order items.
+   * Identify the exact shape of the quote payload (fields for service codes, mount type, size, quantity, options, etc.).
 
-A centered “No reviews yet” message
+2. **Define a stable mapping from quote → cart items**
 
-Remove excess bottom padding so the user doesn’t scroll through dead space.
+   * Build a deterministic mapping layer that:
 
-Make sure that when reviews DO exist later, the layout gracefully shifts to a list view without layout jank.
+     * Reads the quote payload
+     * Validates it against known service codes / mount types
+     * Emits one or more `CartItem` objects per quote.
+   * Examples:
 
-4. Payouts / Earnings dashboard scroll bug
+     * A “TV Mounting 55–75" with full-motion mount included” quote should map to a clear service_code and price, not a free-form text blob.
+     * If a mount is “customer provided” vs “Home2Smart provided”, that must be represented explicitly and priced correctly.
 
-On mobile, the user cannot scroll the full page. Content extends past the bottom of the screen but is not reachable.
+3. **Handle mount selection intelligently**
 
-Requirements
+   * Ensure custom quote logic is aware of:
 
-Identify and remove the cause of blocked scrolling:
+     * Screen size ranges
+     * Mount type (`tilt`, `fixed`, `full_motion`, etc.)
+     * Whether the mount is included vs BYO
+     * Any constraints like extra fees for larger sizes or certain mount types.
+   * Use a **single mount-pricing table/config** that both the quote builder and the cart use, to avoid divergence.
 
-Look for any container (body, html, .main, .content, page wrapper) that uses:
+4. **Validate and sanitize quote data**
 
-height: 100vh; or fixed heights
+   * Reject or correct impossible combinations (e.g., unsupported mount type or size).
+   * Never let raw quote JSON leak into the UI (no blobs in Previous Orders).
+   * If a quote payload is malformed, log it and surface a safe, human-readable fallback in the UI.
 
-overflow: hidden; or overflow-y: hidden;
+5. **End-to-end tests for custom quotes**
 
-Ensure that on mobile:
+   * In dev, run multiple realistic custom quotes:
 
-body / html use min-height: 100% rather than forcing 100vh in a way that clips content
+     * Different mount types and sizes
+     * Mixed items (TV + cameras) if supported
+     * With and without discounts
+   * For each quote:
 
-The scrollable area is the main content wrapper, not a nested element that cuts off content.
+     * Confirm cart display is correct
+     * Confirm Stripe charge matches
+     * Confirm Previous Orders and Order Details show clean, human-readable items
+     * Confirm schedule + payouts (later systems) see the correct values.
 
-Verify on a 360px viewport that the user can scroll from the top of the “Available Balance” section down through Lifetime, This Week, Pending Approval, and any footer or help text.
+---
 
-Keep the current visual design. This is a layout / overflow fix, not a redesign.
+## 3. Fix order confirmation + previous orders display
 
-5. Upcoming Jobs card and Job Details modal
+From the screenshots:
 
-The Upcoming Jobs card is almost correct but still slightly off, and the full job details overlay feels heavy and “desktop-sized”.
+* “Total Paid” shows `$0.00 USD` on the confirmation page.
+* “Items” under previous orders is dumping raw JSON blobs.
+* “Service date” is showing a placeholder icon / invalid glyph instead of a readable date.
 
-Upcoming Jobs card
+**Goals**
 
-Keep the “chip” at the top for the service name, but ensure:
+* Confirmation and history views should feel like a real consumer app, not a debug panel.
 
-Date and time are aligned cleanly on a single line or a clear two-line arrangement. No awkward wrapping like Dec 5 splitting strangely.
+**Tasks**
 
-Compress vertical spacing around:
+1. **Order confirmation page**
 
-Service name / date / time
+   * Use the actual order record returned after checkout.
+   * Show:
 
-Amount
+     * `Order ID` (human-readable ID or short token, not a long Stripe session string unless that’s a deliberate choice)
+     * `Total Paid` using the **charged amount**, not a local default.
+     * `Items` as a human list:
 
-Primary On My Way button
+       * One line per item: `2 × Camera Package – $X.xx`.
+       * Never raw JSON.
 
-Photos / Sign buttons
+2. **Previous orders section**
 
-View details link
+   * Parse the stored items JSON into a **clean, readable format**:
 
-View details should sit at the bottom of the card, aligned and styled consistently with other “details” links. It should not look like a random extra block.
+     * Service name, quantity, and price per line.
+     * If there are multiple items, display them as a vertical list.
+   * Fix “Service date”:
 
-Job details modal
+     * Use the scheduled installation datetime if it exists.
+     * Format as `Dec 9, 2025 – 9:00 AM–12:00 PM` or similar.
+     * If no date is scheduled yet, show `Not scheduled` instead of a broken icon.
 
-Reduce the vertical padding in the modal on mobile so it does not feel like a giant empty sheet.
+3. **Shared component**
 
-Use a clear hierarchy:
+   * Use a **shared formatting utility** for order items and dates so that:
 
-Job title at top
+     * Confirmation page
+     * Previous orders
+     * Any future “Order details” view
+   * All show the same clean representation.
 
-Date/time
+4. **Guard against missing data**
 
-Address
+   * If the order exists but items data is missing or malformed:
 
-Customer
+     * Log it with a clear message.
+     * Show a fallback like `Items unavailable` instead of raw JSON.
 
-Resources / included tech
+---
 
-Payout breakdown
+## 4. Fix the scheduler calendar + “Invalid Date” issues
 
-Help / “Request Second Tech” section
+From the screenshots:
 
-Distance and Close button
+* The calendar popup is clunky on mobile.
+* “Confirm Appointment” is giving `Failed to schedule: Invalid Date`.
+* There is a full calendar and time window selection, but submission fails or behaves inconsistently.
 
-Make the Close button visible without scrolling on most phones if possible, or ensure the scroll behavior is smooth and obvious.
+**Goals**
 
-Keep the styling consistent with the rest of the app in terms of colors and rounding.
+* Customer can always:
 
-6. Address / customer data correctness in job details
+  * Pick a valid date
+  * Pick a valid time window
+  * Submit once
+  * Get a **successful schedule** associated with their order
+* The entire interaction is smooth on mobile.
 
-Currently the job details modal often shows:
+**Tasks**
 
-Customer: Not provided
+1. **Trace the scheduling flow**
 
-Address line appears stale or inconsistent with the job card
+   * Find where the appointment is stored:
 
-Requirements
+     * Table/collection/schema name
+     * Fields for date, time window, timezone, order id, customer id.
+   * Locate the API endpoint/function that the “Confirm Appointment” button calls.
 
-Trace where the job details modal pulls its data for:
+2. **Fix date parsing / validation**
 
-Customer name
+   * Identify why `Invalid Date` is happening:
 
-Address
+     * Timezone mismatch?
+     * Using client locale to parse a non-ISO string?
+     * Backend expecting `YYYY-MM-DD` but receiving something else?
+   * Normalize:
 
-Align these fields with the same source used by the dashboard cards and schedule.
-If the job card shows a proper address and customer, the modal must show the same values.
+     * Use `YYYY-MM-DD` for date.
+     * Use a fixed set of time window identifiers (e.g. `9_12`, `12_3`, `3_6`).
+   * On the backend:
 
-Only show “Customer: Not provided” when the underlying data is truly missing, not because the modal is looking at the wrong property or fallback.
+     * Validate that:
 
-Add basic defensive logic:
+       * Date is in the future (or at least not in the past).
+       * Date is within allowed scheduling range.
+       * Time window is one of the allowed values.
+     * If validation fails, return a **clear error code/message** that is displayed nicely in the UI.
 
-If a field is missing, show a clean placeholder (N/A) rather than a misleading phrase that suggests something is broken.
+3. **UI behavior (mobile)**
 
-Document in comments where each field now comes from so it is easy to maintain.
+   * Ensure the calendar:
 
-7. Global mobile polish
+     * Fits in viewport without weird overflow.
+     * Allows vertical scrolling if needed.
+     * Keeps the “Confirm Appointment” button visible or easy to reach.
+   * When an appointment is successfully scheduled:
 
-Across all mobile views (Sign in, Dashboard, Customers, Schedule, Payouts, Reviews, Training, Account):
+     * Show a clear success state.
+     * Disable or hide “Confirm Appointment” or change label to `Reschedule`.
 
-Ensure consistent:
+4. **Persist and reflect scheduled date**
 
-Card width, radius, and padding
+   * After scheduling:
 
-Button styles (primary, secondary, subtle)
+     * Order record must now include the scheduled date/time window.
+   * On:
 
-Typography scale and line height
+     * Order confirmation
+     * Previous orders
+   * Show that date/time window clearly.
 
-Remove any leftover “square wrapper” highlights around cards that create harsh rectangles.
+5. **Rescheduling**
 
-Confirm everything is scrollable, nothing gets clipped, and there is no huge dead zone at the bottom of any screen.
+   * If the design allows customers to change dates:
 
-Do not introduce new colors or playful icons. This is a professional, minimal, utility dashboard.
+     * When they pick a new date + window and confirm:
 
-When done, summarize:
+       * Overwrite previous schedule entry.
+       * Make sure this also updates the backend and any dispatch view.
 
-Which selectors / components you touched
+6. **Testing for scheduler**
 
-Which layout bugs you fixed (especially scroll)
+   * Use devtools and terminal logs to:
 
-How you tested the mobile views (screen sizes, pages)
+     * Submit a handful of schedule requests with the calendar.
+     * Confirm:
 
-Make sure the changes are mobile-first, preserve the existing desktop layout, and keep visual parity so the app feels like one coherent brand.
+       * API receives the correct normalized values.
+       * No `Invalid Date` errors.
+       * DB rows are created/updated.
+       * UI updates immediately.
+
+---
+
+## 5. Data flow + logging (how to actually debug this)
+
+Do NOT “guess” the fix. Prove it.
+
+1. **Use terminal + devtools**
+
+   * Run the project in dev mode.
+   * In the browser:
+
+     * Open Network tab.
+     * Watch the **checkout**, **schedule**, and **order fetch** requests.
+   * In the terminal:
+
+     * Log the payloads and results around:
+
+       * Order creation
+       * Discount application
+       * Schedule creation/update
+       * Custom quote digestion
+
+2. **Add targeted logging**
+
+   * On the backend, around the schedule endpoint:
+
+     * Log incoming body: date, time window, order id, user id.
+     * Log parsed date object and any validation decision.
+   * Around order retrieval:
+
+     * Log what items and totals are being pulled.
+     * Log any mismatch between stored payment amount and displayed total.
+   * Around custom quote ingestion:
+
+     * Log the raw quote payload.
+     * Log the normalized `CartItem` objects you derive from it.
+
+3. **End-to-end sanity checks**
+
+   * Run **at least 3 full flows**:
+
+     1. Add a bundle, pay, schedule, check order history.
+     2. Add bundle + add-ons + discount, pay, schedule, check order history.
+     3. Submit a custom quote with mount selection, convert to order, pay, schedule, check order history.
+   * For each:
+
+     * Confirm totals
+     * Confirm schedule is stored and visible
+     * Confirm no raw JSON displays
+     * Confirm there are no console errors.
+
+---
+
+## 6. Mobile optimization checklist (bundles + scheduler flow only)
+
+While you work, keep these constraints:
+
+* No horizontal scrolling on standard mobile widths.
+* Card padding and font sizes should match the existing design language.
+* Modals / calendars must:
+
+  * Fit vertically where possible.
+  * Fall back to vertical scrolling instead of clipping content.
+* Buttons must be:
+
+  * Full-width or clearly tap-able.
+  * Consistent in height and typography across the flow.
+* No emoji in labels unless explicitly requested.
+
+---
+
+## 7. Deliverables
+
+When you are done, you should be able to say:
+
+1. “Cart totals and discount behavior are fully consistent across checkout, confirmation, and previous orders.”
+2. “Custom quote digestion, including mount selection, reliably maps into normalized cart items and correct pricing.”
+3. “The scheduler no longer throws `Invalid Date` and correctly stores + shows the appointment.”
+4. “Previous orders and order confirmation show clean, human-readable data, not raw JSON.”
+5. “All changes have been verified with real test orders in dev, using logs and devtools, not guesswork.”
+
+Do not stop at “it looks right”. Prove it with actual data and test runs.

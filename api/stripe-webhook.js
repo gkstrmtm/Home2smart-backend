@@ -182,19 +182,31 @@ export default async function handler(req, res) {
       // Send SMS confirmation if phone number exists
       if (customerPhone && process.env.TWILIO_ENABLED === 'true') {
         try {
-          const smsResponse = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://h2s-backend.vercel.app'}/api/send-sms`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: customerPhone,
-              template_key: 'payment_confirmed',
-              data: paymentConfirmationData,
-              order_id: order?.order_id
-            })
-          });
+          // Check for duplicate SMS
+          const { data: existingSms } = await supabase
+            .from('h2s_sms_log')
+            .select('id')
+            .eq('job_id', order?.order_id) // We use order_id as job_id for payment SMS
+            .eq('template_name', 'payment_confirmed')
+            .single();
 
-          const smsResult = await smsResponse.json();
-          console.log('[Stripe Webhook] Payment confirmation SMS sent:', smsResult);
+          if (existingSms) {
+            console.log('[Stripe Webhook] SMS already sent for this order, skipping.');
+          } else {
+            const smsResponse = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://h2s-backend.vercel.app'}/api/send-sms`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: customerPhone,
+                template_key: 'payment_confirmed',
+                data: paymentConfirmationData,
+                job_id: order?.order_id // Use order_id as job_id for tracking
+              })
+            });
+
+            const smsResult = await smsResponse.json();
+            console.log('[Stripe Webhook] Payment confirmation SMS sent:', smsResult);
+          }
         } catch (smsError) {
           console.error('[Stripe Webhook] Failed to send SMS:', smsError);
           // Don't fail the webhook if SMS fails

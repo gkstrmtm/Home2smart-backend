@@ -161,27 +161,41 @@ export default async function handler(req, res) {
       firstName: firstName,
       service: serviceName,
       date: formatDate(delivery_date),
-      time: delivery_time
+      time: delivery_time,
+      city: city || 'your area',
+      state: state || ''
     };
 
     // Send SMS
     if (order.customer_phone && process.env.TWILIO_ENABLED !== 'false') {
       try {
-        const smsResponse = await fetch(`${getBaseUrl(req)}/api/send-sms`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: order.customer_phone,
-            template_key: 'appointment_scheduled',
-            data: notificationData,
-            order_id: order_id
-          })
-        });
-        const smsResult = await smsResponse.json();
-        if (smsResult.ok) {
-          console.log(`[Schedule] ✅ SMS sent to ${order.customer_phone}`);
+        // Check for duplicate SMS
+        const { data: existingSms } = await supabase
+          .from('h2s_sms_log')
+          .select('id')
+          .eq('job_id', order_id)
+          .eq('template_name', 'appointment_scheduled')
+          .single();
+
+        if (existingSms) {
+          console.log('[Schedule] SMS already sent for this appointment, skipping.');
         } else {
-          console.warn(`[Schedule] ⚠️ SMS failed:`, smsResult.error);
+          const smsResponse = await fetch(`${getBaseUrl(req)}/api/send-sms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: order.customer_phone,
+              template_key: 'appointment_scheduled',
+              data: notificationData,
+              job_id: order_id // Use order_id as job_id for tracking
+            })
+          });
+          const smsResult = await smsResponse.json();
+          if (smsResult.ok) {
+            console.log(`[Schedule] ✅ SMS sent to ${order.customer_phone}`);
+          } else {
+            console.warn(`[Schedule] ⚠️ SMS failed:`, smsResult.error);
+          }
         }
       } catch (err) {
         console.error('[Schedule] SMS error:', err);

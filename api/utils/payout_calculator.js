@@ -53,8 +53,10 @@ export function calculatePayout(job, lines, teamSplit) {
       totalJobPayout += linePayout;
     });
   } else {
-    // Fallback to job-level metadata if no lines
-    if (job.metadata && job.metadata.estimated_payout) {
+    // Fallback to job-level fields if no lines
+    if (job.payout_estimated) {
+      totalJobPayout = parseFloat(job.payout_estimated);
+    } else if (job.metadata && job.metadata.estimated_payout) {
       totalJobPayout = parseFloat(job.metadata.estimated_payout);
     }
     

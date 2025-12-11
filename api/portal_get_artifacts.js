@@ -26,6 +26,41 @@ async function validateSession(token) {
   return data.pro_id;
 }
 
+async function validateAdminSession(token) {
+  if (!token) return false;
+  
+  // Try session_id first (primary)
+  let { data, error } = await supabase
+    .from('h2s_dispatch_admin_sessions')
+    .select('admin_email')
+    .eq('session_id', token)
+    .gte('expires_at', new Date().toISOString())
+    .single();
+
+  // Fallback to token field (backwards compatibility)
+  if (error || !data) {
+    const res = await supabase
+      .from('h2s_dispatch_admin_sessions')
+      .select('admin_email')
+      .eq('token', token)
+      .gte('expires_at', new Date().toISOString())
+      .single();
+    
+    data = res.data;
+    error = res.error;
+  }
+
+  if (error || !data) return false;
+  
+  // Update last_seen_at
+  await supabase
+    .from('h2s_dispatch_admin_sessions')
+    .update({ last_seen_at: new Date().toISOString() })
+    .or(`session_id.eq.${token},token.eq.${token}`);
+  
+  return true;
+}
+
 export default async function handler(req, res) {
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
@@ -66,10 +101,12 @@ export default async function handler(req, res) {
     console.log(`[${requestId}] job_id:`, jobId);
     console.log(`[${requestId}] type:`, artifactType);
 
-    // Validate session
-    const proId = await validateSession(token);
-    if (!proId) {
-      console.error(`[${requestId}] ❌ Session invalid`);
+    // Validate session - try admin first, then pro
+    const isAdmin = await validateAdminSession(token);
+    const proId = !isAdmin ? await validateSession(token) : null;
+    
+    if (!isAdmin && !proId) {
+      console.error(`[${requestId}] ❌ Session invalid (neither admin nor pro)`);
       return res.status(401).json({
         ok: false,
         error: 'Invalid or expired session',
@@ -77,7 +114,7 @@ export default async function handler(req, res) {
       });
     }
     
-    console.log(`[${requestId}] ✓ Session valid - pro_id:`, proId);
+    console.log(`[${requestId}] ✓ Session valid - ${isAdmin ? 'admin' : 'pro_id: ' + proId}`);
 
     if (!jobId) {
       console.error(`[${requestId}] ❌ Missing job_id`);

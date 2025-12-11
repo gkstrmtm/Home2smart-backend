@@ -68,18 +68,29 @@ async function runInternalBackfill(proId) {
       }
 
       if (amount > 0) {
+        // --- FIX: SHIM LEGACY TABLE FOR FK CONSTRAINT ---
+        // The ledger table has a foreign key to 'h2s_jobs' (legacy), not 'h2s_dispatch_jobs'.
+        // We must ensure a record exists there first.
+        const { error: shimErr } = await supabase.from('h2s_jobs').insert({
+            job_id: assign.job_id,
+            status: 'completed',
+            service_id: 'svc_maintenance', // Required non-null column
+            created_at: new Date().toISOString()
+        });
+        
+        if (shimErr && !shimErr.message.includes('duplicate key')) {
+             debugLog.push(`Job ${assign.job_id}: Shim Warning (${shimErr.message})`);
+        }
+
+        // --- FIX: MINIMAL SCHEMA INSERT ---
+        // Only insert columns that actually exist in the production database
         const { error: insertErr } = await supabase.from('h2s_payouts_ledger').insert({
           pro_id: proId,
           job_id: assign.job_id,
           total_amount: amount,
           amount: amount,
-          base_amount: amount,
-          service_name: job.resources_needed || 'Service',
-          variant_code: job.variant_code || 'STANDARD',
-          state: 'approved',
-          earned_at: assign.completed_at || job.completed_at || new Date().toISOString(),
-          customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
-          note: note
+          state: 'pending' // Default to pending for dispatcher validation
+          // Removed: base_amount, service_name, variant_code, earned_at, customer_total, note (Columns do not exist)
         });
         
         if (insertErr) {

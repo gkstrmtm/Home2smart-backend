@@ -118,6 +118,17 @@ export default async function handler(req, res) {
         }
 
         if (amount > 0) {
+          // --- FIX: SHIM LEGACY TABLE FOR FK CONSTRAINT ---
+          const { error: shimErr } = await supabase.from('h2s_jobs').insert({
+              job_id: assign.job_id,
+              status: 'completed',
+              service_id: 'svc_maintenance',
+              created_at: new Date().toISOString()
+          });
+          if (shimErr && !shimErr.message.includes('duplicate key')) {
+               console.log(`[FK Fix] Warning: ${shimErr.message}`);
+          }
+
           const { error: insertError } = await supabase
             .from('h2s_payouts_ledger')
             .insert({
@@ -125,13 +136,8 @@ export default async function handler(req, res) {
               job_id: assign.job_id,
               total_amount: amount,
               amount: amount,
-              base_amount: amount,
-              service_name: job.resources_needed || 'Service',
-              variant_code: job.variant_code || 'STANDARD',
-              state: 'approved', // Default to approved for backfilled jobs
-              earned_at: assign.completed_at || job.completed_at || new Date().toISOString(),
-              customer_total: job.metadata?.items_json ? job.metadata.items_json.reduce((s, i) => s + (i.line_total||0), 0) : 0,
-              note: note
+              state: 'pending' // Default to pending for dispatcher validation
+              // Removed invalid columns
             });
 
           if (insertError) {
