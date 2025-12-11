@@ -10132,7 +10132,7 @@ function renderUpcoming(list) {
           }
           
           // Send to backend
-          const out = await GET("portal_mark_done", {token, job_id: jobId});
+          const out = await POST("portal_mark_done", {token, job_id: jobId});
           
           if (!out.ok) { 
             toast(out.error || "Could not mark done");
