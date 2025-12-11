@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import crypto from 'crypto';
 
 // Disable body parsing for Stripe webhook signature verification
 export const config = {
@@ -61,15 +62,22 @@ export default async function handler(req, res) {
       });
 
       // Extract customer data from metadata
-      const customerName = session.metadata?.customer_name || '';
-      const customerPhone = session.metadata?.customer_phone || '';
-      const customerEmail = session.customer_email || '';
+      const customerName = session.metadata?.customer_name || session.customer_details?.name || '';
+      const customerPhone = session.metadata?.customer_phone || session.customer_details?.phone || '';
+      const customerEmail = session.customer_email || session.customer_details?.email || '';
+
+      // Extract address from shipping or customer_details
+      const shipping = session.shipping || session.customer_details;
+      const address = session.metadata?.service_address || shipping?.address?.line1 || '';
+      const city = session.metadata?.service_city || shipping?.address?.city || '';
+      const state = session.metadata?.service_state || shipping?.address?.state || '';
+      const zip = session.metadata?.service_zip || shipping?.address?.postal_code || '';
 
       // Check if order exists
       const { data: existingOrder } = await supabase
         .from('h2s_orders')
         .select('order_id')
-        .eq('stripe_session_id', session.id)
+        .eq('session_id', session.id)
         .single();
 
       let order;
@@ -81,7 +89,14 @@ export default async function handler(req, res) {
             .update({
                payment_intent_id: session.payment_intent,
                status: 'paid',
-               metadata: session.metadata
+               metadata_json: session.metadata,
+               // Update address fields if missing
+               address: address,
+               city: city,
+               state: state,
+               zip: zip,
+               customer_name: customerName,
+               customer_phone: customerPhone
             })
             .eq('order_id', existingOrder.order_id)
             .select('order_id')
@@ -92,11 +107,15 @@ export default async function handler(req, res) {
          
          order = updated || existingOrder;
       } else {
+         // Generate Order ID
+         const orderId = `ORD-${crypto.randomUUID().substring(0, 8).toUpperCase()}`;
+
          // Insert new (fallback)
          const { data: inserted, error: insertError } = await supabase
             .from('h2s_orders')
             .insert({
-              stripe_session_id: session.id,
+              order_id: orderId,
+              session_id: session.id,
               payment_intent_id: session.payment_intent,
               customer_email: customerEmail,
               customer_name: customerName,
@@ -105,8 +124,17 @@ export default async function handler(req, res) {
               total: session.amount_total / 100, // Final amount paid (after discounts)
               currency: session.currency,
               status: 'pending',
-              metadata: session.metadata,
-              created_at: new Date().toISOString()
+              metadata_json: session.metadata,
+              created_at: new Date().toISOString(),
+              // Save address fields
+              address: address,
+              city: city,
+              state: state,
+              zip: zip,
+              // service_address: address, // Removed as it's not in schema
+              // service_city: city,
+              // service_state: state,
+              // service_zip: zip
             })
             .select('order_id')
             .single();
@@ -193,6 +221,35 @@ export default async function handler(req, res) {
           console.error('[Stripe Webhook] Failed to send email:', emailError);
           // Don't fail the webhook if email fails
         }
+      }
+
+      // === MANAGEMENT NOTIFICATION ===
+      // Notify management of new booking
+      const amountTotal = session.amount_total / 100;
+      const notificationType = amountTotal >= 500 ? 'highValueOrder' : 'newBooking';
+      
+      try {
+        await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://h2s-backend.vercel.app'}/api/notify-management`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: notificationType,
+            data: {
+              service: serviceName,
+              customerName: customerName || 'Unknown',
+              date: 'TBD',
+              time: 'TBD',
+              orderNumber: order?.order_id?.slice(0, 8).toUpperCase() || session.id.slice(-8).toUpperCase(),
+              amount: amountTotal.toFixed(2),
+              city: session.metadata?.city || 'Unknown',
+              state: session.metadata?.state || 'SC',
+              phone: customerPhone || 'Not provided'
+            }
+          })
+        });
+        console.log('[Stripe Webhook] Management notification sent');
+      } catch (mgmtError) {
+        console.error('[Stripe Webhook] Management notification failed (non-critical):', mgmtError);
       }
 
       // === REWARDS SYSTEM ===

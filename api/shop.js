@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('h2s_orders')
           .select('*')
-          .eq('stripe_session_id', sid)
+          .eq('session_id', sid)
           .limit(1)
           .maybeSingle();
         if(error){ return res.status(500).json({ ok:false, error:error.message }); }
@@ -152,6 +152,11 @@ export default async function handler(req, res) {
       const present = !!testPromo;
       const match = present && code === testPromo;
       return res.status(200).json({ ok:true, present, match });
+    }
+
+    // ===== RESCHEDULE APPOINTMENT =====
+    if (action === 'reschedule_appointment' && req.method === 'POST') {
+      return handleRescheduleAppointment(req, res, supabase, body);
     }
 
     return res.status(400).json({
@@ -325,24 +330,69 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       }
 
       if (item.id === 'tv_multi') {
-        const name = 'Multi-Room TV Mounting (3-4 TVs)';
-        lineItems.push({
-          price_data: {
-            currency: 'usd',
-            product_data: { 
-              name: name,
-              description: 'Includes mounting for 3-4 TVs, wire concealment, and soundbar setup.'
+        // Get actual price from cart (includes tier pricing + mount upcharges)
+        const actualPrice = Math.round((item.price || 699) * 100); // Convert to cents
+        const itemMetadata = item.metadata || {};
+        
+        // Check if we have detailed TV configurations
+        if (itemMetadata.items_json && Array.isArray(itemMetadata.items_json)) {
+          // Create individual line items for each TV
+          itemMetadata.items_json.forEach((tvItem, idx) => {
+            const tvMeta = tvItem.metadata || {};
+            const tvPrice = Math.round((tvItem.unit_price || 0) * 100);
+            const mountType = tvMeta.mount_type === 'full_motion' ? 'Full Motion' :
+                            tvMeta.mount_type === 'tilt' ? 'Tilt' : 'Fixed/Flat';
+            const mountUpcharge = tvMeta.mount_upcharge || 0;
+            const mountProvider = tvMeta.mount_provider === 'h2s' ? 'H2S Provided' : 'Customer Provided';
+            
+            const description = [
+              `TV Size: ${tvMeta.tv_size || 'Standard'}`,
+              `Mount: ${mountType}${mountUpcharge > 0 ? ` (+$${mountUpcharge})` : ''}`,
+              mountProvider,
+              tvMeta.requires_team ? '⚠️ Two-tech required (safety)' : ''
+            ].filter(Boolean).join(' • ');
+            
+            lineItems.push({
+              price_data: {
+                currency: 'usd',
+                product_data: { 
+                  name: `TV #${idx + 1} Installation`,
+                  description: description
+                },
+                unit_amount: tvPrice
+              },
+              quantity: 1
+            });
+            
+            receiptItems.push({
+              name: `TV #${idx + 1} Installation`,
+              description: description,
+              qty: 1,
+              price: tvPrice
+            });
+          });
+        } else {
+          // Fallback: single line item with total price
+          const tvCount = itemMetadata.tv_count || '3-4';
+          const name = `Multi-Room TV Mounting (${tvCount} TVs)`;
+          lineItems.push({
+            price_data: {
+              currency: 'usd',
+              product_data: { 
+                name: name,
+                description: 'Includes mounting, wire concealment, and soundbar setup.'
+              },
+              unit_amount: actualPrice
             },
-            unit_amount: 69900, // $699.00
-          },
-          quantity: item.qty || 1
-        });
-        receiptItems.push({
-          name: name,
-          description: 'Includes mounting for 3-4 TVs, wire concealment, and soundbar setup.',
-          qty: item.qty || 1,
-          price: 69900
-        });
+            quantity: item.qty || 1
+          });
+          receiptItems.push({
+            name: name,
+            description: 'Includes mounting, wire concealment, and soundbar setup.',
+            qty: item.qty || 1,
+            price: actualPrice
+          });
+        }
         continue;
       }
 
@@ -412,27 +462,72 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
-      if (item.type === 'bundle') {
-        // Look up bundle in database
+      if (item.type === 'bundle' || item.type === 'package') {
+        const bundleId = item.bundle_id || item.id;
+        
+        // Check if this has custom configuration (TV packages with mount details)
+        const itemMetadata = item.metadata || {};
+        const hasCustomConfig = itemMetadata.items_json && Array.isArray(itemMetadata.items_json);
+        
+        if (hasCustomConfig && (bundleId === 'tv_single' || bundleId === 'tv_2pack')) {
+          // Create individual line items for each TV in single/2-pack bundles
+          itemMetadata.items_json.forEach((tvItem, idx) => {
+            const tvMeta = tvItem.metadata || {};
+            const tvPrice = Math.round((tvItem.unit_price || 0) * 100);
+            const mountType = tvMeta.mount_type === 'full_motion' ? 'Full Motion' :
+                            tvMeta.mount_type === 'tilt' ? 'Tilt' : 'Fixed/Flat';
+            const mountUpcharge = tvMeta.mount_upcharge || 0;
+            const mountProvider = tvMeta.mount_provider === 'h2s' ? 'H2S Provided' : 'Customer Provided';
+            
+            const description = [
+              `TV Size: ${tvMeta.tv_size || 'Standard'}`,
+              `Mount: ${mountType}${mountUpcharge > 0 ? ` (+$${mountUpcharge})` : ''}`,
+              mountProvider,
+              tvMeta.requires_team ? '⚠️ Two-tech required' : ''
+            ].filter(Boolean).join(' • ');
+            
+            lineItems.push({
+              price_data: {
+                currency: 'usd',
+                product_data: { 
+                  name: `TV Installation${itemMetadata.items_json.length > 1 ? ` #${idx + 1}` : ''}`,
+                  description: description
+                },
+                unit_amount: tvPrice
+              },
+              quantity: 1
+            });
+            
+            receiptItems.push({
+              name: `TV Installation${itemMetadata.items_json.length > 1 ? ` #${idx + 1}` : ''}`,
+              description: description,
+              qty: 1,
+              price: tvPrice
+            });
+          });
+          continue;
+        }
+        
+        // For bundles without custom config, use database lookup
         const { data: bundle, error } = await supabase
           .from('h2s_bundles')
           .select('*')
-          .eq('bundle_id', item.bundle_id)
+          .eq('bundle_id', bundleId)
           .single();
 
         if (error || !bundle) {
-          console.error('[Checkout] Bundle not found:', item.bundle_id);
+          console.error('[Checkout] Bundle not found:', bundleId);
           return res.status(400).json({
             ok: false,
-            error: `Bundle not found: ${item.bundle_id}`
+            error: `Bundle not found: ${bundleId}`
           });
         }
 
         if (!bundle.stripe_price_id) {
-          console.error('[Checkout] Bundle missing stripe_price_id:', item.bundle_id);
+          console.error('[Checkout] Bundle missing stripe_price_id:', bundleId);
           return res.status(400).json({
             ok: false,
-            error: `Bundle ${bundle.name || item.bundle_id} not configured for checkout`
+            error: `Bundle ${bundle.name || bundleId} not configured for checkout`
           });
         }
 
@@ -527,6 +622,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
 
     if (body.promotion_code) {
       const code = String(body.promotion_code).trim();
+      console.log('[Checkout] 🎟️ Promo code provided:', code);
       let promoId = null;
       let couponId = null;
 
@@ -535,6 +631,9 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         const list = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
         if (list.data?.[0]) {
           promoId = list.data[0].id;
+          console.log('[Checkout] ✅ Found Stripe promo:', promoId);
+        } else {
+          console.log('[Checkout] ℹ️ No Stripe promo found for code:', code);
         }
       } catch (e) {
         console.warn('[Checkout] Stripe promo lookup failed:', e);
@@ -549,6 +648,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           .single();
           
         if (referrer) {
+          console.log('[Checkout] ✅ Found referral code, referrer:', referrer.email);
           // Valid referral! Apply generic referral coupon.
           // We use a standard coupon ID 'REFERRAL_25' ($25 off).
           // Ensure it exists.
@@ -565,6 +665,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
                 duration: 'forever',
                 name: 'Referral Discount'
               });
+              console.log('[Checkout] Created REFERRAL_25 coupon');
             }
           }
           couponId = REF_COUPON_ID;
@@ -573,20 +674,49 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           if (!metadata) metadata = {};
           metadata.referral_code = code;
           metadata.referrer_email = referrer.email;
+        } else {
+          console.log('[Checkout] ℹ️ No referral found for code:', code);
         }
       }
 
       if (promoId) {
         discounts = [{ promotion_code: promoId }];
         allow_promotion_codes = false;
+        console.log('[Checkout] 💰 Applying promo discount:', promoId);
       } else if (couponId) {
         discounts = [{ coupon: couponId }];
         allow_promotion_codes = false;
+        console.log('[Checkout] 💰 Applying coupon discount:', couponId);
+      } else {
+        console.log('[Checkout] ⚠️ Promo code not recognized:', code);
       }
     }
 
     // Create Stripe checkout session
     const frontendUrl = 'https://home2smart.com';
+    // IMPORTANT: Stripe metadata values have 500-char limit per key
+    // Truncate all metadata fields to safe lengths
+    const safeMetadata = {};
+    
+    // Truncate all incoming metadata fields
+    if (metadata) {
+      for (const [key, value] of Object.entries(metadata)) {
+        if (typeof value === 'string') {
+          safeMetadata[key] = value.substring(0, 400); // Safe limit with buffer
+        } else {
+          safeMetadata[key] = String(value).substring(0, 400);
+        }
+      }
+    }
+    
+    // Add/override with known safe fields
+    safeMetadata.source = (source || '/shop').substring(0, 50);
+    safeMetadata.order_id = orderId.substring(0, 100);
+    safeMetadata.customer_name = (customer.name || '').substring(0, 100);
+    safeMetadata.customer_phone = (customer.phone || '').substring(0, 20);
+    // Removed cart_items JSON to avoid exceeding 500-char limit
+    // Cart details preserved in line_items and order record
+    
     const sessionParams = {
       mode: 'payment',
       line_items: lineItems,
@@ -596,14 +726,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       shipping_address_collection: {
         allowed_countries: ['US']  // Collect service address
       },
-      metadata: {
-        ...(metadata || {}),
-        source: source || '/shop',
-        order_id: orderId,
-        customer_name: customer.name || '',
-        customer_phone: customer.phone || '',
-        cart_items: JSON.stringify(receiptItems)
-      }
+      metadata: safeMetadata
     };
 
     if (discounts) {
@@ -635,6 +758,32 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       const orderItems = [];
       
       for (const item of cart) {
+        // 🔹 MULTI-TV EXPANSION: If item has items_json array, expand into individual line items
+        if (item.metadata && Array.isArray(item.metadata.items_json) && item.metadata.items_json.length > 0) {
+          console.log('[Checkout] Expanding multi-TV package:', item.metadata.items_json.length, 'TVs');
+          
+          for (const subItem of item.metadata.items_json) {
+            const subUnitPrice = Number(subItem.unit_price || subItem.price || 0);
+            const subQty = Number(subItem.qty || 1);
+            const subLineTotal = subUnitPrice * subQty;
+            subtotal += subLineTotal;
+            
+            orderItems.push({
+              type: item.type || 'bundle',
+              service_id: item.service_id || null,
+              bundle_id: subItem.bundle_id || item.bundle_id || item.id,
+              service_name: subItem.service_name || item.service_name || item.name,
+              qty: subQty,
+              unit_price: subUnitPrice,
+              line_total: subLineTotal,
+              option_id: item.option_id || null,
+              metadata: subItem.metadata || {} // TV-specific metadata (tv_size, mount_type, etc.)
+            });
+          }
+          continue; // Skip normal processing for this item
+        }
+        
+        // 🔹 NORMAL CART ITEM PROCESSING
         let unitPrice = 0;
         
         if (item.id === 'mount_hardware') {
@@ -673,13 +822,13 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         orderItems.push({
           type: item.type || 'service',
           service_id: item.service_id || null,
-          bundle_id: item.bundle_id || null,
-          service_name: item.service_name || item.service_id || item.bundle_id,
+          bundle_id: item.bundle_id || item.id || null,
+          service_name: item.service_name || item.name || item.service_id || item.bundle_id,
           qty: qty,
           unit_price: unitPrice,
           line_total: lineTotal,
           option_id: item.option_id || null,
-          metadata: item.metadata || {} // Capture item-specific metadata (e.g. mount_provider)
+          metadata: item.metadata || {} // Capture item-specific metadata
         });
       }
       
@@ -1269,11 +1418,11 @@ async function handleOrderPack(req, res, supabase, sessionId) {
   }
 
   try {
-    // Fetch order by stripe_session_id
+    // Fetch order by session_id
     const { data: order, error } = await supabase
       .from('h2s_orders')
       .select('*')
-      .eq('stripe_session_id', sessionId)
+      .eq('session_id', sessionId)
       .single();
 
     if (error || !order) {
@@ -1323,4 +1472,130 @@ async function handleOrderPack(req, res, supabase, sessionId) {
     console.error('[OrderPack] Error:', error);
     return res.status(500).json({ ok: false, error: error.message });
   }
+}
+
+// ===== RESCHEDULE APPOINTMENT HANDLER =====
+async function handleRescheduleAppointment(req, res, supabase, body) {
+  const { order_id, delivery_date, delivery_time, reason } = body;
+
+  if (!order_id || !delivery_date || !delivery_time) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: 'Missing required fields: order_id, delivery_date, delivery_time' 
+    });
+  }
+
+  try {
+    // Get current order details
+    const { data: order, error: fetchError } = await supabase
+      .from('h2s_orders')
+      .select('*')
+      .eq('order_id', order_id)
+      .single();
+
+    if (fetchError || !order) {
+      return res.status(404).json({ 
+        ok: false, 
+        error: 'Order not found' 
+      });
+    }
+
+    const oldDate = order.delivery_date;
+    const oldTime = order.delivery_time;
+
+    // Update order with new date/time - OVERRIDE existing values
+    const { error: updateError } = await supabase
+      .from('h2s_orders')
+      .update({
+        delivery_date: delivery_date,
+        delivery_time: delivery_time,
+        install_at: `${delivery_date}T${convertTo24Hour(delivery_time)}:00`,
+        updated_at: new Date().toISOString()
+      })
+      .eq('order_id', order_id);
+
+    if (updateError) {
+      console.error('[Reschedule] Update failed:', updateError);
+      return res.status(500).json({ ok: false, error: updateError.message });
+    }
+
+    console.log(`[Reschedule] ✅ Order ${order_id} rescheduled: ${oldDate} ${oldTime} → ${delivery_date} ${delivery_time}`);
+
+    // Update dispatch job if exists
+    try {
+      const { error: jobUpdateError } = await supabase
+        .from('h2s_dispatch_jobs')
+        .update({
+          start_iso: `${delivery_date}T${convertTo24Hour(delivery_time)}:00`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('order_id', order_id);
+
+      if (jobUpdateError) {
+        console.warn('[Reschedule] Job update failed (non-critical):', jobUpdateError);
+      }
+    } catch (err) {
+      console.warn('[Reschedule] Job update error (non-critical):', err);
+    }
+
+    // Send notifications via reschedule-appointment API
+    try {
+      const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'https://h2s-backend.vercel.app';
+
+      const notifyResponse = await fetch(`${baseUrl}/api/reschedule-appointment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: order_id,
+          delivery_date: delivery_date,
+          delivery_time: delivery_time,
+          reason: reason || 'Customer request'
+        })
+      });
+
+      if (!notifyResponse.ok) {
+        console.warn('[Reschedule] Notification API failed (non-critical)');
+      }
+    } catch (err) {
+      console.warn('[Reschedule] Notifications failed (non-critical):', err);
+    }
+
+    return res.json({ 
+      ok: true, 
+      message: 'Appointment rescheduled successfully',
+      order_id: order_id,
+      old_date: oldDate,
+      old_time: oldTime,
+      new_date: delivery_date,
+      new_time: delivery_time
+    });
+
+  } catch (error) {
+    console.error('[Reschedule] Error:', error);
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+}
+
+// Helper: Convert 12-hour time to 24-hour format
+function convertTo24Hour(time12h) {
+  if (!time12h) return '09:00';
+  
+  // Handle formats like "9:00 AM - 11:00 AM" - take first time
+  const timePart = time12h.split('-')[0].trim();
+  
+  const [timeStr, period] = timePart.split(/\s+/);
+  let [hours, minutes] = timeStr.split(':').map(s => s.trim());
+  
+  hours = parseInt(hours, 10);
+  minutes = minutes || '00';
+  
+  if (period && period.toLowerCase().includes('pm') && hours !== 12) {
+    hours += 12;
+  } else if (period && period.toLowerCase().includes('am') && hours === 12) {
+    hours = 0;
+  }
+  
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
 }
