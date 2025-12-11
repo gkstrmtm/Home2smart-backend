@@ -117,11 +117,10 @@ export default async function handler(req, res) {
       .from('h2s_dispatch_job_artifacts')
       .insert({
         job_id: jobId,
-        artifact_type: 'signature',
-        storage_url: publicUrl,
-        uploaded_by: proId,
-        file_size_bytes: buffer.length,
-        mime_type: mimetype
+        type: 'signature',  // ✅ Fixed: was artifact_type, should be type
+        file_url: publicUrl,
+        url: publicUrl,
+        pro_id: proId
       });
 
     if (artifactError) {
