@@ -7928,7 +7928,10 @@ function switchTab(which) {
   if (which === "profile") {
     loadProfilePhotoPreview();
   }
-  if (which === "payouts") loadPayouts();
+  if (which === "payouts") {
+    invalidateCache('payouts'); // Always refresh payouts to show latest approval status
+    loadPayouts();
+  }
   if (which === "reviews") loadReviews();
   if (which === "training") loadTraining();
   if (which === "schedule") loadSchedule();
