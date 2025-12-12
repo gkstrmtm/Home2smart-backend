@@ -7560,7 +7560,7 @@ function openMenu() {
   $("menu").style.display = "grid";
   $("menu").setAttribute("aria-hidden", "false");
 }
-function closeMenu() {
+window.closeMenu = window.closeMenu = function closeMenu() {
   $("menu").style.display = "none";
   $("menu").setAttribute("aria-hidden", "true");
 }
@@ -14256,8 +14256,8 @@ async function loadSchedule() {
     
     loading(true);
     
-    // Call Apps Script availability endpoint (portal_availability doesn't exist on Vercel yet)
-    const out = await GET("portal_availability_get", {token});
+    // Call availability endpoint
+    const out = await GET("portal_availability", {token, action: 'get'});
     
     if (!out.ok) {
       console.warn("⚠️ Could not load time off requests (non-critical):", out.error);
@@ -17678,7 +17678,7 @@ async function logCallOutcome(jobId, outcome) {
 }
 
 function openFeedbackModal() {
-  closeMenu();
+  window.closeMenu();
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(10,42,90,.95);backdrop-filter:blur(10px);z-index:25000;display:flex;align-items:center;justify-content:center;padding:20px';
