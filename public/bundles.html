@@ -5601,9 +5601,9 @@ window.renderShopSuccess = async function(){
             <span id="successOrderId" style="font-family: monospace; font-size: 13px; color: var(--cobalt); font-weight: 700; word-break: break-all; max-width: 60%; text-align: right;" title="${escapeHtml(displayOrderId)}">${escapeHtml(shortOrderId)}</span>
           </div>
           
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="font-weight: 600; color: var(--muted); font-size: 14px;">Items</span>
-            <span id="successOrderItems" style="font-weight: 700; color: var(--ink); font-size: 14px;">${order.order_summary ? escapeHtml(order.order_summary) : 'Loading details...'}</span>
+            <span id="successOrderItems" style="font-weight: 700; color: var(--ink); font-size: 14px; line-height: 1.5; text-align: left;">${order.order_summary ? escapeHtml(order.order_summary) : 'Loading details...'}</span>
           </div>
           
           <div id="successPromoRow" style="display: ${order.order_discount_code ? 'flex' : 'none'}; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
@@ -5845,9 +5845,9 @@ window.renderShopSuccess = async function(){
             const parts = [];
             data.lines.forEach(l => {
               const name = l.service_name || l.name || l.bundle_id || l.service_id || (l.line_type === 'bundle' ? 'Bundle' : 'Service');
-              parts.push(`${Number(l.qty||1)}x ${name}`);
+              parts.push(`<div style="margin-bottom:4px;">• ${Number(l.qty||1)}x ${escapeHtml(name)}</div>`);
             });
-            itemsEl.textContent = parts.join(', ');
+            itemsEl.innerHTML = parts.join('');
           } else if(itemsEl) {
             itemsEl.textContent = 'Order details loaded';
           }
