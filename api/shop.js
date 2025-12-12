@@ -792,13 +792,14 @@ async function handleCheckout(req, res, stripe, supabase, body) {
           unitPrice = 39;
         } else if (item.id === 'tv_multi_4th') {
           unitPrice = 100;
-        } else if (item.id === 'tv_multi') {
+        } else if (item.id === 'tv_multi' || item.bundle_id === 'tv_multi') {
+          // Enforce $699 price for standard Multi-Room package (unless custom config)
           unitPrice = 699;
-        } else if (item.id === 'cam_basic') {
+        } else if (item.id === 'cam_basic' || item.bundle_id === 'cam_basic') {
           unitPrice = 599;
-        } else if (item.id === 'cam_standard') {
+        } else if (item.id === 'cam_standard' || item.bundle_id === 'cam_standard') {
           unitPrice = 1199;
-        } else if (item.id === 'cam_premium') {
+        } else if (item.id === 'cam_premium' || item.bundle_id === 'cam_premium') {
           unitPrice = 2199;
         } else if (item.type === 'bundle') {
           const { data: bundle } = await supabase
