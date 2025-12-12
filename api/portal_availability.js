@@ -60,10 +60,10 @@ export default async function handler(req, res) {
     // GET - Retrieve availability records
     if (action === 'get') {
       const { data, error } = await supabase
-        .from('h2s_pro_availability')
+        .from('h2s_dispatch_pros_availability')
         .select('*')
         .eq('pro_id', proId)
-        .order('date_start', { ascending: true });
+        .order('date_local', { ascending: true });
 
       if (error) {
         console.error('[portal_availability] Get error:', error);
@@ -97,28 +97,27 @@ export default async function handler(req, res) {
 
       // Check for duplicates
       const { data: existing } = await supabase
-        .from('h2s_pro_availability')
-        .select('availability_id')
+        .from('h2s_dispatch_pros_availability')
+        .select('avail_id')
         .eq('pro_id', proId)
-        .eq('date_start', dateLocal)
+        .eq('date_local', dateLocal)
         .maybeSingle();
 
       if (existing) {
         return res.json({
           ok: true,
           message: 'Date already blocked',
-          availability_id: existing.availability_id
+          avail_id: existing.avail_id
         });
       }
 
       // Insert new record
       const { data, error } = await supabase
-        .from('h2s_pro_availability')
+        .from('h2s_dispatch_pros_availability')
         .insert({
           pro_id: proId,
           type: type,
-          date_start: dateLocal,
-          date_end: dateEnd || dateLocal,
+          date_local: dateLocal,
           reason: reason,
           created_at: new Date().toISOString()
         })
@@ -144,7 +143,7 @@ export default async function handler(req, res) {
 
     // DELETE - Remove availability record
     if (action === 'delete') {
-      const availabilityId = body?.availability_id;
+      const availabilityId = body?.avail_id || body?.availability_id;
 
       if (!availabilityId) {
         return res.status(400).json({
@@ -155,7 +154,7 @@ export default async function handler(req, res) {
       }
 
       const { error } = await supabase
-        .from('h2s_pro_availability')
+        .from('h2s_dispatch_pros_availability')
         .delete()
         .eq('availability_id', availabilityId)
         .eq('pro_id', proId); // Security: ensure pro owns this record

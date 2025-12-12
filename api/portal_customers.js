@@ -76,14 +76,43 @@ export default async function handler(req, res) {
     // --- DEBUG PROBE END ---
 
     // Query upcoming appointments assigned to this pro
-    const { data: appointments, error: apptError } = await supabase.rpc('get_pro_customers', {
-      p_pro_id: pro_id
-    });
+    const { data: rawAssignments, error: apptError } = await supabase
+      .from('h2s_dispatch_job_assignments')
+      .select(`
+        job_id,
+        h2s_dispatch_jobs!inner (
+          job_id,
+          customer_name,
+          customer_phone,
+          customer_email,
+          start_iso,
+          end_iso,
+          status,
+          order_id
+        )
+      `)
+      .eq('pro_id', pro_id)
+      .eq('state', 'accepted')
+      .in('h2s_dispatch_jobs.status', ['accepted', 'scheduled'])
+      .gte('h2s_dispatch_jobs.start_iso', new Date().toISOString())
+      .order('h2s_dispatch_jobs.start_iso', { ascending: true });
 
     if (apptError) {
       console.error('[portal_customers] Query failed:', apptError);
       return res.status(500).json({ ok: false, error: apptError.message });
     }
+
+    // Flatten the nested structure to match expected format
+    const appointments = rawAssignments?.map(a => ({
+      job_id: a.job_id,
+      customer_name: a.h2s_dispatch_jobs.customer_name,
+      customer_phone: a.h2s_dispatch_jobs.customer_phone,
+      customer_email: a.h2s_dispatch_jobs.customer_email,
+      start_iso: a.h2s_dispatch_jobs.start_iso,
+      end_iso: a.h2s_dispatch_jobs.end_iso,
+      status: a.h2s_dispatch_jobs.status,
+      order_id: a.h2s_dispatch_jobs.order_id
+    })) || [];
 
     // ✅ ENRICHMENT: Fetch service details from h2s_orders to fix generic "Service" names
     if (appointments && appointments.length > 0) {

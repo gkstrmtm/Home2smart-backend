@@ -7756,7 +7756,9 @@ function renderMenuItems() {
 }
 $("menu").addEventListener("click", e => {
   const btn = e.target.closest(".menu-item");
-  if (!btn || !btn.dataset.go) return;
+  if (!btn) return;
+  // Allow onclick handlers to fire (e.g., feedback modal)
+  if (!btn.dataset.go) return;
   console.log('[Menu] Click detected:', btn.dataset.go);
   
   if (isAdmin) { 
@@ -10864,23 +10866,24 @@ async function loadCustomers() {
                 <div style="font-weight:bold;color:#fcd34d;margin-bottom:8px">⚠️ DEBUG PROBE: Found ${out.debug.assignments.length} raw assignments</div>
                 <div style="max-height:200px;overflow-y:auto">
                 ${out.debug.assignments.map(a => {
-                    const job = out.debug.jobs?.find(j => j.job_id === a.job_id);
-                    const jobStatus = job ? job.status : 'UNKNOWN_JOB';
-                    const jobDate = job ? job.start_iso : 'N/A';
-                    const jobName = job ? job.customer_name : 'N/A';
+                    const job = out.debug.jobs?.find(j => j.job_id === a.job_id) || {};
+                    const jobStatus = job.status || 'NO_JOB_RECORD';
+                    const jobDate = job.start_iso || 'N/A';
+                    const jobName = job.customer_name || 'N/A';
                     
                     let reason = '';
                     if (a.state !== 'accepted') reason += `[State: ${a.state}] `;
-                    if (jobStatus !== 'scheduled') reason += `[Job Status: ${jobStatus}] `;
-                    // Check if date is in past
-                    if (jobDate && new Date(jobDate) < new Date()) reason += `[Past Date] `;
+                    if (jobStatus && jobStatus !== 'accepted' && jobStatus !== 'scheduled') reason += `[Job Status: ${jobStatus}] `;
+                    // Check if date is in past or missing
+                    if (!jobDate || jobDate === 'N/A') reason += `[No Date] `;
+                    else if (new Date(jobDate) < new Date()) reason += `[Past Date] `;
                     
                     return `
                         <div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                            <span style="color:#fff">${jobName}</span><br>
+                            <span style="color:#fff">${esc(jobName)}</span><br>
                             <span style="opacity:0.7">Assign: ${a.state} | Job: ${jobStatus}</span><br>
                             <span style="opacity:0.7">Date: ${jobDate}</span><br>
-                            ${reason ? `<span style="color:#f87171">Possible Filter: ${reason}</span>` : '<span style="color:#4ade80">Should Show?</span>'}
+                            ${reason ? `<span style="color:#f87171">Filtered: ${esc(reason)}</span>` : '<span style="color:#4ade80">✓ Should Show</span>'}
                         </div>
                     `;
                 }).join('')}
