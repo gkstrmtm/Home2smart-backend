@@ -94,8 +94,7 @@ export default async function handler(req, res) {
       .eq('pro_id', pro_id)
       .eq('state', 'accepted')
       .in('h2s_dispatch_jobs.status', ['accepted', 'scheduled'])
-      .gte('h2s_dispatch_jobs.start_iso', new Date().toISOString())
-      .order('h2s_dispatch_jobs.start_iso', { ascending: true });
+      .gte('h2s_dispatch_jobs.start_iso', new Date().toISOString());
 
     if (apptError) {
       console.error('[portal_customers] Query failed:', apptError);
@@ -103,7 +102,7 @@ export default async function handler(req, res) {
     }
 
     // Flatten the nested structure to match expected format
-    const appointments = rawAssignments?.map(a => ({
+    const appointments = (rawAssignments?.map(a => ({
       job_id: a.job_id,
       customer_name: a.h2s_dispatch_jobs.customer_name,
       customer_phone: a.h2s_dispatch_jobs.customer_phone,
@@ -112,7 +111,7 @@ export default async function handler(req, res) {
       end_iso: a.h2s_dispatch_jobs.end_iso,
       status: a.h2s_dispatch_jobs.status,
       order_id: a.h2s_dispatch_jobs.order_id
-    })) || [];
+    })) || []).sort((a, b) => new Date(a.start_iso) - new Date(b.start_iso));
 
     // ✅ ENRICHMENT: Fetch service details from h2s_orders to fix generic "Service" names
     if (appointments && appointments.length > 0) {
