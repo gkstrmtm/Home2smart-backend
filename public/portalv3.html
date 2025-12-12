@@ -17728,8 +17728,16 @@ window.submitFeedback = async function() {
     }
     
     window.toast('✅ Feedback submitted! Thank you.');
-    document.querySelector('.modal').remove();
+    
+    // Reset button state before closing
+    btn.textContent = 'Submitted!';
+    setTimeout(() => {
+      const modal = document.querySelector('.modal');
+      if (modal) modal.remove();
+    }, 1000);
+    
   } catch (err) {
+    console.error("Feedback submission error:", err);
     window.toast('Error submitting feedback');
     btn.disabled = false;
     btn.textContent = 'Submit';
