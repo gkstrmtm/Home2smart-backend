@@ -834,8 +834,8 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         });
       }
       
-      const tax = subtotal * 0.08; // 8% tax
-      const total = subtotal + tax;
+      const tax = 0; // No tax added in DB record (Stripe handles final charge)
+      const total = subtotal;
       
       // Single order record matching exact schema
       const orderRecord = {
