@@ -728,7 +728,8 @@ async function handleCheckout(req, res, stripe, supabase, body) {
       shipping_address_collection: {
         allowed_countries: ['US']  // Collect service address
       },
-      metadata: safeMetadata
+      metadata: safeMetadata,
+      automatic_tax: { enabled: true }
     };
 
     if (discounts) {
