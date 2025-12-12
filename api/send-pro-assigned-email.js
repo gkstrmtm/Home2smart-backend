@@ -72,17 +72,37 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // 2. Fetch pro details (just name and photo)
-    const { data: pro, error: proError } = await supabase
-      .from('h2s_dispatch_pros')
+    // 2. Fetch pro details (try h2s_pros first, then fallback to h2s_dispatch_pros)
+    let proData = null;
+    
+    // Try active table first
+    const { data: proActive, error: proActiveError } = await supabase
+      .from('h2s_pros')
       .select('pro_id, name, photo_url')
       .eq('pro_id', pro_id)
       .single();
 
-    if (proError || !pro) {
-      console.error('[send-pro-assigned-email] Pro not found:', proError);
+    if (proActive) {
+      proData = proActive;
+    } else {
+      // Fallback to legacy table
+      const { data: proLegacy, error: proLegacyError } = await supabase
+        .from('h2s_dispatch_pros')
+        .select('pro_id, name, photo_url')
+        .eq('pro_id', pro_id)
+        .single();
+        
+      if (proLegacy) {
+        proData = proLegacy;
+      }
+    }
+
+    if (!proData) {
+      console.error('[send-pro-assigned-email] Pro not found in either table');
       return res.status(404).json({ error: 'Pro not found' });
     }
+    
+    const pro = proData;
 
     // 3. Format date and time
     const jobDate = new Date(job.start_iso);

@@ -108,7 +108,7 @@ function setup() {
 function setOpenAIKey(apiKey) {
   // Auto-embed key if not provided
   if (!apiKey || apiKey === '') {
-    apiKey = 'YOUR_OPENAI_API_KEY_HERE';
+    apiKey = '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';
   }
   
   const p = PropertiesService.getScriptProperties();

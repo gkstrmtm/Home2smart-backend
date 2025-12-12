@@ -5226,7 +5226,12 @@ a:focus-visible{
           <div style="display:grid;gap:20px">
             <!-- Profile Photo Upload -->
             <div>
-              <label class="label" style="display:block;margin-bottom:12px;font-weight:600;color:#cbd5e1">Profile Photo</label>
+              <label class="label" style="display:block;margin-bottom:12px;font-weight:600;color:#cbd5e1">
+                Profile Photo
+                <span style="display:block;font-weight:400;font-size:13px;color:#94a3b8;margin-top:4px">
+                  This photo will be shared with customers when you accept a job. Please choose a professional, clear headshot.
+                </span>
+              </label>
               <div style="display:flex;gap:16px;align-items:start">
                 <!-- Photo Preview -->
                 <div style="flex-shrink:0">
@@ -15100,6 +15105,13 @@ function renderTrainingContent() {
   const searchTerm = $("trainingSearch").value.toLowerCase().trim();
   
   let videos = trainingCatalog.videos || [];
+
+  // Show skeletons briefly if catalog exists but is empty/loading
+  if (!videos || videos.length === 0) {
+    const box = $("training-content");
+    box.innerHTML = "";
+    box.appendChild(renderTrainingSkeletons(6));
+  }
   
   // Filter by category using actual module names
   if (activeCategory && activeCategory !== 'all') {
@@ -15124,6 +15136,34 @@ function renderTrainingContent() {
   
   const box = $("training-content");
   const fragment = document.createDocumentFragment();
+
+  // ===== Intelligent shelves: Pinned and Priority Next =====
+  const pins = TrainingPins.load();
+  const now = Date.now();
+
+  // Helper: user progress
+  const getProgress = (id) => ({
+    status: getVideoStatus(id),
+    pct: getProgressPercentage(id)
+  });
+
+  // Build pinned list (respect priority and expiry)
+  const pinnedIds = pins
+    .filter(p => !p.pinned_until || new Date(p.pinned_until).getTime() > now)
+    .sort((a,b) => (b.priority||0) - (a.priority||0))
+    .map(p => p.video_id);
+  const pinnedVideos = videos.filter(v => pinnedIds.includes(String(v.id)));
+
+  // Compute priority scores
+  const scored = videos.map(v => {
+    const prog = getProgress(v.id);
+    const score = computePriorityScore(v, prog);
+    // Admin-set priority acts as a small multiplier
+    const pin = pins.find(p => String(p.video_id) === String(v.id));
+    const boost = pin ? (1 + (pin.priority||0)/10) : 1;
+    return { v, score: score * boost };
+  }).sort((a,b) => b.score - a.score);
+  const priorityVideos = scored.map(s => s.v).filter(v => !pinnedIds.includes(String(v.id))).slice(0, 8);
   
   // Show empty state if no videos match
   if (videos.length === 0) {
@@ -15147,27 +15187,267 @@ function renderTrainingContent() {
   });
   
   box.innerHTML = "";
+
+  // Render shelves if content exists
+  if (pinnedVideos.length) {
+    box.appendChild(renderShelf("Pinned", pinnedVideos));
+  }
+  if (priorityVideos.length) {
+    box.appendChild(renderShelf("Priority Next", priorityVideos));
+  }
+
+  // Render All Videos (existing grid)
   box.appendChild(fragment);
   
   // Add click handler
   box.onclick = async e => {
-    const btn = e.target.closest("button[data-play]");
-    if (!btn) return;
-    const videoId = btn.dataset.play;
-    const video = videos.find(v => v.id === videoId);
-    if (video) playVideo(video);
+    console.log("🖱️ Training content clicked", e.target);
+    
+    // 1. Check for explicit play button
+    let videoId = e.target.closest("button[data-play]")?.dataset.play;
+    
+    // 2. If not button, check if they clicked the card itself (UX improvement)
+    if (!videoId) {
+        const card = e.target.closest(".training-card");
+        // Ensure we aren't clicking a link or other interactive element inside the card
+        if (card && card.dataset.videoId && !e.target.closest("a")) {
+            videoId = card.dataset.videoId;
+            console.log("🎯 Card clicked, using ID:", videoId);
+        }
+    }
+
+    if (!videoId) {
+        // console.log("❌ No video ID found in click path");
+        return;
+    }
+    
+    console.log("🎯 Triggering play for ID:", videoId);
+    
+    // Loose equality to handle string/number mismatch
+    const video = videos.find(v => String(v.id) === String(videoId));
+    
+    if (video) {
+      console.log("✅ Video found:", video.title);
+      try {
+        playVideo(video);
+      } catch (err) {
+        console.error("🔥 Error in playVideo:", err);
+        alert("Error playing video: " + err.message);
+      }
+    } else {
+      console.error("❌ Video NOT found for ID:", videoId);
+      console.log("Available videos:", videos.map(v => v.id));
+      alert("Error: Video data not found. Please refresh.");
+    }
   };
 }
 
-function createTrainingCard(v, progressPct, status) {
-  let badgeHTML = "";
-  if (status === "completed") {
-    badgeHTML = '<div class="training-badge badge-completed">✓ Completed</div>';
-  } else if (status === "in_progress") {
-    badgeHTML = '<div class="training-badge badge-progress">⏱ In Progress</div>';
-  } else {
-    badgeHTML = '<div class="training-badge badge-new">New</div>';
+// Sticky filter bar setup (called once after DOM ready)
+function setupStickyFilterBar() {
+  const bar = document.querySelector('#training-filter-bar');
+  if (!bar) return;
+  bar.style.position = 'sticky';
+  bar.style.top = '56px';
+  bar.style.zIndex = '40';
+  bar.style.background = 'rgba(5,13,26,0.85)';
+  bar.style.backdropFilter = 'blur(12px)';
+  bar.style.borderBottom = '1px solid var(--h2s-border-subtle)';
+}
+
+// Skeleton loaders for training cards
+function renderTrainingSkeletons(count=6) {
+  const wrap = document.createElement('div');
+  wrap.style.display = 'grid';
+  wrap.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
+  wrap.style.gap = '12px';
+  for (let i=0;i<count;i++) {
+    const card = document.createElement('div');
+    card.className = 'training-card';
+    const thumb = document.createElement('div');
+    thumb.style.height = '140px';
+    thumb.style.borderRadius = '12px';
+    thumb.style.background = 'rgba(255,255,255,0.06)';
+    thumb.style.animation = 'pulse 1.2s ease-in-out infinite';
+    const body = document.createElement('div');
+    body.style.marginTop = '10px';
+    const line1 = document.createElement('div');
+    line1.style.height = '12px';
+    line1.style.width = '70%';
+    line1.style.borderRadius = '6px';
+    line1.style.background = 'rgba(255,255,255,0.06)';
+    line1.style.animation = 'pulse 1.2s ease-in-out infinite';
+    const line2 = document.createElement('div');
+    line2.style.marginTop = '8px';
+    line2.style.height = '10px';
+    line2.style.width = '40%';
+    line2.style.borderRadius = '6px';
+    line2.style.background = 'rgba(255,255,255,0.06)';
+    line2.style.animation = 'pulse 1.2s ease-in-out infinite';
+    card.appendChild(thumb);
+    body.appendChild(line1);
+    body.appendChild(line2);
+    card.appendChild(body);
+    wrap.appendChild(card);
   }
+  return wrap;
+}
+
+// Keyframe for skeleton pulse (inserted once)
+(function ensurePulseKeyframes(){
+  const id = 'h2s-pulse-keyframes';
+  if (document.getElementById(id)) return;
+  const style = document.createElement('style');
+  style.id = id;
+  style.textContent = `@keyframes pulse { 0%{opacity:.6} 50%{opacity:.3} 100%{opacity:.6} }`;
+  document.head.appendChild(style);
+})();
+
+// ===== Pins store (client-side) =====
+const TrainingPins = {
+  key: 'h2s_training_pins',
+  load() {
+    try {
+      const raw = localStorage.getItem(this.key);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch(e) { console.warn('Pins load error', e); return []; }
+  },
+  save(pins) {
+    try { localStorage.setItem(this.key, JSON.stringify(pins||[])); }
+    catch(e) { console.warn('Pins save error', e); }
+  },
+  setPin(video_id, priority=0, pinned_until=null) {
+    const pins = this.load();
+    const idx = pins.findIndex(p => String(p.video_id) === String(video_id));
+    const rec = { video_id: String(video_id), priority, pinned_until };
+    if (idx >= 0) pins[idx] = rec; else pins.push(rec);
+    this.save(pins);
+  },
+  removePin(video_id) {
+    const pins = this.load().filter(p => String(p.video_id) !== String(video_id));
+    this.save(pins);
+  }
+};
+
+// ===== Priority scoring (heuristics) =====
+function computePriorityScore(video, progress) {
+  // Prefer backend-provided AI score when available
+  if (typeof video.auto_priority_score === 'number') {
+    return video.auto_priority_score;
+  }
+  let score = 0;
+  const title = (video.title||'').toLowerCase();
+  const desc = (video.description||'').toLowerCase();
+  const text = title + ' ' + desc;
+
+  // Keywords boost
+  const boosts = [
+    ['getting started', 2], ['onboarding', 2], ['account', 2], ['policy', 1],
+    ['safety', 3], ['install', 2], ['mount', 2], ['network', 2], ['troubleshoot', 2],
+  ];
+  boosts.forEach(([kw, val]) => { if (text.includes(kw)) score += val; });
+
+  // Duration buckets
+  const dur = video.duration_sec || 0;
+  if (dur >= 300 && dur <= 900) score += 2; // 5–15 min
+  else if (dur && dur < 60) score -= 2; // too short
+  else if (dur > 1500) score -= 1; // >25 min slightly penalize
+
+  // Recency (if available)
+  const ts = video.created_at ? new Date(video.created_at).getTime() : 0;
+  if (ts) {
+    const days = (Date.now() - ts) / 86400000;
+    if (days < 30) score += 1;
+  }
+
+  // Health: missing thumbnail or bad URL
+  const url = video.url||'';
+  if (!url) score -= 3;
+  const hasThumb = !!video.thumbnail;
+  if (!hasThumb) score -= 1;
+
+  // User status
+  if (progress?.status === 'in_progress') score += 2;
+  if (progress?.status === 'completed') score -= 2;
+
+  // Light boost by auto_category if present (e.g., 'Critical', 'Setup')
+  const cat = (video.auto_category||'').toLowerCase();
+  if (cat.includes('critical') || cat.includes('required')) score += 3;
+  else if (cat.includes('setup') || cat.includes('onboarding')) score += 2;
+  else if (cat.includes('advanced')) score += 1;
+
+  return score;
+}
+
+// ===== Render a shelf of cards =====
+function renderShelf(title, vids) {
+  const section = document.createElement('section');
+  section.style.marginBottom = '16px';
+  const h = document.createElement('h3');
+  h.textContent = title;
+  h.style.margin = '8px 0 12px';
+  h.style.fontSize = '16px';
+  h.style.fontWeight = '600';
+  section.appendChild(h);
+  const row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.gap = '12px';
+  row.style.overflowX = 'auto';
+  row.style.scrollSnapType = 'x proximity';
+  row.style.webkitOverflowScrolling = 'touch';
+  row.style.paddingBottom = '8px';
+  vids.forEach(v => {
+    const status = getVideoStatus(v.id);
+    const pct = getProgressPercentage(v.id);
+    const el = createTrainingCard(v, pct, status);
+    el.style.minWidth = '260px';
+    el.style.scrollSnapAlign = 'start';
+    row.appendChild(el);
+  });
+  section.appendChild(row);
+  return section;
+}
+
+// ===== Admin tools (client-only; gated later) =====
+function showTrainingAdminPanel(videos) {
+  const panel = document.createElement('div');
+  panel.style.margin = '16px 0';
+  panel.style.padding = '12px';
+  panel.style.border = '1px solid rgba(148,163,184,0.2)';
+  panel.style.borderRadius = '12px';
+  const title = document.createElement('div');
+  title.textContent = 'Training Admin';
+  title.style.fontWeight = '600';
+  title.style.marginBottom = '8px';
+  panel.appendChild(title);
+  const list = document.createElement('div');
+  list.style.display = 'grid';
+  list.style.gridTemplateColumns = '1fr auto auto';
+  list.style.gap = '8px';
+  videos.forEach(v => {
+    const row = document.createElement('div');
+    row.style.display = 'contents';
+    const name = document.createElement('div');
+    name.textContent = v.title;
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'btn';
+    pinBtn.textContent = 'Pin';
+    pinBtn.onclick = () => { TrainingPins.setPin(v.id, 5, null); alert('Pinned'); };
+    const unpinBtn = document.createElement('button');
+    unpinBtn.className = 'btn secondary';
+    unpinBtn.textContent = 'Unpin';
+    unpinBtn.onclick = () => { TrainingPins.removePin(v.id); alert('Unpinned'); };
+    list.appendChild(name);
+    list.appendChild(pinBtn);
+    list.appendChild(unpinBtn);
+  });
+  panel.appendChild(list);
+  return panel;
+}
+
+function createTrainingCard(v, progressPct, status) {
+  // Simplified card: remove progress/status badges to reduce noise
   
   const el = document.createElement("div");
   el.className = "training-card";
@@ -15183,12 +15463,6 @@ function createTrainingCard(v, progressPct, status) {
   el.innerHTML = `
     <div class="training-thumb" style="${thumbStyle}">
       ${!v.thumbnail ? '🎬' : ''}
-      ${badgeHTML}
-      ${status === 'in_progress' && progressPct > 0 ? `
-        <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(0,0,0,.5)">
-          <div style="height:100%;background:#3b82f6;width:${progressPct}%"></div>
-        </div>
-      ` : ''}
     </div>
     <div class="training-body">
       <h3 class="training-title">${esc(v.title)}</h3>
@@ -15199,15 +15473,9 @@ function createTrainingCard(v, progressPct, status) {
         ${v.certificate ? '<span>Certificate</span>' : ''}
       </div>
       ${v.description ? `<div class="training-desc">${esc(v.description)}</div>` : ""}
-      ${progressPct > 0 && status === 'in_progress' ? `
-        <div class="training-progress">
-          <div class="training-progress-bar" style="width:${progressPct}%"></div>
-        </div>
-        <div style="font-size:12px;opacity:.75;margin-top:6px">${progressPct}% complete</div>
-      ` : ""}
       <div class="actions" style="margin-top:12px">
         <button class="btn" data-play="${esc(v.id)}" type="button">
-          ${status === "completed" ? "▶ Rewatch" : status === "in_progress" ? "▶ Continue" : "▶ Watch"}
+          ▶ Watch
         </button>
       </div>
     </div>
@@ -15449,84 +15717,108 @@ function renderTrainingResources() {
 }
 
 function playVideo(video) {
-  currentVideo = video;
-  $("videoTitle").textContent = video.title;
-  $("videoModule").textContent = video.module || "General";
-  $("videoLevel").textContent = video.level ? `${video.level}` : "";
-  $("videoDuration").textContent = video.duration ? `⏱ ${video.duration}` : "";
-  
-  const status = getVideoStatus(video.id);
-  const statusText = status === "completed" ? "✓ Completed" : status === "in_progress" ? "⏱ In Progress" : "🆕 New";
-  $("videoProgressStatus").textContent = statusText;
-  
-  $("videoDescription").textContent = video.description || "";
-  
-  console.log("▶️ Playing video:", video.title, "Platform:", video.platform, "URL:", video.url);
-  
-  // Embed video player
-  const playerBox = $("videoPlayer");
-  playerBox.innerHTML = "";
-  
-  // Detect platform from URL if not specified
-  const platform = video.platform || detectPlatform(video.url);
-  
-  if (platform === "loom") {
-    // Extract Loom ID from URL
-    const loomMatch = video.url.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/);
-    if (loomMatch) {
-      const loomId = loomMatch[1];
-      console.log("📹 Loom video ID:", loomId);
-      
+  try {
+    if (!video) throw new Error("No video object provided");
+    if (!video.url) throw new Error("Video object has no URL");
+
+    currentVideo = video;
+    $("videoTitle").textContent = video.title;
+    $("videoModule").textContent = video.module || "General";
+    $("videoLevel").textContent = video.level ? `${video.level}` : "";
+    $("videoDuration").textContent = video.duration ? `⏱ ${video.duration}` : "";
+    
+    const status = getVideoStatus(video.id);
+    const statusText = status === "completed" ? "✓ Completed" : status === "in_progress" ? "⏱ In Progress" : "🆕 New";
+    $("videoProgressStatus").textContent = statusText;
+    
+    $("videoDescription").textContent = video.description || "";
+    
+    console.log("▶️ Playing video:", video.title, "Platform:", video.platform, "URL:", video.url);
+    
+    // Embed video player
+    const playerBox = $("videoPlayer");
+    if (!playerBox) throw new Error("Video player container not found");
+    playerBox.innerHTML = "";
+    
+    // Detect platform from URL if not specified
+    const platform = video.platform || detectPlatform(video.url);
+    
+    if (platform === "loom") {
+      // Extract Loom ID from URL
+      const loomMatch = video.url.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/);
+      if (loomMatch) {
+        const loomId = loomMatch[1];
+        console.log("📹 Loom video ID:", loomId);
+        
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.loom.com/embed/${loomId}?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true`;
+        iframe.style.cssText = "width:100%;height:100%;border:0";
+        iframe.allow = "autoplay; fullscreen; picture-in-picture";
+        iframe.allowFullscreen = true;
+        playerBox.appendChild(iframe);
+        try {
+          document.getElementById('videoPlayer')?.scrollIntoView({behavior:'smooth', block:'center'});
+        } catch(e) {}
+      } else {
+        console.error("❌ Failed to extract Loom ID from:", video.url);
+        playerBox.innerHTML = '<div style="color:#ef4444;padding:20px">Invalid Loom URL</div>';
+        return;
+      }
+    } else if (platform === "youtube") {
+      // Extract YouTube ID
+      const ytMatch = video.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+      if (ytMatch) {
+        const ytId = ytMatch[1];
+        console.log("🎥 YouTube video ID:", ytId);
+        
+        const iframe = document.createElement("iframe");
+        iframe.src = `https://www.youtube.com/embed/${ytId}?enablejsapi=1`;
+        iframe.style.cssText = "width:100%;height:100%;border:0";
+        iframe.allow = "autoplay; fullscreen; picture-in-picture";
+        iframe.allowFullscreen = true;
+        playerBox.appendChild(iframe);
+        try {
+          document.getElementById('videoPlayer')?.scrollIntoView({behavior:'smooth', block:'center'});
+        } catch(e) {}
+      } else {
+        console.error("❌ Failed to extract YouTube ID from:", video.url);
+        playerBox.innerHTML = '<div style="color:#ef4444;padding:20px">Invalid YouTube URL</div>';
+        return;
+      }
+    } else {
+      // Generic iframe embed
+      console.log("🎬 Generic video embed:", video.url);
       const iframe = document.createElement("iframe");
-      iframe.src = `https://www.loom.com/embed/${loomId}?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true`;
+      iframe.src = video.url;
       iframe.style.cssText = "width:100%;height:100%;border:0";
       iframe.allow = "autoplay; fullscreen; picture-in-picture";
       iframe.allowFullscreen = true;
       playerBox.appendChild(iframe);
-    } else {
-      console.error("❌ Failed to extract Loom ID from:", video.url);
-      playerBox.innerHTML = '<div style="color:#ef4444;padding:20px">Invalid Loom URL</div>';
-      return;
+      try {
+        document.getElementById('videoPlayer')?.scrollIntoView({behavior:'smooth', block:'center'});
+      } catch(e) {}
     }
-  } else if (platform === "youtube") {
-    // Extract YouTube ID
-    const ytMatch = video.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
-    if (ytMatch) {
-      const ytId = ytMatch[1];
-      console.log("🎥 YouTube video ID:", ytId);
-      
-      const iframe = document.createElement("iframe");
-      iframe.src = `https://www.youtube.com/embed/${ytId}?enablejsapi=1`;
-      iframe.style.cssText = "width:100%;height:100%;border:0";
-      iframe.allow = "autoplay; fullscreen; picture-in-picture";
-      iframe.allowFullscreen = true;
-      playerBox.appendChild(iframe);
+    
+    // Show modal
+    const modal = $("videoModal");
+    if (modal) {
+      modal.style.display = "grid";
+      modal.setAttribute("aria-hidden", "false");
     } else {
-      console.error("❌ Failed to extract YouTube ID from:", video.url);
-      playerBox.innerHTML = '<div style="color:#ef4444;padding:20px">Invalid YouTube URL</div>';
-      return;
+      console.error("❌ Video modal not found");
+      alert("Video modal not found");
     }
-  } else {
-    // Generic iframe embed
-    console.log("🎬 Generic video embed:", video.url);
-    const iframe = document.createElement("iframe");
-    iframe.src = video.url;
-    iframe.style.cssText = "width:100%;height:100%;border:0";
-    iframe.allow = "autoplay; fullscreen; picture-in-picture";
-    iframe.allowFullscreen = true;
-    playerBox.appendChild(iframe);
-  }
-  
-  // Show modal
-  $("videoModal").style.display = "grid";
-  $("videoModal").setAttribute("aria-hidden", "false");
-  
-  // Track video viewing (simple heartbeat every 10 seconds while modal open)
-  startVideoHeartbeat(video.id, video.duration_sec || 0);
-  
-  // Mark as viewed immediately (first touch)
-  if (status === "not_started") {
-    markVideoViewed(video.id);
+    
+    // Track video viewing (simple heartbeat every 10 seconds while modal open)
+    startVideoHeartbeat(video.id, video.duration_sec || 0);
+    
+    // Mark as viewed immediately (first touch)
+    if (status === "not_started") {
+      markVideoViewed(video.id);
+    }
+  } catch (err) {
+    console.error("🔥 playVideo CRITICAL ERROR:", err);
+    alert("Failed to play video: " + err.message);
   }
 }
 
@@ -15719,6 +16011,15 @@ function closeVideoModal() {
   updateTrainingStats();
   renderTrainingContent();
 }
+
+// Initialize sticky filter bar on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    setupStickyFilterBar();
+  } catch (e) {
+    console.warn('Sticky filter bar setup skipped:', e?.message || e);
+  }
+});
 
 // ✅ SAFEGUARD: Save progress immediately when closing modal
 async function saveFinalProgress() {
