@@ -106,9 +106,9 @@ function setup() {
 
 /** ====== SET OPENAI API KEY (DIRECT - LOCKS IT IN) ====== */
 function setOpenAIKey(apiKey) {
-  // Auto-embed key if not provided
+  // Do NOT embed secrets in source. Require explicit input or environment.
   if (!apiKey || apiKey === '') {
-    apiKey = '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';
+    throw new Error('OPENAI_API_KEY must be provided explicitly. Do not hardcode secrets.');
   }
   
   const p = PropertiesService.getScriptProperties();
