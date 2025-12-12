@@ -7071,7 +7071,7 @@ function throttle(func, limit) {
   };
 }
 
-function toast(msg, duration = 2400) {
+window.toast = window.toast = function toast(msg, duration = 2400) {
   const t = $("toast");
   t.textContent = msg;
   t.style.display = "block";
@@ -7292,7 +7292,7 @@ async function GET_JSONP(action, payload={}) {
     setTimeout(() => { console.error(`[JSONP] ⏰ ${action} timed out`); reject(new Error('JSONP timeout')); cleanup(scriptEl); }, 12000);
   });
 }
-async function POST(action, payload={}) {
+window.POST = async function POST(action, payload={}) {
   console.log("POST request:", action, payload);
   
   // Dual-mode routing: portal_* actions → Vercel, admin_* actions → Apps Script
@@ -7392,6 +7392,7 @@ function fmtMoney(n) { return "$" + asNum(n).toFixed(2); }
 
 /* ===== STATE ===== */
 let token = localStorage.getItem(LS_TOKEN) || sessionStorage.getItem(LS_TOKEN) || "";
+window.token = token;
 let adminToken = localStorage.getItem(LS_ADMIN_TOKEN) || "";
 let me = null;
 let isAdmin = false;
@@ -7589,7 +7590,7 @@ function doSignOut() {
   localStorage.removeItem(LS_ADMIN_TOKEN);
   localStorage.removeItem("h2s_is_authenticated"); // Clear auth flag
   localStorage.removeItem("h2s_active_view");      // Clear view state
-  token = ""; adminToken = ""; me = null; isAdmin = false;
+  token = ""; window.token = ""; adminToken = ""; me = null; isAdmin = false;
   
   // Clear in-memory cache
   Object.keys(tabCache).forEach(key => {
@@ -11635,6 +11636,7 @@ document.getElementById("btnSignIn").addEventListener("click", async function() 
     }
     
     token = out.token || "";
+    window.token = token;
     const remember = document.getElementById("siRemember")?.checked;
     
     if (remember) {
@@ -11727,6 +11729,7 @@ $("finishStep1").addEventListener("click", async () => {
     console.log("📧 Account created for:", payload.email);
     
     token = out.token || "";
+    window.token = token;
     localStorage.setItem(LS_TOKEN, token);
     
     // Store the signup email in localStorage for reference
@@ -17702,10 +17705,10 @@ function openFeedbackModal() {
   setTimeout(() => document.getElementById('feedbackMessage').focus(), 100);
 }
 
-async function submitFeedback() {
+window.submitFeedback = async function() {
   const message = document.getElementById('feedbackMessage').value.trim();
   if (!message) {
-    toast('Please enter your feedback');
+    window.toast('Please enter your feedback');
     return;
   }
   
@@ -17714,18 +17717,18 @@ async function submitFeedback() {
   btn.textContent = 'Submitting...';
   
   try {
-    const out = await POST('portal_submit_feedback', { token, message });
+    const out = await window.POST('portal_submit_feedback', { token: window.token, message });
     if (!out.ok) {
-      toast(out.error || 'Failed to submit feedback');
+      window.toast(out.error || 'Failed to submit feedback');
       btn.disabled = false;
       btn.textContent = 'Submit';
       return;
     }
     
-    toast('✅ Feedback submitted! Thank you.');
+    window.toast('✅ Feedback submitted! Thank you.');
     document.querySelector('.modal').remove();
   } catch (err) {
-    toast('Error submitting feedback');
+    window.toast('Error submitting feedback');
     btn.disabled = false;
     btn.textContent = 'Submit';
   }
