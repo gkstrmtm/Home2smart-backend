@@ -14436,7 +14436,7 @@ window.submitTimeOffRequest = async function() {
   const reason = $("timeOffReasonModal").value;
   
   if (!date) {
-    toast("Please select a date");
+    window.toast("Please select a date");
     return;
   }
   
@@ -14453,8 +14453,9 @@ window.submitTimeOffRequest = async function() {
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         requests.push(
-          POST("portal_availability?action=set", {
-            token, 
+          window.POST("portal_availability", {
+            token: window.token, 
+            action: 'set',
             type: reason, 
             date_local: dateStr
           })
@@ -14465,16 +14466,16 @@ window.submitTimeOffRequest = async function() {
       const failures = results.filter(r => !r.ok);
       
       if (failures.length === 0) {
-        toast(`✓ Time off requested for ${results.length} day${results.length > 1 ? 's' : ''}`);
+        window.toast(`✓ Time off requested for ${results.length} day${results.length > 1 ? 's' : ''}`);
         selectedRangeStart = null;
         selectedRangeEnd = null;
         window.closeTimeOffModal();
         await loadSchedule();
       } else {
-        toast(`⚠️ ${results.length - failures.length} days saved, ${failures.length} failed`);
+        window.toast(`⚠️ ${results.length - failures.length} days saved, ${failures.length} failed`);
       }
     } catch(e) {
-      toast("Error submitting range request");
+      window.toast("Error submitting range request");
     } finally {
       loading(false);
     }
@@ -14488,30 +14489,31 @@ window.submitTimeOffRequest = async function() {
     const maxDate = new Date(today.getFullYear(), today.getMonth() + maxMonths, 0);
     const picked = new Date(date + 'T00:00:00');
     const floor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    if (picked < floor) { toast("Date must be today or later"); return; }
-    if (picked > maxDate) { toast(`Please choose a date on or before ${maxDate.toLocaleDateString('en-US')}`); return; }
+    if (picked < floor) { window.toast("Date must be today or later"); return; }
+    if (picked > maxDate) { window.toast(`Please choose a date on or before ${maxDate.toLocaleDateString('en-US')}`); return; }
   } catch(e) { /* ignore parse issues; backend will re-validate too */ }
   
   try {
     loading(true);
     
-    const out = await POST("portal_availability?action=set", {
-      token, 
+    const out = await window.POST("portal_availability", {
+      token: window.token, 
+      action: 'set',
       type: reason, 
       date_local: date
     });
     
     if (out.ok) {
-      toast("✓ Time off requested for " + new Date(date).toLocaleDateString());
+      window.toast("✓ Time off requested for " + new Date(date).toLocaleDateString());
       selectedRangeStart = null;
       selectedRangeEnd = null;
       window.closeTimeOffModal();
       await loadSchedule();
     } else {
-      toast(out.error || "Could not save time off request");
+      window.toast(out.error || "Could not save time off request");
     }
   } catch(e) {
-    toast("Error submitting request");
+    window.toast("Error submitting request");
   } finally {
     loading(false);
   }
