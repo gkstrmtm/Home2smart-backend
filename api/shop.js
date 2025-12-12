@@ -294,9 +294,10 @@ async function handleCheckout(req, res, stripe, supabase, body) {
     const receiptItems = [];
 
     for (const item of cart) {
+      const itemId = item.id || item.bundle_id;
 
       // HARDWARE / ADD-ONS (No DB lookup needed)
-      if (item.id === 'mount_hardware') {
+      if (itemId === 'mount_hardware') {
         lineItems.push({
           price_data: {
             currency: 'usd',
@@ -312,7 +313,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         });
         continue;
       }
-      if (item.id === 'tv_multi_4th') {
+      if (itemId === 'tv_multi_4th') {
         lineItems.push({
           price_data: {
             currency: 'usd',
@@ -329,9 +330,10 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
-      if (item.id === 'tv_multi') {
-        // Get actual price from cart (includes tier pricing + mount upcharges)
-        const actualPrice = Math.round((item.price || 699) * 100); // Convert to cents
+      if (itemId === 'tv_multi') {
+        // Enforce $699 price for standard Multi-Room package (unless custom config)
+        // This prevents client-side price manipulation or rounding errors
+        const actualPrice = 69900; 
         const itemMetadata = item.metadata || {};
         
         // Check if we have detailed TV configurations
@@ -396,7 +398,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
-      if (item.id === 'cam_basic') {
+      if (itemId === 'cam_basic') {
         const name = 'Basic Coverage (2 Cams + Doorbell)';
         lineItems.push({
           price_data: {
@@ -418,7 +420,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
-      if (item.id === 'cam_standard') {
+      if (itemId === 'cam_standard') {
         const name = 'Standard Coverage (4 Cams + Doorbell)';
         lineItems.push({
           price_data: {
@@ -440,7 +442,7 @@ async function handleCheckout(req, res, stripe, supabase, body) {
         continue;
       }
 
-      if (item.id === 'cam_premium') {
+      if (itemId === 'cam_premium') {
         const name = 'Premium Coverage (8 Cams + Doorbell + NVR)';
         lineItems.push({
           price_data: {
