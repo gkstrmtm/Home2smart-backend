@@ -1,0 +1,3778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch Ordering Dashboard - Home2Smart</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ========================= LOGIN SCREEN ========================= */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  z-index: 1000;
+}
+
+.login-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 48px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-logo img {
+  max-width: 200px;
+  height: auto;
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.login-subtitle {
+  font-size: 15px;
+  color: #94a3b8;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  background: rgba(255,255,255,0.12);
+  border-color: #3b82f6;
+}
+
+.error {
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.success {
+  background: rgba(16,185,129,0.2);
+  border: 1px solid rgba(16,185,129,0.4);
+  color: #6ee7b7;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================= DASHBOARD HEADER ========================= */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.h2s-logo {
+  display: inline-block;
+}
+
+.h2s-logo img {
+  max-width: 156px;
+  height: auto;
+}
+
+.header-title-group {
+  flex: 1;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header-info {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.status-badge.connected {
+  background: rgba(16,185,129,0.15);
+  border-color: rgba(16,185,129,0.3);
+  color: #10b981;
+}
+
+.status-badge.disconnected {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.3);
+  color: #ef4444;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.user-email {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-right: 8px;
+}
+
+/* ========================= BUTTONS ========================= */
+
+.btn {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59,130,246,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* ========================= SEARCH & FILTERS ========================= */
+
+.search-bar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.bulk-actions-bar {
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-input {
+  flex: 1;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  background: rgba(255,255,255,0.12);
+  border-color: #3b82f6;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-btn {
+  padding: 10px 18px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #3b82f6;
+  color: white;
+}
+
+/* ========================= STATS ========================= */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.08);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(59,130,246,0.4);
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* ========================= JOB CARDS ========================= */
+
+.jobs-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.job-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s;
+  position: relative;
+  cursor: pointer;
+}
+
+.job-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(59,130,246,0.4);
+  box-shadow: 0 8px 24px rgba(59,130,246,0.15);
+}
+
+.job-card.expanded {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(59,130,246,0.6);
+}
+
+.job-card.selected-for-bulk {
+  border-color: #10b981;
+  background: rgba(16,185,129,0.1);
+  box-shadow: 0 0 0 2px rgba(16,185,129,0.3);
+}
+
+.job-card-checkbox {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #10b981;
+  z-index: 10;
+}
+
+.job-card.has-checkbox {
+  padding-left: 52px;
+}
+
+.job-details-expanded {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.job-card.expanded .job-details-expanded {
+  max-height: 2000px;
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.job-header-left {
+  flex: 1;
+}
+
+.job-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.job-id {
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 600;
+  background: rgba(59,130,246,0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.job-date {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.urgency-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.urgency-high {
+  background: rgba(239,68,68,0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+
+.urgency-normal {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.3);
+}
+
+.job-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.service-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.job-info {
+  display: grid;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.info-icon {
+  font-size: 16px;
+  opacity: 0.7;
+  min-width: 20px;
+}
+
+.info-content {
+  flex: 1;
+  line-height: 1.6;
+}
+
+.clickable-link {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.clickable-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.equipment-list {
+  background: rgba(255,255,255,0.04);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.equipment-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.equipment-item:last-child {
+  border-bottom: none;
+}
+
+.equipment-name {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.equipment-notes {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.equipment-qty {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.buy-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.buy-link {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.buy-amazon {
+  background: linear-gradient(135deg, #ff9900 0%, #ff7700 100%);
+  color: #000;
+}
+
+.buy-lowes {
+  background: linear-gradient(135deg, #004990 0%, #003366 100%);
+  color: #fff;
+}
+
+.buy-homedepot {
+  background: linear-gradient(135deg, #f96302 0%, #d64e00 100%);
+  color: #fff;
+}
+
+.buy-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.job-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.job-actions .btn {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* ========================= LOADING & EMPTY STATES ========================= */
+
+/* ========================= MODALS ========================= */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: slideUp 0.25s ease;
+}
+
+.refined-modal {
+  max-width: 650px;
+}
+
+.modal-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.refined-header {
+  padding: 20px 24px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 28px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.refined-body {
+  padding: 20px 24px;
+}
+
+/* Custom scrollbar for modal */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.refined-footer {
+  padding: 16px 24px;
+}
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.1) 100%);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.info-banner-icon {
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+.info-banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.info-banner-text {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Notes Section */
+.notes-section {
+  margin-bottom: 20px;
+}
+
+.notes-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.notes-text {
+  font-size: 14px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* Section Label */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+/* Refined Equipment List */
+.equipment-list-refined {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.equipment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.equipment-row:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.equipment-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.equipment-input-name {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  padding: 0;
+  outline: none;
+  margin-bottom: 4px;
+}
+
+.equipment-input-name::placeholder {
+  color: #64748b;
+}
+
+.equipment-row-notes {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.equipment-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.qty-btn-refined {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.qty-btn-refined:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.qty-display {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  min-width: 24px;
+  text-align: center;
+}
+
+.delete-btn-refined {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.delete-btn-refined:hover {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+
+.add-item-refined {
+  width: 100%;
+  background: transparent;
+  border: 1.5px dashed rgba(255,255,255,0.2);
+  color: #94a3b8;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.add-item-refined:hover {
+  border-color: rgba(59,130,246,0.4);
+  background: rgba(59,130,246,0.05);
+  color: #3b82f6;
+}
+
+/* Quick Buy Links */
+.quick-buy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.quick-buy-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quick-buy-link:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.quick-buy-link.amazon-link:hover {
+  border-color: rgba(255,153,0,0.4);
+  background: rgba(255,153,0,0.08);
+}
+
+.quick-buy-link.homedepot-link:hover {
+  border-color: rgba(247,119,38,0.4);
+  background: rgba(247,119,38,0.08);
+}
+
+.quick-buy-link.lowes-link:hover {
+  border-color: rgba(0,70,173,0.4);
+  background: rgba(0,70,173,0.08);
+}
+
+.quick-buy-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.quick-buy-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.quick-buy-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Compact Equipment List (for job cards) */
+.equipment-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.equipment-item-compact {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.equipment-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.equipment-qty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59,130,246,0.15);
+  color: #3b82f6;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 28px;
+}
+
+.equipment-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.equipment-item-notes {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.btn-view-order {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #94a3b8;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+
+.btn-view-order:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.25);
+  color: #fff;
+}
+
+/* Order Details Modal */
+.order-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.order-info-item {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.order-info-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.order-info-value {
+  font-size: 15px;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Equipment List Editor */
+.equipment-list-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.equipment-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.equipment-item:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.equipment-info {
+  flex: 1;
+}
+
+.equipment-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.equipment-notes {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.equipment-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.qty-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.1);
+}
+
+.qty-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 30px;
+  text-align: center;
+}
+
+.equipment-delete {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #ef4444;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.equipment-delete:hover {
+  background: rgba(239,68,68,0.3);
+  transform: scale(1.05);
+}
+
+.add-equipment-btn {
+  background: rgba(59,130,246,0.15);
+  border: 2px dashed rgba(59,130,246,0.3);
+  color: #3b82f6;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.add-equipment-btn:hover {
+  background: rgba(59,130,246,0.25);
+  border-color: rgba(59,130,246,0.5);
+}
+
+/* Vendor Selection */
+.vendor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.vendor-card {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.vendor-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(59,130,246,0.3);
+  transform: translateY(-2px);
+}
+
+.vendor-card.selected {
+  background: rgba(59,130,246,0.15);
+  border-color: #3b82f6;
+}
+
+.vendor-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.vendor-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.vendor-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Template Cards */
+.template-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.template-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(59,130,246,0.4);
+  transform: translateX(4px);
+}
+
+/* Order Summary */
+.order-summary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+  font-weight: 700;
+  font-size: 18px;
+  color: #fff;
+}
+
+.summary-label {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.summary-value {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Shipping Options */
+.shipping-options {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.shipping-option {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.shipping-option:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(59,130,246,0.3);
+}
+
+.shipping-option.selected {
+  background: rgba(59,130,246,0.15);
+  border-color: #3b82f6;
+}
+
+.shipping-radio {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  position: relative;
+}
+
+.shipping-option.selected .shipping-radio {
+  border-color: #3b82f6;
+}
+
+.shipping-option.selected .shipping-radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+.shipping-info {
+  flex: 1;
+}
+
+.shipping-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.shipping-description {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.shipping-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ========================= END MODALS ========================= */
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+/* ========================= DEBUG PANEL ========================= */
+
+.debug-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(15,23,42,0.95);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 400px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.debug-title {
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debug-close {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.debug-close:hover {
+  opacity: 1;
+}
+
+.debug-log {
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.debug-error {
+  color: #fca5a5;
+}
+
+.debug-success {
+  color: #6ee7b7;
+}
+
+.debug-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(59,130,246,0.2);
+  border: 1px solid rgba(59,130,246,0.4);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.2s;
+  font-size: 20px;
+}
+
+.debug-toggle:hover {
+  background: rgba(59,130,246,0.3);
+  transform: scale(1.1);
+}
+
+/* ========================= MOBILE RESPONSIVE ========================= */
+
+@media (max-width: 768px) {
+  body {
+    padding: 12px;
+  }
+
+  .login-card {
+    padding: 32px 24px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .job-header {
+    flex-direction: column;
+  }
+
+  .job-actions {
+    flex-direction: column;
+  }
+
+  .job-actions .btn {
+    width: 100%;
+  }
+
+  .buy-links {
+    flex-direction: column;
+  }
+
+  .debug-panel {
+    max-width: calc(100vw - 40px);
+    left: 20px;
+    right: 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="200" height="67">
+    </div>
+    <h1 class="login-title">Dispatch Ordering</h1>
+    <p class="login-subtitle">Equipment ordering dashboard for installation jobs</p>
+    
+    <div id="loginError" class="error hidden"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input type="email" id="email" class="form-input" required autocomplete="username" placeholder="dispatch@home2smart.com">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="Enter your password">
+      </div>
+      
+      <button type="submit" class="btn" style="width: 100%;" id="btnLogin">
+        Sign In
+      </button>
+      
+      <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 12px;" id="btnHealthCheck">
+        🔍 Run Health Check
+      </button>
+    </form>
+    
+    <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; text-align: center;">
+      Default: dispatch@home2smart.com / dispatch2024
+    </div>
+  </div>
+</div>
+
+<!-- Main Dashboard -->
+<div id="dashboard" class="container hidden">
+  <div class="header">
+    <div class="header-left">
+      <a href="#" class="h2s-logo">
+        <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="156" height="52">
+      </a>
+      <div class="header-title-group">
+        <h1>Dispatch Ordering Dashboard</h1>
+        <p class="header-info">Equipment ordering for installation jobs</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="statusBadge" class="status-badge">
+        <span class="status-dot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <span class="user-email" id="userEmail"></span>
+      <button id="btnLogout" class="btn btn-secondary btn-small">Sign Out</button>
+    </div>
+  </div>
+  
+  <div class="search-bar">
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Job ID, service type, address, or customer name...">
+    <button id="btnRefresh" class="btn btn-secondary">
+      ↻ Refresh
+    </button>
+    <button id="btnBulkMode" class="btn btn-secondary" onclick="toggleBulkMode()">
+      Bulk Select
+    </button>
+  </div>
+  
+  <!-- Bulk Actions Toolbar (hidden by default) -->
+  <div id="bulkActionsBar" class="bulk-actions-bar hidden">
+    <div style="display:flex;align-items:center;gap:16px;flex:1;">
+      <span id="bulkSelectedCount" style="font-weight:600;color:#fff;">0 selected</span>
+      <button class="btn btn-secondary" onclick="selectAllJobs()">Select All</button>
+      <button class="btn btn-secondary" onclick="deselectAllJobs()">Clear</button>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn" onclick="bulkGenerateLists()">
+        Generate All Lists
+      </button>
+      <button class="btn btn-success" onclick="bulkMarkOrdered()">
+        Mark All Ordered
+      </button>
+      <button class="btn btn-secondary" onclick="toggleBulkMode()">
+        Cancel
+      </button>
+    </div>
+  </div>
+  
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All Jobs</button>
+    <button class="filter-btn" data-filter="urgent">⚡ Urgent (Next 3 Days)</button>
+    <button class="filter-btn" data-filter="this_week">📅 This Week</button>
+    <button class="filter-btn" data-filter="needs_list">Needs AI List</button>
+    <button class="filter-btn" data-filter="has_list">✅ List Generated</button>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-card" data-filter-to="all">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Jobs Needing Equipment</div>
+    </div>
+    <div class="stat-card" data-filter-to="urgent">
+      <div class="stat-value" id="statUrgent">0</div>
+      <div class="stat-label">Urgent Orders</div>
+    </div>
+    <div class="stat-card" data-filter-to="this_week">
+      <div class="stat-value" id="statThisWeek">0</div>
+      <div class="stat-label">This Week</div>
+    </div>
+    <div class="stat-card" data-filter-to="needs_list">
+      <div class="stat-value" id="statNeedsList">0</div>
+      <div class="stat-label">Needs AI List</div>
+    </div>
+  </div>
+  
+  <div id="successMessage" class="success hidden"></div>
+  
+  <div id="jobsList" class="jobs-grid">
+    <div class="loading">
+      <div class="spinner"></div>
+      Loading jobs...
+    </div>
+  </div>
+  
+  <!-- Keyboard Shortcuts Hint -->
+  <div style="margin-top:40px;padding:20px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+    <p style="font-size:12px;font-weight:600;opacity:0.6;margin-bottom:8px;">⌨️ KEYBOARD SHORTCUTS</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;font-size:12px;opacity:0.5;">
+      <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">Ctrl+R</kbd> Refresh jobs</div>
+      <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">Ctrl+K</kbd> Search focus</div>
+      <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">ESC</kbd> Clear search</div>
+      <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">Ctrl+D</kbd> Debug console</div>
+    </div>
+    <p style="font-size:11px;opacity:0.4;margin-top:8px;">Auto-refresh: Every 2 minutes</p>
+  </div>
+</div>
+
+<!-- Debug Toggle Button -->
+<div id="debugToggle" class="debug-toggle hidden" title="Show debug logs">
+  🐛
+</div>
+
+<!-- Debug Panel -->
+<div id="debugPanel" class="debug-panel hidden">
+  <div class="debug-title">
+    Debug Console
+    <span class="debug-close" id="debugClose">✕</span>
+  </div>
+  <div id="debugLog" class="debug-log"></div>
+</div>
+
+<script>
+// ========================= CONFIGURATION =========================
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbzLxNNtsFyC_6deq2hP5VYmtuoZkM-VhHd4mpUwWbSLQs0JBNZiyN2qqvdVpYu9xoUUXA/exec';
+let SESSION_ID = localStorage.getItem('dispatch_session_id');
+let USER_EMAIL = localStorage.getItem('dispatch_user_email');
+let currentJobs = [];
+let currentFilter = 'all';
+let DEBUG_MODE = true; // Enable debug logging
+
+// Equipment Templates for Quick Ordering
+const EQUIPMENT_TEMPLATES = {
+  'Basic Camera Install (2-4 cams)': [
+    {name: 'Indoor Camera', qty: 2, notes: 'Standard resolution'},
+    {name: 'Outdoor Camera', qty: 2, notes: 'Weatherproof'},
+    {name: 'Cat6 Cable 100ft', qty: 1, notes: 'For wiring'},
+    {name: 'PoE Switch 4-port', qty: 1, notes: 'Power over Ethernet'}
+  ],
+  'Premium Camera System': [
+    {name: '4K Indoor Camera', qty: 3, notes: 'High resolution'},
+    {name: '4K Outdoor Camera', qty: 4, notes: 'Night vision'},
+    {name: 'NVR 8-channel', qty: 1, notes: 'Network video recorder'},
+    {name: 'Cat6 Cable 500ft', qty: 1, notes: 'Bulk wiring'},
+    {name: 'PoE Switch 8-port', qty: 1, notes: 'Power + data'}
+  ],
+  'Smart Lock Standard': [
+    {name: 'Smart Deadbolt', qty: 1, notes: 'Main entry'},
+    {name: 'Smart Handle Lock', qty: 1, notes: 'Secondary door'},
+    {name: 'Installation Kit', qty: 1, notes: 'Screws, batteries'}
+  ],
+  'Smart Lock Premium': [
+    {name: 'Premium Smart Lock', qty: 2, notes: 'Front + back door'},
+    {name: 'Keypad Deadbolt', qty: 1, notes: 'Garage entry'},
+    {name: 'Smart Garage Controller', qty: 1, notes: 'Garage door integration'}
+  ],
+  'Mesh WiFi Standard': [
+    {name: 'Mesh WiFi 3-pack', qty: 1, notes: 'Covers ~3000 sq ft'},
+    {name: 'Ethernet Cable 25ft', qty: 3, notes: 'Backhaul connections'}
+  ],
+  'Mesh WiFi Large Home': [
+    {name: 'Mesh WiFi 5-pack', qty: 1, notes: 'Covers ~5000 sq ft'},
+    {name: 'Ethernet Cable 50ft', qty: 5, notes: 'Wired backhaul'},
+    {name: 'Network Switch 8-port', qty: 1, notes: 'Central distribution'}
+  ],
+  'Video Doorbell Basic': [
+    {name: 'Video Doorbell', qty: 1, notes: 'Wired or battery'},
+    {name: 'Chime Unit', qty: 1, notes: 'Indoor chime'},
+    {name: 'Doorbell Transformer', qty: 1, notes: 'If wired'}
+  ],
+  'Smart Thermostat': [
+    {name: 'Smart Thermostat', qty: 1, notes: 'Main HVAC zone'},
+    {name: 'C-Wire Adapter', qty: 1, notes: 'If needed'},
+    {name: 'Trim Plate', qty: 1, notes: 'Cover old holes'}
+  ],
+  'Smart Lighting Starter': [
+    {name: 'Smart Hub', qty: 1, notes: 'Zigbee/Z-Wave'},
+    {name: 'Smart Bulbs 4-pack', qty: 1, notes: 'Color + white'},
+    {name: 'Smart Switch', qty: 3, notes: 'Common areas'}
+  ],
+  'Smart Lighting Full Home': [
+    {name: 'Smart Hub', qty: 1, notes: 'Central controller'},
+    {name: 'Smart Bulbs 12-pack', qty: 1, notes: 'Bulk pack'},
+    {name: 'Smart Dimmer Switch', qty: 6, notes: 'Main rooms'},
+    {name: 'Motion Sensor', qty: 3, notes: 'Automation triggers'}
+  ]
+};
+
+// ========================= DEBUG SYSTEM =========================
+
+function debugLog(message, type = 'info') {
+  if (!DEBUG_MODE) return;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  const logEntry = `[${timestamp}] ${message}`;
+  
+  console.log(logEntry);
+  
+  const debugLogDiv = document.getElementById('debugLog');
+  if (debugLogDiv) {
+    const logLine = document.createElement('div');
+    logLine.className = type === 'error' ? 'debug-error' : type === 'success' ? 'debug-success' : '';
+    logLine.textContent = logEntry;
+    debugLogDiv.appendChild(logLine);
+    debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
+    
+    // Keep only last 50 entries
+    while (debugLogDiv.children.length > 50) {
+      debugLogDiv.removeChild(debugLogDiv.firstChild);
+    }
+  }
+}
+
+// ========================= UTILITIES =========================
+
+function $(id) { return document.getElementById(id); }
+
+let bulkModeActive = false;
+let selectedJobIds = new Set();
+
+function updateConnectionStatus(connected, message) {
+  const badge = $('statusBadge');
+  const text = $('statusText');
+  
+  if (!badge || !text) return;
+  
+  if (connected) {
+    badge.className = 'status-badge connected';
+    text.textContent = message || 'Connected';
+  } else {
+    badge.className = 'status-badge disconnected';
+    text.textContent = message || 'Disconnected';
+  }
+}
+
+function toggleBulkMode() {
+  bulkModeActive = !bulkModeActive;
+  selectedJobIds.clear();
+  
+  const bar = $('bulkActionsBar');
+  const btn = $('btnBulkMode');
+  
+  if (bulkModeActive) {
+    bar.classList.remove('hidden');
+    btn.textContent = '✕ Exit Bulk';
+    btn.style.background = 'rgba(239,68,68,0.2)';
+    btn.style.borderColor = 'rgba(239,68,68,0.4)';
+  } else {
+    bar.classList.add('hidden');
+    btn.textContent = 'Bulk Select';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+  }
+  
+  renderJobs(currentJobs);
+  updateBulkCount();
+}
+
+function toggleJobSelection(jobId, event) {
+  event.stopPropagation(); // Prevent card expansion
+  
+  if (selectedJobIds.has(jobId)) {
+    selectedJobIds.delete(jobId);
+  } else {
+    selectedJobIds.add(jobId);
+  }
+  
+  updateBulkUI();
+}
+
+function selectAllJobs() {
+  currentJobs.forEach(job => selectedJobIds.add(job.job_id));
+  updateBulkUI();
+}
+
+function deselectAllJobs() {
+  selectedJobIds.clear();
+  updateBulkUI();
+}
+
+function updateBulkUI() {
+  updateBulkCount();
+  
+  // Update card styles
+  document.querySelectorAll('.job-card').forEach(card => {
+    const jobId = card.dataset.jobId;
+    const checkbox = card.querySelector('.job-card-checkbox');
+    
+    if (selectedJobIds.has(jobId)) {
+      card.classList.add('selected-for-bulk');
+      if (checkbox) checkbox.checked = true;
+    } else {
+      card.classList.remove('selected-for-bulk');
+      if (checkbox) checkbox.checked = false;
+    }
+  });
+}
+
+function updateBulkCount() {
+  const count = $('bulkSelectedCount');
+  if (count) {
+    count.textContent = `${selectedJobIds.size} selected`;
+  }
+}
+
+async function bulkGenerateLists() {
+  if (selectedJobIds.size === 0) {
+    showError('No jobs selected');
+    return;
+  }
+  
+  if (!confirm(`Generate equipment lists for ${selectedJobIds.size} jobs?`)) {
+    return;
+  }
+  
+  debugLog(`Bulk generating lists for ${selectedJobIds.size} jobs`);
+  
+  const jobIds = Array.from(selectedJobIds);
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const jobId of jobIds) {
+    const result = await apiCall('generate_list', {job_id: jobId});
+    
+    if (result && result.ok) {
+      successCount++;
+      
+      // Update job in currentJobs
+      const jobIndex = currentJobs.findIndex(j => j.job_id === jobId);
+      if (jobIndex !== -1) {
+        currentJobs[jobIndex].equipment_list = result.equipment_list.items;
+      }
+    } else {
+      failCount++;
+    }
+  }
+  
+  showSuccess(`Generated ${successCount} lists${failCount > 0 ? `, ${failCount} failed` : ''}`);
+  
+  selectedJobIds.clear();
+  toggleBulkMode();
+  renderJobs(currentJobs);
+  updateStats(currentJobs);
+}
+
+async function bulkMarkOrdered() {
+  if (selectedJobIds.size === 0) {
+    showError('No jobs selected');
+    return;
+  }
+  
+  if (!confirm(`Mark ${selectedJobIds.size} jobs as ordered? This will remove them from the dashboard.`)) {
+    return;
+  }
+  
+  debugLog(`Bulk marking ${selectedJobIds.size} jobs as ordered`);
+  
+  const jobIds = Array.from(selectedJobIds);
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const jobId of jobIds) {
+    const result = await apiCall('mark_ordered', {job_id: jobId});
+    
+    if (result && result.ok) {
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+  
+  showSuccess(`Marked ${successCount} ordered${failCount > 0 ? `, ${failCount} failed` : ''}`);
+  
+  // Remove ordered jobs from list
+  currentJobs = currentJobs.filter(j => !selectedJobIds.has(j.job_id));
+  selectedJobIds.clear();
+  toggleBulkMode();
+  renderJobs(currentJobs);
+  updateStats(currentJobs);
+}
+
+function toggleJobExpansion(jobId, event) {
+  // Don't expand if clicking checkbox
+  if (event.target.classList.contains('job-card-checkbox')) {
+    return;
+  }
+  
+  const card = document.querySelector(`[data-job-id="${jobId}"]`);
+  if (!card) return;
+  
+  card.classList.toggle('expanded');
+  debugLog(`Toggled expansion for job ${jobId}`);
+}
+
+function showError(message, containerId = 'loginError') {
+  debugLog(`Error: ${message}`, 'error');
+  const errorDiv = $(containerId);
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+  }
+}
+
+function showSuccess(message) {
+  debugLog(`Success: ${message}`, 'success');
+  const successDiv = $('successMessage');
+  if (successDiv) {
+    successDiv.textContent = message;
+    successDiv.classList.remove('hidden');
+    setTimeout(() => successDiv.classList.add('hidden'), 3000);
+  }
+}
+
+async function apiCall(action, params = {}) {
+  console.log('🔵 === API CALL START ===');
+  console.log('🔵 Action:', action);
+  console.log('🔵 Params:', params);
+  console.log('🔵 API_URL:', API_URL);
+  console.log('🔵 SESSION_ID:', SESSION_ID);
+  
+  debugLog(`API Call: ${action} with params: ${JSON.stringify(params)}`);
+  
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  if (SESSION_ID) url.searchParams.set('session_id', SESSION_ID);
+  
+  Object.keys(params).forEach(key => {
+    if (key !== 'session_id') { // Don't duplicate session_id
+      url.searchParams.set(key, params[key]);
+    }
+  });
+  
+  console.log('🔵 Full request URL:', url.toString());
+  debugLog(`Request URL: ${url.toString()}`);
+  
+  try {
+    console.log('🔵 Fetching...');
+    const response = await fetch(url.toString());
+    console.log('🔵 Response received:', response);
+    console.log('🔵 Response status:', response.status);
+    console.log('🔵 Response ok:', response.ok);
+    
+    const contentType = response.headers.get('content-type');
+    console.log('🔵 Content-Type:', contentType);
+    
+    debugLog(`Response Content-Type: ${contentType}`);
+    
+    // Check if we got HTML instead of JSON (means backend error)
+    if (contentType && contentType.includes('text/html')) {
+      const htmlText = await response.text();
+      console.log('❌ GOT HTML INSTEAD OF JSON!');
+      console.log('❌ HTML (first 1000 chars):', htmlText.substring(0, 1000));
+      debugLog(`ERROR: Got HTML instead of JSON! First 500 chars: ${htmlText.substring(0, 500)}`, 'error');
+      
+      return {
+        ok: false,
+        error: 'Backend returned HTML instead of JSON. Check that web app is deployed correctly.',
+        hint: 'Go to Apps Script > Deploy > Manage deployments > New version'
+      };
+    }
+    
+    console.log('🔵 Parsing JSON...');
+    const data = await response.json();
+    console.log('🔵 Parsed JSON:', data);
+    
+    debugLog(`API Response (${action}): ${JSON.stringify(data).substring(0, 200)}...`);
+    
+    if (!data.ok && data.error_code === 'auth_required') {
+      console.log('❌ Auth required - logging out');
+      debugLog('Auth required - logging out', 'error');
+      logout();
+      return null;
+    }
+    
+    if (!data.ok) {
+      console.log('❌ API returned ok=false:', data.error);
+      debugLog(`API Error: ${data.error}`, 'error');
+    }
+    
+    console.log('🔵 === API CALL END ===');
+    return data;
+  } catch (err) {
+    console.log('❌ === API CALL EXCEPTION ===');
+    console.log('❌ Error:', err);
+    console.log('❌ Error message:', err.message);
+    console.log('❌ Error stack:', err.stack);
+    debugLog(`Fetch error: ${err.toString()}`, 'error');
+    debugLog(`Full error: ${JSON.stringify(err)}`, 'error');
+    showError('Network error: ' + err.message + ' | Check that backend is deployed');
+    return null;
+  }
+}
+
+// ========================= AUTHENTICATION =========================
+
+async function login(email, password) {
+  debugLog(`Login attempt for: ${email}`);
+  
+  const btnLogin = $('btnLogin');
+  btnLogin.disabled = true;
+  btnLogin.textContent = 'Signing in...';
+  
+  const result = await apiCall('login', {email, password});
+  
+  btnLogin.disabled = false;
+  btnLogin.textContent = 'Sign In';
+  
+  if (result && result.ok) {
+    debugLog(`Login successful: ${result.session_id}`, 'success');
+    SESSION_ID = result.session_id;
+    USER_EMAIL = result.email || email;
+    localStorage.setItem('dispatch_session_id', SESSION_ID);
+    localStorage.setItem('dispatch_user_email', USER_EMAIL);
+    showDashboard();
+  } else {
+    // Enhanced error message with debug info
+    let errorMsg = result ? result.error : 'Login failed - check credentials';
+    if (result && result.debug_hint) {
+      errorMsg += ' | ' + result.debug_hint;
+    }
+    debugLog(`Login failed: ${errorMsg}`, 'error');
+    if (result) {
+      debugLog(`Full error response: ${JSON.stringify(result)}`, 'error');
+    }
+    showError(errorMsg);
+  }
+}
+
+function logout() {
+  debugLog('Logging out');
+  SESSION_ID = null;
+  USER_EMAIL = null;
+  localStorage.removeItem('dispatch_session_id');
+  localStorage.removeItem('dispatch_user_email');
+  $('loginScreen').classList.remove('hidden');
+  $('dashboard').classList.add('hidden');
+  $('debugToggle').classList.add('hidden');
+}
+
+function showDashboard() {
+  debugLog('Showing dashboard');
+  $('loginScreen').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('debugToggle').classList.remove('hidden');
+  
+  if (USER_EMAIL) {
+    $('userEmail').textContent = USER_EMAIL;
+  }
+  
+  loadJobs();
+  startAutoRefresh(); // Start auto-refresh when dashboard loads
+}
+
+function logout() {
+  debugLog('Logging out');
+  stopAutoRefresh(); // Stop auto-refresh when logging out
+  SESSION_ID = null;
+  USER_EMAIL = null;
+  localStorage.removeItem('dispatch_session_id');
+  localStorage.removeItem('dispatch_user_email');
+  $('loginScreen').classList.remove('hidden');
+  $('dashboard').classList.add('hidden');
+  $('debugToggle').classList.add('hidden');
+  updateConnectionStatus(false, 'Logged Out');
+}
+
+// ========================= JOB LOADING =========================
+
+async function loadJobs() {
+  debugLog('Loading jobs...');
+  updateConnectionStatus(false, 'Loading...');
+  $('jobsList').innerHTML = '<div class="loading"><div class="spinner"></div>Loading jobs...</div>';
+  
+  const result = await apiCall('get_jobs');
+  
+  if (!result) {
+    debugLog('No response from backend', 'error');
+    updateConnectionStatus(false, 'No Connection');
+    $('jobsList').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⚠️</div>
+        <p style="font-size:18px;font-weight:600;margin-bottom:8px;">Connection Error</p>
+        <p style="margin-top:8px;font-size:14px;opacity:0.8;">Unable to reach backend server</p>
+        <p style="margin-top:8px;font-size:13px;opacity:0.6;">Check that backend is deployed and API_URL is correct</p>
+        <button class="btn" style="margin-top:20px;" onclick="loadJobs()">Retry Connection</button>
+      </div>`;
+    return;
+  }
+  
+  if (!result.ok) {
+    debugLog('Backend returned error: ' + (result.error || 'Unknown'), 'error');
+    updateConnectionStatus(false, 'Error');
+    
+    // Specific error messaging
+    let errorIcon = '⚠️';
+    let errorTitle = 'Error Loading Jobs';
+    let errorDetails = result.error || 'Unknown error occurred';
+    let errorHint = 'Check debug console (🐛) for details';
+    
+    if (result.error && result.error.includes('database')) {
+      errorIcon = '🔌';
+      errorTitle = 'Database Connection Issue';
+      errorDetails = 'Unable to connect to Supabase';
+      errorHint = 'Verify SUPABASE_URL and SUPABASE_KEY in Script Properties';
+    } else if (result.error && result.error.includes('auth')) {
+      errorIcon = '🔒';
+      errorTitle = 'Authentication Error';
+      errorDetails = 'Session may have expired';
+      errorHint = 'Try logging out and logging back in';
+    }
+    
+    $('jobsList').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">${errorIcon}</div>
+        <p style="font-size:18px;font-weight:600;margin-bottom:8px;">${errorTitle}</p>
+        <p style="margin-top:8px;font-size:14px;opacity:0.8;">${errorDetails}</p>
+        <p style="margin-top:8px;font-size:13px;opacity:0.6;">${errorHint}</p>
+        <button class="btn" style="margin-top:20px;" onclick="loadJobs()">Retry</button>
+      </div>`;
+    return;
+  }
+  
+  currentJobs = result.jobs || [];
+  debugLog(`Loaded ${currentJobs.length} jobs`, 'success');
+  updateConnectionStatus(true, `${currentJobs.length} jobs`);
+  
+  if (currentJobs.length === 0) {
+    debugLog('Database connected - no jobs needing equipment');
+  }
+  
+  renderJobs(currentJobs);
+  updateStats(currentJobs);
+}
+
+function updateStats(jobs) {
+  $('statTotal').textContent = jobs.length;
+  
+  const now = new Date();
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const urgent = jobs.filter(job => {
+    const jobDate = new Date(job.start_iso);
+    return jobDate <= threeDaysFromNow;
+  });
+  $('statUrgent').textContent = urgent.length;
+  
+  // This week calculation
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+  endOfWeek.setHours(23, 59, 59, 999);
+  const thisWeek = jobs.filter(job => {
+    const jobDate = new Date(job.start_iso);
+    return jobDate <= endOfWeek;
+  });
+  $('statThisWeek').textContent = thisWeek.length;
+  
+  // Count jobs that need AI list
+  setTimeout(() => {
+    const needsList = document.querySelectorAll('.job-card[data-has-list="false"]').length;
+    $('statNeedsList').textContent = needsList;
+  }, 100);
+}
+
+function renderJobs(jobs) {
+  if (jobs.length === 0) {
+    $('jobsList').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <p style="font-size:20px;font-weight:700;margin-bottom:8px;color:#10b981;">All Clear!</p>
+        <p style="margin-top:8px;font-size:15px;opacity:0.9;">No jobs currently need equipment</p>
+        <p style="margin-top:12px;font-size:13px;opacity:0.6;">Jobs appear here when:</p>
+        <ul style="margin:12px auto;text-align:left;max-width:300px;font-size:13px;opacity:0.6;line-height:1.8;">
+          <li>Job is scheduled</li>
+          <li>Equipment hasn't been ordered yet</li>
+          <li>Job isn't completed or cancelled</li>
+        </ul>
+        <button class="btn btn-secondary" style="margin-top:20px;" onclick="loadJobs()">
+          Refresh Jobs
+        </button>
+      </div>`;
+    return;
+  }
+  
+  const html = jobs.map(job => renderJobCard(job)).join('');
+  $('jobsList').innerHTML = html;
+}
+
+function renderJobCard(job) {
+  const jobDate = new Date(job.start_iso);
+  const now = new Date();
+  const daysUntil = Math.ceil((jobDate - now) / (1000 * 60 * 60 * 24));
+  const isUrgent = daysUntil <= 3;
+  
+  const hasEquipmentList = job.equipment_list && job.equipment_list.length > 0;
+  
+  // Format date
+  const dateStr = jobDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  // Build customer info section
+  const customerInfo = `
+    <div class="job-section">
+      <div class="section-title">Customer Info</div>
+      <div class="job-info">
+        <div class="info-row">
+          <span class="info-icon">👤</span>
+          <div class="info-content">${escapeHtml(job.customer_name || 'N/A')}</div>
+        </div>
+        ${job.customer_email ? `
+        <div class="info-row">
+          <span class="info-icon">📧</span>
+          <div class="info-content">
+            <a href="mailto:${escapeHtml(job.customer_email)}" class="clickable-link">${escapeHtml(job.customer_email)}</a>
+          </div>
+        </div>
+        ` : ''}
+        ${job.customer_phone ? `
+        <div class="info-row">
+          <span class="info-icon">📞</span>
+          <div class="info-content">
+            <a href="tel:${escapeHtml(job.customer_phone)}" class="clickable-link">${escapeHtml(job.customer_phone)}</a>
+          </div>
+        </div>
+        ` : ''}
+        <div class="info-row">
+          <span class="info-icon">📍</span>
+          <div class="info-content">
+            ${escapeHtml(job.service_address || 'N/A')}, ${escapeHtml(job.service_city || '')} ${escapeHtml(job.service_state || '')} ${escapeHtml(job.service_zip || '')}
+            <br>
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.service_address + ' ' + job.service_city + ' ' + job.service_state + ' ' + job.service_zip)}" target="_blank" class="clickable-link" style="font-size:13px;margin-top:4px;display:inline-block;">View on Google Maps →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Build equipment section
+  const equipmentSection = hasEquipmentList ? `
+    <div class="job-section">
+      <div class="section-title">Equipment Ordered</div>
+      <div class="equipment-list-compact">
+        ${job.equipment_list.slice(0, 5).map(item => `
+          <div class="equipment-item-compact">
+            <div class="equipment-item-main">
+              <span class="equipment-qty-badge">×${item.qty || 1}</span>
+              <span class="equipment-item-name">${escapeHtml(item.name)}</span>
+            </div>
+            ${item.notes ? `<div class="equipment-item-notes">${escapeHtml(item.notes)}</div>` : ''}
+          </div>
+        `).join('')}
+        ${job.equipment_list.length > 5 ? `
+          <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
+            +${job.equipment_list.length - 5} more items
+          </div>
+        ` : ''}
+      </div>
+      ${job.ordered_at ? `
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: #64748b;">
+          Ordered: ${new Date(job.ordered_at).toLocaleDateString()} at ${new Date(job.ordered_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+        </div>
+      ` : ''}
+      <button class="btn-view-order" onclick="viewOrderDetails('${job.job_id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        View Order Details
+      </button>
+    </div>
+  ` : `
+    <div class="job-section">
+      <div class="section-title">Equipment List</div>
+      <p style="opacity: 0.6; font-size: 14px;">No equipment list generated yet. Click "Generate Equipment List" below.</p>
+    </div>
+  `;
+  
+  // Build action buttons
+  const actionButtons = hasEquipmentList ? `
+    <button class="btn btn-secondary" onclick="viewOrderDetails('${job.job_id}')">
+      View Order
+    </button>
+    <button class="btn btn-secondary" onclick="generateEquipmentList('${job.job_id}')">
+      Edit & Reorder
+    </button>
+  ` : `
+    <button class="btn" onclick="generateEquipmentList('${job.job_id}')">
+      Generate Equipment List
+    </button>
+  `;
+  
+  // Parse service type to show clear job description
+  const serviceType = (job.service_id || '').toLowerCase();
+  let jobDescription = 'Installation Job';
+  let jobIcon = '🔧';
+  
+  if (serviceType.includes('mesh') || serviceType.includes('wifi') || serviceType.includes('network')) {
+    jobDescription = 'Mesh WiFi Installation';
+    jobIcon = '📶';
+  } else if (serviceType.includes('lock') || serviceType.includes('door')) {
+    jobDescription = 'Smart Lock Installation';
+    jobIcon = '🔒';
+  } else if (serviceType.includes('camera') || serviceType.includes('security')) {
+    jobDescription = 'Security Camera Installation';
+    jobIcon = '📹';
+  } else if (serviceType.includes('thermostat') || serviceType.includes('hvac')) {
+    jobDescription = 'Smart Thermostat Installation';
+    jobIcon = '🌡️';
+  } else if (serviceType.includes('light') || serviceType.includes('switch')) {
+    jobDescription = 'Smart Lighting Installation';
+    jobIcon = '💡';
+  } else if (serviceType.includes('doorbell') || serviceType.includes('ring')) {
+    jobDescription = 'Video Doorbell Installation';
+    jobIcon = '🔔';
+  } else if (serviceType.includes('sensor') || serviceType.includes('alarm')) {
+    jobDescription = 'Smart Sensor Installation';
+    jobIcon = '🚨';
+  } else if (job.service_id) {
+    jobDescription = job.service_id;
+    jobIcon = '🏠';
+  }
+  
+  return `
+    <div class="job-card ${bulkModeActive ? 'has-checkbox' : ''}" 
+         data-job-id="${job.job_id}" 
+         data-has-list="${hasEquipmentList}" 
+         data-days-until="${daysUntil}"
+         onclick="toggleJobExpansion('${job.job_id}', event)">
+      ${bulkModeActive ? `
+        <input type="checkbox" 
+               class="job-card-checkbox" 
+               onclick="toggleJobSelection('${job.job_id}', event)"
+               ${selectedJobIds.has(job.job_id) ? 'checked' : ''}>
+      ` : ''}
+      <div class="job-header">
+        <div class="job-header-left">
+          <div class="job-title">${jobIcon} ${escapeHtml(jobDescription)}</div>
+          <span class="job-id">${escapeHtml(job.job_id)}</span>
+        </div>
+        <div class="urgency-badge ${isUrgent ? 'urgency-high' : 'urgency-normal'}">
+          ${isUrgent ? '⚡ URGENT' : '📅 SCHEDULED'}
+        </div>
+      </div>
+      
+      <div class="job-date">
+        📅 ${dateStr} ${daysUntil >= 0 ? `(${daysUntil} days until job)` : `(${Math.abs(daysUntil)} days overdue)`}
+      </div>
+      
+      ${job.service_id ? `
+      <div class="job-section">
+        <div class="section-title">Service Type</div>
+        <span class="service-badge">${escapeHtml(job.service_id)}</span>
+      </div>
+      ` : ''}
+      
+      <!-- Expandable Details -->
+      <div class="job-details-expanded">
+        ${job.notes_from_customer ? `
+        <div class="job-section">
+          <div class="section-title">Customer Notes</div>
+          <p style="line-height: 1.6; opacity: 0.9;">${escapeHtml(job.notes_from_customer)}</p>
+        </div>
+        ` : ''}
+        
+        ${customerInfo}
+        
+        ${equipmentSection}
+      </div>
+      
+      <div class="job-actions" onclick="event.stopPropagation();">
+        ${actionButtons}
+        <button class="btn btn-secondary btn-small" onclick="copyAddress('${job.job_id}')">
+          Copy Address
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ========================= JOB ACTIONS =========================
+
+async function generateEquipmentList(jobId) {
+  debugLog(`Opening equipment list generator for job: ${jobId}`);
+  
+  // Show sleek AI analyzing overlay
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.id = 'ai-analyzing-overlay';
+  loadingOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+  `;
+  
+  loadingOverlay.innerHTML = `
+    <div style="text-align: center; max-width: 400px;">
+      <div style="width: 60px; height: 60px; margin: 0 auto 24px; border: 3px solid rgba(59,130,246,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <div style="font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 8px;">Analyzing Job Requirements</div>
+      <div style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+        AI is reviewing service details and customer notes to generate the optimal equipment list
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(loadingOverlay);
+  
+  try {
+    const result = await apiCall('generate_list', {job_id: jobId});
+    
+    // Remove loading overlay
+    loadingOverlay.style.animation = 'fadeOut 0.2s ease';
+    setTimeout(() => document.body.removeChild(loadingOverlay), 200);
+    
+    if (result && result.ok) {
+      debugLog(`Equipment list generated for ${jobId}`, 'success');
+      
+      // Subtle success notification
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #fff;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+        z-index: 100001;
+        animation: slideInRight 0.3s ease;
+      `;
+      toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 8px; height: 8px; background: #fff; border-radius: 50%;"></div>
+          <div>Equipment list generated</div>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => document.body.removeChild(toast), 300);
+      }, 3000);
+      
+      // Show refined equipment editor
+      showEquipmentEditor(jobId, result.equipment_list, result.job);
+    } else {
+      showError(result ? result.error : 'AI generation failed');
+    }
+  } catch(err) {
+    if (document.getElementById('ai-analyzing-overlay')) {
+      document.body.removeChild(loadingOverlay);
+    }
+    showError('Network error: ' + err.message);
+  }
+}
+
+// ========================= EQUIPMENT EDITOR MODAL =========================
+
+function showEquipmentEditor(jobId, equipmentList, jobData) {
+  debugLog('Opening equipment editor modal');
+  
+  // Store in global for editing
+  window.currentEquipmentList = equipmentList.items || equipmentList;
+  window.currentJobId = jobId;
+  window.currentJobData = jobData;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'equipmentEditorModal';
+  
+  const urgency = equipmentList.urgency || 'Standard';
+  const deadline = equipmentList.delivery_deadline || '';
+  const specialNotes = equipmentList.special_notes || '';
+  
+  modal.innerHTML = `
+    <div class="modal refined-modal">
+      <div class="modal-header refined-header">
+        <div>
+          <div class="modal-title">Equipment Order</div>
+          <div class="modal-subtitle">${escapeHtml(jobData.customer_name || 'Customer')} • ${escapeHtml(jobData.service_id || 'Service')}</div>
+        </div>
+        <button class="modal-close" onclick="closeEquipmentEditor()">×</button>
+      </div>
+      
+      <div class="modal-body refined-body">
+        ${urgency !== 'Standard' || deadline ? `
+          <div class="info-banner">
+            <div class="info-banner-icon">⚡</div>
+            <div>
+              <div class="info-banner-title">${escapeHtml(urgency)}</div>
+              ${deadline ? `<div class="info-banner-text">Order by ${escapeHtml(deadline)}</div>` : ''}
+            </div>
+          </div>
+        ` : ''}
+        
+        ${specialNotes ? `
+          <div class="notes-section">
+            <div class="notes-label">Installation Notes</div>
+            <div class="notes-text">${escapeHtml(specialNotes)}</div>
+          </div>
+        ` : ''}
+        
+        <div class="section-label">Equipment Items</div>
+        <div class="equipment-list-refined" id="equipmentListEditor"></div>
+        
+        <button class="add-item-refined" onclick="addEquipmentItem()">
+          <span style="font-size: 20px; font-weight: 300;">+</span>
+          <span>Add Item</span>
+        </button>
+        
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div class="section-label" style="margin-bottom: 12px;">Quick Purchase Links</div>
+          <div class="quick-buy-grid">
+            <a href="https://www.amazon.com/s?k=${encodeURIComponent(getSearchQuery())}" 
+               target="_blank" 
+               class="quick-buy-link amazon-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Amazon</div>
+                <div class="quick-buy-hint">Fast shipping</div>
+              </div>
+            </a>
+            <a href="https://www.homedepot.com/s/${encodeURIComponent(getSearchQuery())}" 
+               target="_blank" 
+               class="quick-buy-link homedepot-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Home Depot</div>
+                <div class="quick-buy-hint">Store pickup</div>
+              </div>
+            </a>
+            <a href="https://www.lowes.com/search?searchTerm=${encodeURIComponent(getSearchQuery())}" 
+               target="_blank" 
+               class="quick-buy-link lowes-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Lowe's</div>
+                <div class="quick-buy-hint">Pro pricing</div>
+              </div>
+            </a>
+          </div>
+          <div style="margin-top: 12px; font-size: 12px; color: #64748b; text-align: center;">
+            Links open in new tab with equipment pre-searched
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer refined-footer">
+        <button class="btn btn-secondary" onclick="closeEquipmentEditor()">Cancel</button>
+        <button class="btn btn-success" onclick="markAsOrdered('${jobId}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right: 6px;">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Mark as Ordered
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  renderEquipmentEditor();
+}
+
+// Helper to generate search query from equipment list
+function getSearchQuery() {
+  const items = window.currentEquipmentList || [];
+  const service = window.currentJobData?.service_id || '';
+  
+  if (items.length > 0) {
+    return items[0].name; // Use first item for search
+  }
+  return service || 'smart home equipment';
+}
+
+function renderEquipmentEditor() {
+  const container = $('equipmentListEditor');
+  if (!container) return;
+  
+  container.innerHTML = window.currentEquipmentList.map((item, index) => `
+    <div class="equipment-row">
+      <div class="equipment-row-main">
+        <input type="text" class="equipment-input-name" value="${escapeHtml(item.name)}" 
+               onchange="updateEquipmentItem(${index}, 'name', this.value)"
+               placeholder="Item name">
+        ${item.notes ? `<div class="equipment-row-notes">${escapeHtml(item.notes)}</div>` : ''}
+      </div>
+      <div class="equipment-row-actions">
+        <div class="qty-control">
+          <button class="qty-btn-refined" onclick="updateEquipmentQty(${index}, -1)">−</button>
+          <div class="qty-display">${item.qty || 1}</div>
+          <button class="qty-btn-refined" onclick="updateEquipmentQty(${index}, 1)">+</button>
+        </div>
+        <button class="delete-btn-refined" onclick="deleteEquipmentItem(${index})" title="Remove item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateEquipmentItem(index, field, value) {
+  window.currentEquipmentList[index][field] = value;
+  debugLog(`Updated item ${index}: ${field} = ${value}`);
+}
+
+function updateEquipmentQty(index, delta) {
+  const item = window.currentEquipmentList[index];
+  const newQty = Math.max(1, (item.qty || 1) + delta);
+  item.qty = newQty;
+  renderEquipmentEditor();
+  debugLog(`Updated item ${index} quantity to ${newQty}`);
+}
+
+function deleteEquipmentItem(index) {
+  if (window.currentEquipmentList.length <= 1) {
+    showError('Cannot delete the last item. Add a new item first.');
+    return;
+  }
+  window.currentEquipmentList.splice(index, 1);
+  renderEquipmentEditor();
+  debugLog(`Deleted item ${index}`);
+}
+
+function addEquipmentItem() {
+  window.currentEquipmentList.push({
+    name: 'New Item',
+    qty: 1,
+    notes: ''
+  });
+  renderEquipmentEditor();
+  debugLog('Added new equipment item');
+}
+
+function closeEquipmentEditor() {
+  const modal = $('equipmentEditorModal');
+  if (modal) modal.remove();
+  debugLog('Closed equipment editor');
+}
+
+// ========================= EQUIPMENT TEMPLATES =========================
+
+function showTemplateSelector() {
+  const templateModal = document.createElement('div');
+  templateModal.className = 'modal-overlay';
+  templateModal.id = 'templateSelectorModal';
+  
+  const templateNames = Object.keys(EQUIPMENT_TEMPLATES);
+  
+  templateModal.innerHTML = `
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Equipment Templates</div>
+          <div class="modal-subtitle">Load a pre-configured equipment list</div>
+        </div>
+        <button class="modal-close" onclick="closeTemplateSelector()">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;gap:12px;">
+          ${templateNames.map(name => {
+            const itemCount = EQUIPMENT_TEMPLATES[name].length;
+            const preview = EQUIPMENT_TEMPLATES[name].slice(0, 3).map(item => item.name).join(', ');
+            return `
+              <div class="template-card" onclick="loadTemplate('${name}')">
+                <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:4px;">${name}</div>
+                <div style="font-size:13px;opacity:0.7;margin-bottom:8px;">${itemCount} items: ${preview}${itemCount > 3 ? '...' : ''}</div>
+                <div style="font-size:12px;color:#3b82f6;">Click to load →</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeTemplateSelector()">Cancel</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(templateModal);
+}
+
+function loadTemplate(templateName) {
+  const template = EQUIPMENT_TEMPLATES[templateName];
+  if (!template) return;
+  
+  // Replace current equipment list with template
+  window.currentEquipmentList = JSON.parse(JSON.stringify(template)); // Deep clone
+  
+  debugLog(`Loaded template: ${templateName}`);
+  closeTemplateSelector();
+  renderEquipmentEditor();
+}
+
+function closeTemplateSelector() {
+  const modal = $('templateSelectorModal');
+  if (modal) modal.remove();
+}
+
+
+// ========================= VENDOR SELECTION MODAL =========================
+
+function proceedToVendorSelection() {
+  debugLog('Moving to vendor selection');
+  closeEquipmentEditor();
+  
+  // Analyze equipment type to suggest vendors
+  const equipmentTypes = window.currentEquipmentList.map(item => item.name.toLowerCase()).join(' ');
+  const jobService = (window.currentJobData.service_id || '').toLowerCase();
+  
+  let suggestedVendors = [
+    {id: 'amazon', name: 'Amazon', icon: '📦', badge: 'Fast Shipping'},
+    {id: 'homedepot', name: 'Home Depot', icon: '🏠', badge: ''},
+    {id: 'lowes', name: "Lowe's", icon: '🔨', badge: ''},
+    {id: 'custom', name: 'Custom/Other', icon: '🛒', badge: ''}
+  ];
+  
+  // Smart suggestions based on equipment
+  if (equipmentTypes.includes('camera') || equipmentTypes.includes('security') || jobService.includes('cam')) {
+    suggestedVendors[0].badge = 'Best for Security';
+  } else if (equipmentTypes.includes('lock') || equipmentTypes.includes('smart lock')) {
+    suggestedVendors[1].badge = 'Recommended';
+  } else if (equipmentTypes.includes('mesh') || equipmentTypes.includes('wifi')) {
+    suggestedVendors[0].badge = 'Best Selection';
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'vendorSelectionModal';
+  
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">🏪 Select Vendor</div>
+          <div class="modal-subtitle">Where will you order this equipment?</div>
+        </div>
+        <button class="modal-close" onclick="closeVendorSelection()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="vendor-grid">
+          ${suggestedVendors.map(vendor => `
+            <div class="vendor-card" data-vendor="${vendor.id}" onclick="selectVendor('${vendor.id}')">
+              <div class="vendor-icon">${vendor.icon}</div>
+              <div class="vendor-name">${vendor.name}</div>
+              ${vendor.badge ? `<div class="vendor-badge">${vendor.badge}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="backToEquipmentEditor()">← Back</button>
+        <button class="btn" id="vendorNextBtn" disabled onclick="proceedToShippingOptions()">
+          Next: Shipping Options →
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function selectVendor(vendorId) {
+  window.selectedVendor = vendorId;
+  
+  // Update UI
+  document.querySelectorAll('.vendor-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  document.querySelector(`[data-vendor="${vendorId}"]`).classList.add('selected');
+  
+  // Enable next button
+  $('vendorNextBtn').disabled = false;
+  
+  debugLog(`Selected vendor: ${vendorId}`);
+}
+
+function closeVendorSelection() {
+  const modal = $('vendorSelectionModal');
+  if (modal) modal.remove();
+}
+
+function backToEquipmentEditor() {
+  closeVendorSelection();
+  showEquipmentEditor(window.currentJobId, {items: window.currentEquipmentList}, window.currentJobData);
+}
+
+// ========================= SHIPPING OPTIONS MODAL =========================
+
+function proceedToShippingOptions() {
+  debugLog('Moving to shipping options');
+  closeVendorSelection();
+  
+  // Determine urgency based on job date
+  const jobDate = new Date(window.currentJobData.start_iso);
+  const daysUntil = Math.ceil((jobDate - new Date()) / (1000 * 60 * 60 * 24));
+  
+  let shippingOptions = [
+    {id: 'standard', name: 'Standard Shipping', description: '5-7 business days', price: 'Free'},
+    {id: 'expedited', name: 'Expedited Shipping', description: '2-3 business days', price: '$15.99'},
+    {id: 'priority', name: 'Priority Overnight', description: 'Next business day', price: '$29.99'}
+  ];
+  
+  // Pre-select based on urgency
+  let defaultShipping = 'standard';
+  if (daysUntil <= 1) {
+    defaultShipping = 'priority';
+  } else if (daysUntil <= 3) {
+    defaultShipping = 'expedited';
+  }
+  
+  window.selectedShipping = defaultShipping;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'shippingOptionsModal';
+  
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">🚚 Shipping Options</div>
+          <div class="modal-subtitle">Job scheduled in ${daysUntil} days (${jobDate.toLocaleDateString()})</div>
+        </div>
+        <button class="modal-close" onclick="closeShippingOptions()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="shipping-options">
+          ${shippingOptions.map(option => `
+            <div class="shipping-option ${option.id === defaultShipping ? 'selected' : ''}" 
+                 data-shipping="${option.id}" 
+                 onclick="selectShipping('${option.id}')">
+              <div class="shipping-radio"></div>
+              <div class="shipping-info">
+                <div class="shipping-name">${option.name}</div>
+                <div class="shipping-description">${option.description}</div>
+              </div>
+              <div class="shipping-price">${option.price}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="backToVendorSelection()">← Back</button>
+        <button class="btn" onclick="proceedToOrderSummary()">
+          Next: Review Order →
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function selectShipping(shippingId) {
+  window.selectedShipping = shippingId;
+  
+  // Update UI
+  document.querySelectorAll('.shipping-option').forEach(option => {
+    option.classList.remove('selected');
+  });
+  document.querySelector(`[data-shipping="${shippingId}"]`).classList.add('selected');
+  
+  debugLog(`Selected shipping: ${shippingId}`);
+}
+
+function closeShippingOptions() {
+  const modal = $('shippingOptionsModal');
+  if (modal) modal.remove();
+}
+
+function backToVendorSelection() {
+  closeShippingOptions();
+  proceedToVendorSelection();
+}
+
+// ========================= ORDER SUMMARY & CONFIRMATION =========================
+
+function proceedToOrderSummary() {
+  debugLog('Moving to order summary');
+  closeShippingOptions();
+  
+  const totalItems = window.currentEquipmentList.reduce((sum, item) => sum + (item.qty || 1), 0);
+  const vendorNames = {
+    amazon: 'Amazon',
+    homedepot: 'Home Depot',
+    lowes: "Lowe's",
+    custom: 'Custom/Other'
+  };
+  const shippingNames = {
+    standard: 'Standard Shipping (5-7 days)',
+    expedited: 'Expedited Shipping (2-3 days)',
+    priority: 'Priority Overnight'
+  };
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'orderSummaryModal';
+  
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Confirm Order</div>
+          <div class="modal-subtitle">Review and finalize equipment order</div>
+        </div>
+        <button class="modal-close" onclick="closeOrderSummary()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="order-summary">
+          <div class="summary-row">
+            <span class="summary-label">Job ID</span>
+            <span class="summary-value">#${escapeHtml(window.currentJobId)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Customer</span>
+            <span class="summary-value">${escapeHtml(window.currentJobData.customer_name)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Install Date</span>
+            <span class="summary-value">${new Date(window.currentJobData.start_iso).toLocaleDateString()}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Vendor</span>
+            <span class="summary-value">${vendorNames[window.selectedVendor] || 'Not selected'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Shipping</span>
+            <span class="summary-value">${shippingNames[window.selectedShipping] || 'Standard'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Total Items</span>
+            <span class="summary-value">${totalItems} items</span>
+          </div>
+        </div>
+        
+        <div style="margin-top:24px;margin-bottom:16px;">
+          <div class="section-title">Equipment List</div>
+        </div>
+        <div class="equipment-list-editor">
+          ${window.currentEquipmentList.map(item => `
+            <div class="equipment-item" style="grid-template-columns:1fr auto;">
+              <div class="equipment-info">
+                <div class="equipment-name">${escapeHtml(item.name)}</div>
+                ${item.notes ? `<div class="equipment-notes">${escapeHtml(item.notes)}</div>` : ''}
+              </div>
+              <div class="equipment-qty">
+                <span class="qty-value">×${item.qty || 1}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="backToShippingOptions()">← Back</button>
+        <button class="btn btn-success" id="confirmOrderBtn" onclick="confirmAndMarkOrdered()">
+          Confirm & Mark as Ordered
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function closeOrderSummary() {
+  const modal = $('orderSummaryModal');
+  if (modal) modal.remove();
+}
+
+function backToShippingOptions() {
+  closeOrderSummary();
+  proceedToShippingOptions();
+}
+
+async function confirmAndMarkOrdered() {
+  debugLog('Confirming order and marking job as ordered');
+  
+  const btn = $('confirmOrderBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Processing...';
+  }
+  
+  // Save equipment list and mark as ordered
+  const result = await apiCall('mark_ordered', {
+    job_id: window.currentJobId,
+    equipment_list: window.currentEquipmentList,
+    vendor: window.selectedVendor,
+    shipping: window.selectedShipping
+  });
+  
+  if (result && result.ok) {
+    debugLog(`Job ${window.currentJobId} marked as ordered`, 'success');
+    closeOrderSummary();
+    showSuccess('Equipment order confirmed!');
+    
+    // Remove job from list and re-render
+    currentJobs = currentJobs.filter(j => j.job_id !== window.currentJobId);
+    renderJobs(currentJobs);
+    updateStats(currentJobs);
+    
+    // Clear globals
+    window.currentEquipmentList = null;
+    window.currentJobId = null;
+    window.currentJobData = null;
+    window.selectedVendor = null;
+    window.selectedShipping = null;
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✓ Confirm & Mark as Ordered';
+    }
+    showError(result ? result.error : 'Failed to mark as ordered');
+  }
+}
+
+async function markAsOrdered(jobId) {
+  debugLog(`Marking job as ordered: ${jobId}`);
+  
+  // Get the current equipment list from the editor
+  const equipmentList = window.currentEquipmentList || [];
+  
+  if (equipmentList.length === 0) {
+    showError('No equipment items to order');
+    return;
+  }
+  
+  // Close the equipment editor modal
+  closeEquipmentEditor();
+  
+  // Show confirmation with order summary
+  const itemsSummary = equipmentList.slice(0, 3).map(item => 
+    `${item.qty}× ${item.name}`
+  ).join(', ');
+  const moreItems = equipmentList.length > 3 ? ` +${equipmentList.length - 3} more` : '';
+  
+  if (!confirm(`Mark as ordered?\n\n${itemsSummary}${moreItems}\n\nThis saves the equipment list and marks the job as complete.`)) {
+    return;
+  }
+  
+  // Show loading state
+  const loadingToast = document.createElement('div');
+  loadingToast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    z-index: 100001;
+    border: 1px solid rgba(255,255,255,0.1);
+  `;
+  loadingToast.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <div>Saving order...</div>
+    </div>
+  `;
+  document.body.appendChild(loadingToast);
+  
+  const result = await apiCall('mark_ordered', {
+    job_id: jobId,
+    equipment_list: JSON.stringify(equipmentList),
+    ordered_at: new Date().toISOString()
+  });
+  
+  document.body.removeChild(loadingToast);
+  
+  if (result && result.ok) {
+    debugLog(`Job ${jobId} marked as ordered with equipment list`, 'success');
+    
+    // Success toast
+    const successToast = document.createElement('div');
+    successToast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+      z-index: 100001;
+      animation: slideInRight 0.3s ease;
+    `;
+    successToast.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <div>Equipment marked as ordered!</div>
+      </div>
+    `;
+    document.body.appendChild(successToast);
+    setTimeout(() => {
+      successToast.style.animation = 'slideOutRight 0.3s ease';
+      setTimeout(() => document.body.removeChild(successToast), 300);
+    }, 3000);
+    
+    // Remove job from list and re-render
+    currentJobs = currentJobs.filter(j => j.job_id !== jobId);
+    renderJobs(currentJobs);
+    updateStats(currentJobs);
+  } else {
+    showError(result ? result.error : 'Failed to mark as ordered');
+  }
+}
+
+function copyAddress(jobId) {
+  const job = currentJobs.find(j => j.job_id === jobId);
+  if (!job) return;
+  
+  const address = `${job.service_address}, ${job.service_city} ${job.service_state} ${job.service_zip}`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(address).then(() => {
+      debugLog(`Address copied: ${address}`);
+      showSuccess('Address copied to clipboard! 📋');
+    });
+  } else {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = address;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showSuccess('Address copied! 📋');
+  }
+}
+
+function viewOrderDetails(jobId) {
+  const job = currentJobs.find(j => j.job_id === jobId);
+  if (!job || !job.equipment_list) {
+    showError('No order found for this job');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'orderDetailsModal';
+  
+  const orderedDate = job.ordered_at ? new Date(job.ordered_at) : new Date();
+  
+  modal.innerHTML = `
+    <div class="modal refined-modal">
+      <div class="modal-header refined-header">
+        <div>
+          <div class="modal-title">Order History</div>
+          <div class="modal-subtitle">${escapeHtml(job.customer_name)} • ${escapeHtml(job.service_id)}</div>
+        </div>
+        <button class="modal-close" onclick="closeOrderDetails()">×</button>
+      </div>
+      
+      <div class="modal-body refined-body">
+        <div class="order-info-grid">
+          <div class="order-info-item">
+            <div class="order-info-label">Ordered Date</div>
+            <div class="order-info-value">${orderedDate.toLocaleDateString()}</div>
+          </div>
+          <div class="order-info-item">
+            <div class="order-info-label">Time</div>
+            <div class="order-info-value">${orderedDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
+          </div>
+          <div class="order-info-item">
+            <div class="order-info-label">Total Items</div>
+            <div class="order-info-value">${job.equipment_list.length}</div>
+          </div>
+        </div>
+        
+        <div class="section-label" style="margin-top: 20px; margin-bottom: 12px;">Equipment Ordered</div>
+        <div class="equipment-list-refined">
+          ${job.equipment_list.map((item, index) => `
+            <div class="equipment-row">
+              <div class="equipment-row-main">
+                <div style="font-size: 14px; font-weight: 500; color: #fff;">${escapeHtml(item.name)}</div>
+                ${item.notes ? `<div class="equipment-row-notes">${escapeHtml(item.notes)}</div>` : ''}
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="qty-display">×${item.qty || 1}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div class="section-label" style="margin-bottom: 12px;">Reorder From</div>
+          <div class="quick-buy-grid">
+            <a href="https://www.amazon.com/s?k=${encodeURIComponent(job.equipment_list[0]?.name || job.service_id)}" 
+               target="_blank" 
+               class="quick-buy-link amazon-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Amazon</div>
+                <div class="quick-buy-hint">Fast shipping</div>
+              </div>
+            </a>
+            <a href="https://www.homedepot.com/s/${encodeURIComponent(job.equipment_list[0]?.name || job.service_id)}" 
+               target="_blank" 
+               class="quick-buy-link homedepot-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Home Depot</div>
+                <div class="quick-buy-hint">Store pickup</div>
+              </div>
+            </a>
+            <a href="https://www.lowes.com/search?searchTerm=${encodeURIComponent(job.equipment_list[0]?.name || job.service_id)}" 
+               target="_blank" 
+               class="quick-buy-link lowes-link">
+              <div class="quick-buy-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                </svg>
+              </div>
+              <div>
+                <div class="quick-buy-name">Lowe's</div>
+                <div class="quick-buy-hint">Pro pricing</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer refined-footer">
+        <button class="btn btn-secondary" onclick="closeOrderDetails()">Close</button>
+        <button class="btn" onclick="editAndReorder('${job.job_id}')">Edit & Reorder</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+function closeOrderDetails() {
+  const modal = $('orderDetailsModal');
+  if (modal) modal.remove();
+}
+
+function editAndReorder(jobId) {
+  closeOrderDetails();
+  const job = currentJobs.find(j => j.job_id === jobId);
+  if (job && job.equipment_list) {
+    // Load existing order into editor
+    showEquipmentEditor(jobId, {items: job.equipment_list}, job);
+  }
+}
+
+function copyAddress(jobId) {
+  const job = currentJobs.find(j => j.job_id === jobId);
+  if (!job) return;
+  
+  const address = `${job.service_address}, ${job.service_city} ${job.service_state} ${job.service_zip}`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(address).then(() => {
+      debugLog(`Address copied: ${address}`);
+      showSuccess('Address copied to clipboard! 📋');
+    });
+  } else {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = address;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    debugLog(`Address copied (fallback): ${address}`);
+    showSuccess('Address copied to clipboard! 📋');
+  }
+}
+
+// ========================= FILTERING & SEARCH =========================
+
+function applyFilter(filterType) {
+  debugLog(`Applying filter: ${filterType}`);
+  currentFilter = filterType;
+  
+  let filteredJobs = [...currentJobs];
+  const now = new Date();
+  
+  switch(filterType) {
+    case 'urgent':
+      const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      filteredJobs = filteredJobs.filter(job => new Date(job.start_iso) <= threeDays);
+      break;
+    case 'this_week':
+      const endOfWeek = new Date(now);
+      endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+      endOfWeek.setHours(23, 59, 59, 999);
+      filteredJobs = filteredJobs.filter(job => new Date(job.start_iso) <= endOfWeek);
+      break;
+    case 'needs_list':
+      filteredJobs = filteredJobs.filter(job => !job.equipment_list || job.equipment_list.length === 0);
+      break;
+    case 'has_list':
+      filteredJobs = filteredJobs.filter(job => job.equipment_list && job.equipment_list.length > 0);
+      break;
+    case 'all':
+    default:
+      // No filter
+      break;
+  }
+  
+  debugLog(`Filter result: ${filteredJobs.length} jobs`);
+  renderJobs(filteredJobs);
+}
+
+function searchJobs(query) {
+  if (!query) {
+    applyFilter(currentFilter);
+    return;
+  }
+  
+  debugLog(`Searching for: ${query}`);
+  const lowerQuery = query.toLowerCase();
+  
+  const results = currentJobs.filter(job => {
+    return (
+      (job.job_id || '').toLowerCase().includes(lowerQuery) ||
+      (job.service_id || '').toLowerCase().includes(lowerQuery) ||
+      (job.customer_name || '').toLowerCase().includes(lowerQuery) ||
+      (job.service_address || '').toLowerCase().includes(lowerQuery) ||
+      (job.notes_from_customer || '').toLowerCase().includes(lowerQuery)
+    );
+  });
+  
+  debugLog(`Search results: ${results.length} jobs`);
+  renderJobs(results);
+}
+
+// ========================= EVENT LISTENERS =========================
+
+// Login form
+$('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  login(email, password);
+});
+
+// Logout button
+$('btnLogout').addEventListener('click', logout);
+
+// Health check button (on login screen)
+$('btnHealthCheck').addEventListener('click', async () => {
+  debugLog('Running health check...');
+  const btn = $('btnHealthCheck');
+  btn.disabled = true;
+  btn.textContent = '🔍 Checking...';
+  
+  const result = await apiCall('health_check');
+  
+  btn.disabled = false;
+  btn.textContent = '🔍 Run Health Check';
+  
+  if (result && result.ok) {
+    debugLog('Health check passed!', 'success');
+    alert('✅ Health Check PASSED!\n\nAll systems operational:\n' + 
+          result.checks.map(c => `${c.passed ? '✓' : '✗'} ${c.test}`).join('\n') +
+          '\n\nYou can now login.');
+  } else if (result) {
+    debugLog('Health check failed', 'error');
+    const failed = result.checks.filter(c => !c.passed);
+    alert('⚠️ Health Check FAILED!\n\nIssues found:\n' + 
+          failed.map(c => `✗ ${c.test}: ${c.value || c.error}`).join('\n') +
+          '\n\nCheck debug console (🐛) for details.');
+  } else {
+    debugLog('Health check error - no response', 'error');
+    alert('❌ Health Check ERROR!\n\nCould not connect to backend. Check:\n' +
+          '1. Web app URL is correct\n' +
+          '2. Backend is deployed\n' +
+          '3. Check browser console (F12)');
+  }
+});
+
+// Refresh button
+$('btnRefresh').addEventListener('click', loadJobs);
+
+// Search input
+let searchTimeout;
+$('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchJobs(e.target.value.trim());
+  }, 300);
+});
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter(btn.dataset.filter);
+  });
+});
+
+// Stat cards clickable filtering
+document.querySelectorAll('.stat-card[data-filter-to]').forEach(card => {
+  card.addEventListener('click', () => {
+    const filterType = card.dataset.filterTo;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    const filterBtn = document.querySelector(`.filter-btn[data-filter="${filterType}"]`);
+    if (filterBtn) filterBtn.classList.add('active');
+    applyFilter(filterType);
+  });
+});
+
+// Event delegation for dynamic job card buttons
+document.addEventListener('click', (e) => {
+  console.log('🔵 Document click detected:', e.target);
+  console.log('🔵 Target ID:', e.target.id);
+  console.log('🔵 Target tagName:', e.target.tagName);
+  
+  // Find the actual button element (in case click was on text/span inside button)
+  let target = e.target;
+  if (!target.id && target.closest('button')) {
+    target = target.closest('button');
+    console.log('🔵 Found parent button:', target);
+    console.log('🔵 Parent button ID:', target.id);
+  }
+  
+  if (target.id && target.id.startsWith('btn-generate-')) {
+    console.log('🔵 GENERATE BUTTON CLICKED!');
+    const jobId = target.id.replace('btn-generate-', '');
+    console.log('🔵 Extracted job ID:', jobId);
+    console.log('🔵 Calling generateEquipmentList()...');
+    e.preventDefault();
+    e.stopPropagation();
+    generateEquipmentList(jobId);
+    return;
+  }
+  
+  if (target.id && target.id.startsWith('btn-mark-')) {
+    console.log('🔵 MARK ORDERED BUTTON CLICKED!');
+    const jobId = target.id.replace('btn-mark-', '');
+    e.preventDefault();
+    e.stopPropagation();
+    markAsOrdered(jobId);
+    return;
+  }
+  
+  if (target.id && target.id.startsWith('btn-copy-addr-')) {
+    const jobId = target.id.replace('btn-copy-addr-', '');
+    copyAddress(jobId);
+  }
+});
+
+// Debug panel toggle
+$('debugToggle').addEventListener('click', () => {
+  const panel = $('debugPanel');
+  panel.classList.toggle('hidden');
+  $('debugToggle').classList.toggle('hidden');
+});
+
+$('debugClose').addEventListener('click', () => {
+  $('debugPanel').classList.add('hidden');
+  $('debugToggle').classList.remove('hidden');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd + R = Refresh jobs
+  if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+    e.preventDefault();
+    if (!$('dashboard').classList.contains('hidden')) {
+      loadJobs();
+      showSuccess('Jobs refreshed');
+    }
+  }
+  
+  // Ctrl/Cmd + K = Focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    const searchInput = $('searchInput');
+    if (searchInput && !searchInput.classList.contains('hidden')) {
+      searchInput.focus();
+      searchInput.select();
+    }
+  }
+  
+  // ESC = Clear search
+  if (e.key === 'Escape') {
+    const searchInput = $('searchInput');
+    if (searchInput && searchInput.value) {
+      searchInput.value = '';
+      applyFilter(currentFilter);
+    }
+  }
+  
+  // Ctrl/Cmd + D = Toggle debug panel
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+    e.preventDefault();
+    const panel = $('debugPanel');
+    if (!panel.classList.contains('hidden')) {
+      $('debugClose').click();
+    } else {
+      $('debugToggle').click();
+    }
+  }
+});
+
+// Auto-refresh every 2 minutes (optional - can be disabled)
+let autoRefreshInterval = null;
+function startAutoRefresh() {
+  if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+  
+  autoRefreshInterval = setInterval(() => {
+    if (!$('dashboard').classList.contains('hidden')) {
+      debugLog('Auto-refresh: Loading jobs...');
+      loadJobs();
+    }
+  }, 2 * 60 * 1000); // 2 minutes
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+
+// ========================= UTILITIES =========================
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========================= INITIALIZATION =========================
+
+debugLog('Application initialized');
+debugLog(`API URL: ${API_URL}`);
+debugLog(`Session ID: ${SESSION_ID ? 'Present' : 'None'}`);
+
+if (SESSION_ID) {
+  debugLog('Existing session found - loading dashboard');
+  showDashboard();
+} else {
+  debugLog('No session - showing login screen');
+}
+</script>
+
+</body>
+</html>

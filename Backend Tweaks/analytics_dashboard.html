@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>H2S Analytics Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background: #111;
+      border-bottom: 2px solid #222;
+      padding: 20px 0;
+      margin-bottom: 30px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+    
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+    }
+    
+    .refresh-btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 15px;
+      transition: background 0.2s;
+    }
+    
+    .refresh-btn:hover {
+      background: #1d4ed8;
+    }
+    
+    .refresh-btn:disabled {
+      background: #374151;
+      cursor: not-allowed;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    
+    .spinner {
+      border: 3px solid #222;
+      border-top: 3px solid #2563eb;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .metric-card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .metric-label {
+      color: #888;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+    
+    .metric-subtext {
+      color: #666;
+      font-size: 13px;
+    }
+    
+    .positive {
+      color: #10b981;
+    }
+    
+    .negative {
+      color: #ef4444;
+    }
+    
+    .warning {
+      color: #f59e0b;
+    }
+    
+    .section {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #222;
+    }
+    
+    .ai-analysis {
+      background: #0a0a0a;
+      border-left: 3px solid #2563eb;
+      padding: 20px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #d0d0d0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th {
+      text-align: left;
+      padding: 12px;
+      background: #0a0a0a;
+      color: #888;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    
+    td {
+      padding: 12px;
+      border-top: 1px solid #1a1a1a;
+      font-size: 14px;
+    }
+    
+    tr:hover {
+      background: #0d0d0d;
+    }
+    
+    .tier-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .tier-byo {
+      background: #1e293b;
+      color: #94a3b8;
+    }
+    
+    .tier-base {
+      background: #172554;
+      color: #60a5fa;
+    }
+    
+    .tier-h2s {
+      background: #172554;
+      color: #818cf8;
+    }
+    
+    .error {
+      background: #7f1d1d;
+      border: 1px solid #991b1b;
+      border-radius: 6px;
+      padding: 20px;
+      color: #fca5a5;
+      margin: 20px 0;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Analytics Dashboard</h1>
+      <p class="subtitle">AI-Powered Business Intelligence</p>
+      <button class="refresh-btn" onclick="loadAnalysis()">Refresh Analysis</button>
+  <button class="refresh-btn" style="background:#10b981" onclick="runRetroPreview()">Retro Preview</button>
+  <button class="refresh-btn" style="background:#065f46" onclick="runRetroApply()">Run Retro</button>
+  <button class="refresh-btn" style="background:#9333ea" onclick="reconcilePayouts()">Reconcile Payouts</button>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading business intelligence...</p>
+    </div>
+    
+    <div id="error" style="display:none;" class="error"></div>
+    
+    <div id="dashboard" style="display:none;">
+      <!-- Key Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Revenue</div>
+          <div class="metric-value" id="revenue">$0</div>
+          <div class="metric-subtext" id="revenue-sub"></div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Gross Margin</div>
+          <div class="metric-value" id="margin">0%</div>
+          <div class="metric-subtext" id="margin-sub"></div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Jobs Completed</div>
+          <div class="metric-value" id="jobs">0</div>
+          <div class="metric-subtext" id="jobs-sub"></div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Active Pros</div>
+          <div class="metric-value" id="pros">0</div>
+          <div class="metric-subtext" id="pros-sub"></div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">MoM Growth</div>
+          <div class="metric-value" id="growth">0%</div>
+          <div class="metric-subtext" id="growth-sub"></div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Capacity</div>
+          <div class="metric-value" id="capacity">0%</div>
+          <div class="metric-subtext" id="capacity-sub"></div>
+        </div>
+      </div>
+      
+      <!-- AI Analysis -->
+      <div class="section">
+        <div class="section-title">AI Executive Analysis</div>
+        <div class="ai-analysis" id="ai-analysis">Loading analysis...</div>
+      </div>
+      
+      <div class="grid-2">
+        <!-- Geographic Performance -->
+        <div class="section">
+          <div class="section-title">Top Cities by Revenue</div>
+          <table id="cities-table">
+            <thead>
+              <tr>
+                <th>City</th>
+                <th>Jobs</th>
+                <th>Revenue</th>
+                <th>Margin</th>
+              </tr>
+            </thead>
+            <tbody id="cities-body"></tbody>
+          </table>
+        </div>
+        
+        <!-- Pricing Tiers -->
+        <div class="section">
+          <div class="section-title">Pricing Tier Performance</div>
+          <table id="tiers-table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Jobs</th>
+                <th>Revenue</th>
+                <th>Margin</th>
+              </tr>
+            </thead>
+            <tbody id="tiers-body"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Top Services -->
+      <div class="section">
+        <div class="section-title">Top Services by Revenue</div>
+        <table id="services-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Jobs</th>
+              <th>Revenue</th>
+              <th>Margin</th>
+            </tr>
+          </thead>
+          <tbody id="services-body"></tbody>
+        </table>
+      </div>
+      
+      <!-- Top Performers -->
+      <div class="section">
+        <div class="section-title">Top Performing Pros</div>
+        <table id="pros-table">
+          <thead>
+            <tr>
+              <th>Pro</th>
+              <th>Jobs</th>
+              <th>Earnings</th>
+              <th>Avg/Job</th>
+            </tr>
+          </thead>
+          <tbody id="pros-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxvkqZG4mCec7Pol-tlZy9o6aIfnnh7xuQWYpFayGTwPDKd2f1Px3Qj_a-D0zjM5bM_jw/exec';
+    
+    function loadAnalysis() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      
+      fetch(API_URL + '?action=getAnalytics')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.ok) {
+            showError(data.error || 'Failed to load analytics');
+            return;
+          }
+          
+          renderDashboard(data);
+        })
+        .catch(err => {
+          showError('Network error: ' + err.message);
+        });
+    }
+
+    function runRetroPreview(){
+      disableButtons(true);
+      fetch(API_URL + '?action=retro_payouts_preview')
+        .then(r=>r.json())
+        .then(j=>{ alert('Retro Preview:\nNeeds payout: '+j.needs_payout+'\nMissing pro: '+j.missing_pro+'\nMissing lines: '+j.missing_lines+'\nTotal owed: $'+j.total_owed); })
+        .catch(e=>alert('Error preview: '+e.message))
+        .finally(()=>disableButtons(false));
+    }
+    function runRetroApply(){
+      if(!confirm('Apply retro payouts now?')) return;
+      disableButtons(true);
+      fetch(API_URL + '?action=retro_payouts')
+        .then(r=>r.json())
+        .then(j=>{ alert('Retro Applied:\nCreated payouts for '+j.needs_payout+' jobs. Total owed: $'+j.total_owed); loadAnalysis(); })
+        .catch(e=>alert('Error apply: '+e.message))
+        .finally(()=>disableButtons(false));
+    }
+    function reconcilePayouts(){
+      disableButtons(true);
+      fetch(API_URL + '?action=reconcile_payouts')
+        .then(r=>r.json())
+        .then(j=>{ if(!j.ok) alert('Reconcile failed: '+j.error); else alert('Reconcile done. Inserted: '+j.inserted+' Skipped: '+j.skipped+' Failed: '+j.failed); })
+        .catch(e=>alert('Error reconcile: '+e.message))
+        .finally(()=>disableButtons(false));
+    }
+    function disableButtons(flag){
+      document.querySelectorAll('.refresh-btn').forEach(btn=>btn.disabled=flag);
+    }
+    
+    function renderDashboard(data) {
+      const m = data.metrics;
+      
+      // Key metrics
+      document.getElementById('revenue').textContent = '$' + m.revenue.total.toLocaleString();
+      document.getElementById('revenue-sub').textContent = 'Avg: $' + m.revenue.avg_job_value.toLocaleString() + '/job';
+      
+      document.getElementById('margin').textContent = m.revenue.margin + '%';
+      const marginClass = m.revenue.margin >= 60 ? 'positive' : m.revenue.margin >= 40 ? 'warning' : 'negative';
+      document.getElementById('margin').className = 'metric-value ' + marginClass;
+      document.getElementById('margin-sub').textContent = 'Cost: $' + m.revenue.cost.toLocaleString();
+      
+      document.getElementById('jobs').textContent = m.operations.jobs_completed;
+      document.getElementById('jobs-sub').textContent = m.operations.completion_rate + '% completion rate';
+      
+      document.getElementById('pros').textContent = m.workforce.active_pros;
+      document.getElementById('pros-sub').textContent = m.workforce.utilization_rate + '% utilization';
+      
+      document.getElementById('growth').textContent = m.growth.mom_growth + '%';
+      const growthClass = m.growth.mom_growth > 0 ? 'positive' : 'negative';
+      document.getElementById('growth').className = 'metric-value ' + growthClass;
+      document.getElementById('growth-sub').textContent = m.growth.repeat_rate + '% repeat rate';
+      
+      document.getElementById('capacity').textContent = m.capacity.utilization_pct + '%';
+      const capClass = m.capacity.utilization_pct > 80 ? 'negative' : m.capacity.utilization_pct > 60 ? 'warning' : 'positive';
+      document.getElementById('capacity').className = 'metric-value ' + capClass;
+      document.getElementById('capacity-sub').textContent = m.capacity.current_load + ' pending jobs';
+      
+      // AI Analysis
+      document.getElementById('ai-analysis').textContent = data.analysis;
+      
+      // Cities
+      const citiesBody = document.getElementById('cities-body');
+      citiesBody.innerHTML = '';
+      m.geography.top_cities.slice(0, 5).forEach(city => {
+        const marginClass = city.margin >= 60 ? 'positive' : city.margin >= 40 ? '' : 'negative';
+        citiesBody.innerHTML += `
+          <tr>
+            <td>${city.name}</td>
+            <td>${city.jobs}</td>
+            <td>$${city.revenue.toLocaleString()}</td>
+            <td class="${marginClass}">${city.margin}%</td>
+          </tr>
+        `;
+      });
+      
+      // Pricing Tiers
+      const tiersBody = document.getElementById('tiers-body');
+      tiersBody.innerHTML = '';
+      const tiers = [
+        {name: 'BYO', class: 'tier-byo', data: m.pricing.byo},
+        {name: 'BASE', class: 'tier-base', data: m.pricing.base},
+        {name: 'H2S', class: 'tier-h2s', data: m.pricing.h2s}
+      ];
+      tiers.forEach(tier => {
+        const marginClass = tier.data.margin >= 60 ? 'positive' : tier.data.margin >= 40 ? '' : 'negative';
+        tiersBody.innerHTML += `
+          <tr>
+            <td><span class="tier-badge ${tier.class}">${tier.name}</span></td>
+            <td>${tier.data.jobs}</td>
+            <td>$${tier.data.revenue.toLocaleString()}</td>
+            <td class="${marginClass}">${tier.data.margin}%</td>
+          </tr>
+        `;
+      });
+      
+      // Services
+      const servicesBody = document.getElementById('services-body');
+      servicesBody.innerHTML = '';
+      m.services.top_services.slice(0, 10).forEach(svc => {
+        const marginClass = svc.margin >= 60 ? 'positive' : svc.margin >= 40 ? '' : 'negative';
+        servicesBody.innerHTML += `
+          <tr>
+            <td>${svc.name}</td>
+            <td>${svc.jobs}</td>
+            <td>$${svc.revenue.toLocaleString()}</td>
+            <td class="${marginClass}">${svc.margin}%</td>
+          </tr>
+        `;
+      });
+      
+      // Top Pros
+      const prosBody = document.getElementById('pros-body');
+      prosBody.innerHTML = '';
+      m.workforce.top_performers.forEach(pro => {
+        prosBody.innerHTML += `
+          <tr>
+            <td>${pro.name}</td>
+            <td>${pro.jobs}</td>
+            <td>$${pro.earnings.toLocaleString()}</td>
+            <td>$${pro.avg_per_job}</td>
+          </tr>
+        `;
+      });
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+    }
+    
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error').textContent = 'Error: ' + message;
+    }
+    
+    // Load on page load
+    loadAnalysis();
+  </script>
+</body>
+</html>
