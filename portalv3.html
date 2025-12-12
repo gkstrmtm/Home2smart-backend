@@ -4981,6 +4981,7 @@ a:focus-visible{
         <div style="display:flex;flex-direction:column;gap:24px">
           <div><label class="label" for="piName" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out"></div>
           <div><label class="label" for="piEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="piEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div><label class="label" for="piEmailConfirm" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Confirm Email</label><input id="piEmailConfirm" class="input" type="email" placeholder="Confirm email" autocomplete="off" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
           <div><label class="label" for="piPhone" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Phone</label><input id="piPhone" class="input" type="tel" placeholder="(###) ###-####" autocomplete="tel" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
         </div>
         <div style="display:flex;gap:12px;margin-top:24px">
@@ -11735,10 +11736,19 @@ $("backToSignIn").addEventListener("click", () => {
 });
 
 $("toAddress").addEventListener("click", () => {
-  if (!$("piName").value.trim() || !$("piEmail").value.trim() || !$("piPhone").value.trim()) {
+  const email = $("piEmail").value.trim();
+  const emailConfirm = $("piEmailConfirm").value.trim();
+  
+  if (!$("piName").value.trim() || !email || !$("piPhone").value.trim()) {
     $("err-info").textContent = "All fields required"; $("err-info").style.display = "block";
     return;
   }
+  
+  if (email !== emailConfirm) {
+    $("err-info").textContent = "Emails do not match"; $("err-info").style.display = "block";
+    return;
+  }
+  
   $("step-info").style.display = "none";
   $("step-address").style.display = "block";
 });
@@ -15193,11 +15203,12 @@ function renderTrainingContent() {
   box.innerHTML = "";
   box.appendChild(fragment);
   
-  // Add click handler
+  // Add click handler - Allow clicking anywhere on the card
   box.onclick = async e => {
-    const btn = e.target.closest("button[data-play]");
-    if (!btn) return;
-    const videoId = btn.dataset.play;
+    const card = e.target.closest(".training-card");
+    if (!card) return;
+    
+    const videoId = card.dataset.videoId;
     const video = videos.find(v => v.id === videoId);
     if (video) playVideo(video);
   };

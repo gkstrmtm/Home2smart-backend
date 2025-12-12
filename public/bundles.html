@@ -685,6 +685,8 @@ body.modal-open {
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   box-sizing: border-box;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 100px;
 }
 
 .trust-bar::before {
@@ -748,6 +750,8 @@ body.modal-open {
   padding: 96px 0 104px; /* Increased vertical padding for breathability */
   background-color: #fafbfc;
   background-image: linear-gradient(180deg, #fafbfc 0%, #f5f7fa 50%, #ffffff 100%);
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
 }
 
 /* Track container to handle overflow properly */
@@ -988,6 +992,8 @@ body.modal-open {
   display: grid;
   gap: 16px;
   grid-template-columns: 1fr;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 1000px;
 }
 
 @media (min-width: 640px) {

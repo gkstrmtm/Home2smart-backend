@@ -141,13 +141,8 @@ export default async function handler(req, res) {
       }
     }
     
-    // ALSO fetch from legacy h2s_jobs table to ensure we don't miss any
-    const { data: legacyJobs } = await supabase
-      .from('h2s_jobs')
-      .select('*')
-      .gte('created_at', cutoffDate)
-      .order('created_at', { ascending: false })
-      .limit(200);
+    // Legacy h2s_jobs fetch removed as per user instruction (finance/legacy data no longer needed)
+    const legacyJobs = [];
     
     // Merge both sources, prioritizing dispatch_jobs
     const allJobsMap = {};

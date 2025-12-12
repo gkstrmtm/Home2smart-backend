@@ -98,8 +98,8 @@ export default async function handler(req, res) {
       .from('h2s_dispatch_jobs')
       .select('job_id, customer_name, customer_phone, customer_email, start_iso, end_iso, status, order_id')
       .in('job_id', jobIds)
-      .in('status', ['accepted', 'scheduled'])
-      .gte('start_iso', new Date().toISOString());
+      .in('status', ['accepted', 'scheduled', 'assigned'])
+      .gte('start_iso', new Date(new Date().setHours(0,0,0,0)).toISOString());
 
     if (jobError) {
       console.error('[portal_customers] Job query failed:', jobError);
