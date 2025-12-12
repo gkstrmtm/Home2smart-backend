@@ -162,8 +162,8 @@ export default async function handler(req, res) {
       service: serviceName,
       date: formatDate(delivery_date),
       time: delivery_time,
-      city: city || 'your area',
-      state: state || ''
+      city: order.city || order.service_city || 'your area',
+      state: order.state || order.service_state || ''
     };
 
     // Send SMS
