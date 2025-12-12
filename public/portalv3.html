@@ -14284,7 +14284,7 @@ async function loadSchedule() {
 }
 
 function displayTimeOffRequests(items) {
-  const container = $("current-schedule-display");
+  const container = $("time-off-list");
   
   // Filter to only vacation/time off requests
   const timeOffRequests = items.filter(i => i.type === 'vacation').sort((a,b) => 
