@@ -54,18 +54,35 @@ export default async function handler(req, res) {
   const origin = req.headers.origin;
   const allowedOrigin = getAllowedOrigin(origin);
   
-  // Set CORS headers
-  if (allowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  // Set CORS headers - ALWAYS set for preflight to work
+  // Use specific origin if present (required for credentials), fallback to * only if no origin
+  // This ensures preflight OPTIONS always gets proper CORS headers
+  if (origin) {
+    // Use the request origin (browser will validate it matches)
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    // No origin header (non-browser request) - use wildcard
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
   
   // Handle preflight OPTIONS request - MUST return 200 with headers
+  // Return early before any auth/body parsing
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+  
+  // For actual POST requests, validate origin is in allowed list
+  if (req.method === 'POST' && origin && !allowedOrigin) {
+    return res.status(403).json({
+      ok: false,
+      error: 'Origin not allowed',
+      error_code: 'cors_error'
+    });
   }
   
   // Health check for GET
