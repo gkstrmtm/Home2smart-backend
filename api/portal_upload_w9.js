@@ -170,7 +170,7 @@ export default async function handler(req, res) {
 
     // Generate signed URL (temporary, 1 hour expiry for admin access)
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from('w9-forms')
+      .from(bucketName)
       .createSignedUrl(storagePath, 3600); // 1 hour
 
     if (signedUrlError) {
