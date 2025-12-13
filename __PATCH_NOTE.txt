@@ -1,0 +1,1 @@
+Login UI patch: tighten spacing, normalize checkbox, simplify sign-up link for mobile.

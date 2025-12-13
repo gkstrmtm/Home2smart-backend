@@ -1,0 +1,362 @@
+<!-- This is the redesigned account dashboard with proper grid system -->
+<!-- Copy this into renderAccount() function -->
+
+<div style="max-width:1600px; margin:0 auto;">
+  
+  <!-- Welcome Header -->
+  <div style="margin-bottom:2rem; text-align:center;">
+    <h1 style="margin:0 0 0.5rem 0; font-weight:900; font-size:clamp(1.75rem, 4vw, 2.5rem); color:var(--cobalt); line-height:1.2;">
+      Welcome back! 👋
+    </h1>
+    <p style="margin:0; color:#6b778c; font-size:clamp(0.875rem, 2vw, 1rem); font-weight:600;">
+      Manage your account, track orders, and maximize your rewards
+    </p>
+  </div>
+
+  <!-- GRID SYSTEM: 2-Column Layout -->
+  <div class="dashboard-grid">
+    
+    <!-- LEFT SIDEBAR: Account & Actions (Sticky) -->
+    <div class="grid-sidebar">
+      
+      <!-- Account Info Card -->
+      <section class="form">
+        <div class="section-header">
+          <span class="section-icon">👤</span>
+          <h2 class="section-title">Account</h2>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="inp" id="acName" type="text" placeholder="Name" value="">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="inp" id="acEmail" type="email" placeholder="Email" value="" disabled style="background:#f5f7fb; opacity:0.7;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="inp" id="acPhone" type="tel" placeholder="Phone" value="">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <button class="btn azure" id="saveAcct">💾 Save</button>
+          <button class="btn ghost" id="signOut">🚪 Out</button>
+        </div>
+        <div id="acMsg" class="help"></div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="form actions-card">
+        <div class="section-header">
+          <span class="section-icon">⚡</span>
+          <h2 class="section-title">Actions</h2>
+        </div>
+        
+        <div class="action-list">
+          <button class="action-btn" id="backShop">
+            <span class="action-icon">🛍️</span>
+            <div class="action-content">
+              <div class="action-title">Shop</div>
+              <div class="action-desc">Browse services</div>
+            </div>
+          </button>
+          
+          <button class="action-btn" id="cpToggle">
+            <span class="action-icon">🔐</span>
+            <div class="action-content">
+              <div class="action-title">Password</div>
+              <div class="action-desc">Update security</div>
+            </div>
+          </button>
+          
+          <a href="/rewards" class="action-btn">
+            <span class="action-icon">🎯</span>
+            <div class="action-content">
+              <div class="action-title">Rewards</div>
+              <div class="action-desc">Track & redeem</div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Password Panel -->
+        <div id="cpPanel" style="display:none; margin-top:1rem; padding:1rem; background:white; border-radius:8px; border:2px solid #e3f2fd;">
+          <h3 style="margin:0 0 0.75rem 0; font-weight:900; font-size:0.95rem;">🔑 Password</h3>
+          <input class="inp" id="cpOld" type="password" placeholder="Current" style="margin-bottom:0.5rem;">
+          <input class="inp" id="cpNew1" type="password" placeholder="New (min 8)" style="margin-bottom:0.5rem;">
+          <input class="inp" id="cpNew2" type="password" placeholder="Confirm" style="margin-bottom:0.75rem;">
+          <button class="btn azure" id="cpDo" style="width:100%;">Update</button>
+          <div id="cpMsg" class="help" style="margin-top:0.5rem;"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT MAIN AREA: Rewards + Orders/Subs -->
+    <div class="grid-main">
+      
+      <!-- Rewards Hero -->
+      <section class="rewards-hero">
+        <div class="rewards-bg-shine"></div>
+        
+        <div class="rewards-content">
+          <div style="text-align:center; margin-bottom:1.5rem;">
+            <span style="font-size:2.5rem;">🎁</span>
+            <h2 style="margin:0.5rem 0 0 0; font-size:1.5rem; font-weight:900; color:white; text-transform:uppercase; letter-spacing:3px;">Rewards</h2>
+          </div>
+
+          <!-- Points & Stats Grid -->
+          <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+            <!-- Main Points -->
+            <div style="background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); border-radius:12px; padding:1.5rem; border:1px solid rgba(255,255,255,0.2); text-align:center;">
+              <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; opacity:0.9; color:white; margin-bottom:0.5rem;">Points</div>
+              <div style="font-size:4rem; font-weight:900; line-height:1; color:white; text-shadow:0 4px 12px rgba(0,0,0,0.3);" id="pointsDisplay">
+                <div class="skeleton-text" style="height:4rem; width:180px; margin:0 auto; background:rgba(255,255,255,0.2); border-radius:8px;"></div>
+              </div>
+              <div style="font-size:1.25rem; font-weight:800; margin-top:0.75rem; color:white;" id="pointsWorthDisplay">$0.00</div>
+            </div>
+
+            <!-- Stat 1 -->
+            <div style="background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); border-radius:12px; padding:1.25rem; border:1px solid rgba(255,255,255,0.2); text-align:center;">
+              <div style="font-size:2rem; font-weight:900; color:white; margin-bottom:0.25rem;" id="stat1Value">0</div>
+              <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; opacity:0.9; color:white;" id="stat1Label">Referrals</div>
+            </div>
+
+            <!-- Stat 2 -->
+            <div style="background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); border-radius:12px; padding:1.25rem; border:1px solid rgba(255,255,255,0.2); text-align:center;">
+              <div style="font-size:2rem; font-weight:900; color:white; margin-bottom:0.25rem;" id="stat2Value">0</div>
+              <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; opacity:0.9; color:white;" id="stat2Label">Earned</div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+            <a href="/rewards" class="btn" style="background:white; color:#0066FF; font-weight:800; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:0.5rem; border:none;">
+              🏆 Dashboard
+            </a>
+            <button id="shareReferralBtn" class="btn" style="background:rgba(255,255,255,0.2); color:white; font-weight:800; border:2px solid white;">
+              📤 Share
+            </button>
+          </div>
+
+          <div id="tierProgressSection" style="display:none;"></div>
+        </div>
+
+        <div id="emptyRewardsState" style="display:none; padding:2rem; text-align:center;">
+          <div style="font-size:3rem; margin-bottom:1rem;">🚀</div>
+          <div style="font-size:1.5rem; font-weight:900; margin-bottom:0.75rem; color:white;">Start Earning!</div>
+          <div style="font-size:1rem; margin-bottom:1.5rem; opacity:0.95; line-height:1.6; color:white;">
+            Share your link. Earn <strong>100 points</strong> per purchase!
+          </div>
+          <a href="/rewards" class="btn" style="background:white; color:#0066FF; font-weight:800; text-decoration:none;">✨ Get Link</a>
+        </div>
+      </section>
+
+      <!-- Orders & Subscriptions Grid -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+        <!-- Orders -->
+        <section class="form">
+          <div class="section-header">
+            <span class="section-icon">📦</span>
+            <h2 class="section-title">Orders</h2>
+          </div>
+          <div id="ordersBox" class="pd-box">
+            <div style="text-align:center; padding:2rem 1rem; color:#6b778c;">
+              <div style="font-size:2.5rem; margin-bottom:0.5rem;">📦</div>
+              <div style="font-weight:700; font-size:0.875rem;">Loading…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Subscriptions -->
+        <section class="form">
+          <div class="section-header">
+            <span class="section-icon">🔄</span>
+            <h2 class="section-title">Subscriptions</h2>
+          </div>
+          <div id="subsBox">
+            <div style="text-align:center; padding:2rem 1rem; color:#6b778c;">
+              <div style="font-size:2.5rem; margin-bottom:0.5rem;">🔄</div>
+              <div style="font-weight:700; font-size:0.875rem;">Loading…</div>
+            </div>
+          </div>
+          <div id="upsellBox" style="margin-top:1rem;"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Grid System */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .grid-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: sticky;
+    top: 1.5rem;
+  }
+
+  .grid-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Rewards Hero */
+  .rewards-hero {
+    background: linear-gradient(135deg,#0066FF 0%,#00D9FF 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,102,255,0.25);
+    min-height: 350px;
+  }
+
+  .rewards-bg-shine {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: shine 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .rewards-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Section Headers */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e3f2fd;
+  }
+
+  .section-icon {
+    font-size: 1.75rem;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    margin: 0;
+    font-weight: 900;
+    font-size: 1.375rem;
+    color: var(--cobalt);
+  }
+
+  /* Form Groups */
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b778c;
+    margin-bottom: 0.35rem;
+  }
+
+  /* Action Card */
+  .actions-card {
+    background: linear-gradient(135deg, #f5f7fb 0%, #e3f2fd 100%);
+    border: 2px solid #d7dce6;
+  }
+
+  .action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: white;
+    border: 2px solid #e3f2fd;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    font-family: inherit;
+    width: 100%;
+    text-decoration: none;
+  }
+
+  .action-btn:hover {
+    border-color: var(--azure);
+    background: #f5f7fb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(20,147,255,0.15);
+  }
+
+  .action-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .action-content {
+    flex: 1;
+  }
+
+  .action-title {
+    font-weight: 800;
+    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
+    color: var(--cobalt);
+  }
+
+  .action-desc {
+    font-size: 0.7rem;
+    color: #6b778c;
+    font-weight: 600;
+  }
+
+  /* Animations */
+  @keyframes shine {
+    0%, 100% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) rotate(180deg); opacity: 0.8; }
+  }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .dashboard-grid {
+      grid-template-columns: 280px 1fr;
+      gap: 1rem;
+    }
+    .grid-sidebar {
+      position: relative;
+      top: 0;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .section-title { font-size: 1.1rem !important; }
+    .section-icon { font-size: 1.4rem !important; }
+  }
+</style>
+
+<!-- Hidden div for stats grid population -->
+<div id="rewardsStatsGrid" style="display:none;"></div>

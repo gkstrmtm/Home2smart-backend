@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rewards • Home2Smart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Match shop.html color system */
+      --ink: #0b1420;
+      --cobalt: #0a2a5a;
+      --azure: #1493ff;
+      --bg: #ffffff;
+      --ring: rgba(20,147,255,.25);
+      --card: #ffffff;
+      --muted: #6b778c;
+      --elev: 0 10px 26px rgba(0,0,0,.10);
+      
+      /* Keep success/warning */
+      --success: #00C853;
+      --warning: #FFA000;
+      
+      /* Light theme borders and backgrounds */
+      --border: #e7eaf0;
+      --bg-card: #fafcff;
+      --bg-card-hover: #f5f7fb;
+      
+      /* Updated gradients for light theme */
+      --gradient-primary: linear-gradient(135deg, #1493ff 0%, #673ab7 100%);
+      --gradient-success: linear-gradient(135deg, #00C853 0%, #2ed573 100%);
+      --gradient-tier1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-tier2: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      --shadow: 0 4px 16px rgba(20,147,255,0.15);
+      --shadow-hover: 0 6px 24px rgba(20,147,255,0.25);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--cobalt);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Header - Match shop.html style */
+    .header {
+      background: var(--cobalt);
+      color: #fff;
+      border-bottom: none;
+      padding: 12px clamp(14px,4vw,32px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    }
+    
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: #fff;
+      font-weight: 900;
+      font-size: clamp(20px,2.5vw,28px);
+    }
+    
+    .brand img {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .nav-link {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      padding: 10px 16px;
+      border-radius: 12px;
+      transition: all 0.2s;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    
+    .nav-link:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+    }
+    
+    .nav-link.active {
+      color: #fff;
+      background: var(--azure);
+      box-shadow: 0 4px 12px rgba(20,147,255,0.3);
+    }
+    
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 2.5rem 0 2rem;
+      position: relative;
+      background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+      border-radius: 20px;
+      margin-bottom: 2rem;
+    }
+    
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(20, 147, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+      color: var(--cobalt);
+      position: relative;
+      z-index: 1;
+    }
+    
+    .hero-subtitle {
+      font-size: 1.125rem;
+      color: var(--muted);
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Points Display */
+    .points-hero {
+      background: var(--gradient-primary);
+      border-radius: 24px;
+      padding: 3rem;
+      text-align: center;
+      margin: 2rem 0;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .points-hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .points-label {
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.9;
+      margin-bottom: 0.5rem;
+    }
+    
+    .points-value {
+      font-size: 5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .points-worth {
+      font-size: 1.5rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+    
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    
+    /* Card - Match shop.html style */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+      transition: all 0.3s;
+      box-shadow: var(--elev);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+      border-color: rgba(20,147,255,0.3);
+    }
+    
+    .card-title {
+      font-size: 1.375rem;
+      font-weight: 900;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--cobalt);
+    }
+    
+    .card-icon {
+      font-size: 1.75rem;
+    }
+    
+    /* Tier Badge */
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .tier-badge.tier-1 {
+      background: var(--gradient-tier1);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    }
+    
+    .tier-badge.tier-2 {
+      background: var(--gradient-tier2);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+    }
+    
+    /* Progress Bar */
+    .progress-container {
+      margin: 1.5rem 0;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+    
+    .progress-bar {
+      height: 12px;
+      background: var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-success);
+      transition: width 1s ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    /* Referral Code */
+    .referral-code-box {
+      background: linear-gradient(135deg, rgba(20,147,255,0.08) 0%, rgba(103,58,183,0.08) 100%);
+      border: 2px dashed var(--azure);
+      border-radius: 14px;
+      padding: 1.75rem;
+      text-align: center;
+      margin: 1rem 0;
+    }
+    
+    .referral-code {
+      font-size: 2.5rem;
+      font-weight: 900;
+      font-family: 'Courier New', monospace;
+      color: var(--azure);
+      letter-spacing: 4px;
+      margin: 1rem 0;
+      user-select: all;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    /* Buttons - Match shop.html style */
+    .btn {
+      appearance: none;
+      padding: 14px 24px;
+      border: 2px solid var(--cobalt);
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-family: inherit;
+      justify-content: center;
+    }
+    
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(20,147,255,0.3);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 6px 16px rgba(20,147,255,0.4);
+      transform: translateY(-2px);
+    }
+    
+    .btn-success {
+      background: var(--gradient-success);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(0,200,83,0.3);
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      box-shadow: 0 6px 16px rgba(0,200,83,0.4);
+      transform: translateY(-2px);
+    }
+    
+    .btn-ghost {
+      background: #fff;
+      border: 2px solid var(--border);
+      color: var(--cobalt);
+    }
+    
+    .btn-ghost:hover:not(:disabled) {
+      border-color: var(--azure);
+      background: #f5f7fb;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    
+    .stat-box {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      background: linear-gradient(135deg, #fafcff 0%, #f5f7fb 100%);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+    
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--cobalt);
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+      font-weight: 700;
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Referral List */
+    .referral-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .referral-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    
+    .referral-item:hover {
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transform: translateX(4px);
+    }
+    
+    .referral-info {
+      flex: 1;
+    }
+    
+    .referral-name {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--cobalt);
+    }
+    
+    .referral-date {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    
+    .referral-points {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--success);
+      background: rgba(0,200,83,0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+    
+    .empty-text {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--cobalt);
+    }
+    
+    /* Modal - Match shop.html style */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10,42,90,0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .modal-header {
+      padding: 2rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .modal-title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--cobalt);
+    }
+    
+    .modal-body {
+      padding: 2rem;
+    }
+    
+    .modal-footer {
+      padding: 1rem 2rem 2rem;
+      display: flex;
+      gap: 1rem;
+    }
+    
+    /* Form Elements - Match shop.html style */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--cobalt);
+      font-size: 14px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--cobalt);
+      font-size: 15px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--azure);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+    
+    /* Success Checkmark */
+    .success-checkmark {
+      width: 80px;
+      height: 80px;
+      margin: 2rem auto;
+      position: relative;
+    }
+    
+    .success-checkmark circle {
+      stroke: var(--success);
+      stroke-width: 2;
+      fill: none;
+      animation: circle 0.6s ease-out;
+    }
+    
+    .success-checkmark path {
+      stroke: var(--success);
+      stroke-width: 3;
+      fill: none;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: checkmark 0.4s ease-out 0.3s forwards;
+    }
+    
+    @keyframes circle {
+      from { stroke-dasharray: 0 251.2; }
+      to { stroke-dasharray: 251.2 0; }
+    }
+    
+    @keyframes checkmark {
+      to { stroke-dashoffset: 0; }
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      border: 3px solid var(--border);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2rem;
+      }
+      
+      .points-value {
+        font-size: 3.5rem;
+      }
+      
+      .referral-code {
+        font-size: 1.75rem;
+        letter-spacing: 2px;
+      }
+      
+      .container {
+        padding: 1rem;
+      }
+      
+      .points-hero {
+        padding: 2rem 1.5rem;
+      }
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header - Match shop.html style -->
+  <header class="header">
+    <div class="header-inner">
+      <a class="brand" href="/home">
+        <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="50" height="50">
+        <span>Home2Smart</span>
+      </a>
+      <nav class="nav-links">
+        <a href="shop.html" class="nav-link">Shop</a>
+        <a href="rewards.html" class="nav-link active">Rewards</a>
+        <button class="nav-link" id="signOutBtn" style="background: transparent; border: none; cursor: pointer; font-family: inherit;">Sign Out</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Hero -->
+    <div class="hero">
+      <div style="font-size: 3rem; margin-bottom: 1rem; animation: bounce 2s ease-in-out infinite;">🎁</div>
+      <h1 class="hero-title">Your Rewards Dashboard</h1>
+      <p class="hero-subtitle">Earn points, unlock perks, save money — every referral counts!</p>
+    </div>
+
+    <!-- Points Display -->
+    <div class="points-hero">
+      <div class="points-label">💎 Available Points</div>
+      <div class="points-value" id="pointsValue">
+        <div class="skeleton-text" style="height: 4rem; width: 200px; margin: 0 auto; background: rgba(255,255,255,0.3); border-radius: 12px; animation: pulse 1.5s ease-in-out infinite;"></div>
+      </div>
+      <div class="points-worth" id="pointsWorth">$0.00 in rewards</div>
+      
+      <!-- Quick actions -->
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
+        <button class="btn btn-success" id="redeemBtn" disabled style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.125rem; padding: 1rem 2rem;">
+          <span>💰</span> Redeem Points
+        </button>
+        <button class="btn btn-primary" id="shareNowBtn" style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.125rem; padding: 1rem 2rem; background: rgba(255,255,255,0.2); border: 2px solid white; backdrop-filter: blur(10px);">
+          <span>🚀</span> Share & Earn More
+        </button>
+      </div>
+    </div>
+
+    <!-- Value Proposition Banner (shown when low points) -->
+    <div id="motivationBanner" style="display: none; background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(251,191,36,0.15) 100%); border: 2px solid rgba(245,158,11,0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+      <div style="font-size: 1.5rem; margin-bottom: 0.75rem;">⚡️</div>
+      <div style="font-size: 1.25rem; font-weight: 800; color: var(--cobalt); margin-bottom: 0.5rem;">You're so close!</div>
+      <div style="font-size: 1rem; color: var(--muted); line-height: 1.6;">
+        <span id="motivationText"></span>
+      </div>
+    </div>
+
+    <style>
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.8; }
+      }
+    </style>
+
+    <!-- Grid -->
+    <div class="grid grid-2">
+      <!-- Tier Status Card -->
+      <div class="card" style="position: relative; overflow: hidden;">
+        <!-- Animated background -->
+        <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%); animation: rotate 20s linear infinite; pointer-events: none;"></div>
+        
+        <div style="position: relative; z-index: 1;">
+          <h2 class="card-title">
+            <span class="card-icon">🏆</span>
+            Your Tier Status
+          </h2>
+          <div id="tierBadge"></div>
+          <div class="progress-container" id="tierProgress"></div>
+          
+          <!-- Enhanced Stats Grid -->
+          <div class="stats-grid" style="margin-top: 1.5rem;">
+            <div class="stat-box" style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 1px solid rgba(99,102,241,0.2);">
+              <div class="stat-value" id="totalReferrals">0</div>
+              <div class="stat-label">Total Referrals</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.1) 100%); border: 1px solid rgba(16,185,129,0.2);">
+              <div class="stat-value" id="totalEarned">0</div>
+              <div class="stat-label">Points Earned</div>
+            </div>
+          </div>
+          
+          <!-- Tier Benefits Preview -->
+          <div id="tierBenefits" style="margin-top: 1.5rem; padding: 1rem; background: rgba(99,102,241,0.05); border-radius: 12px; border: 1px dashed rgba(99,102,241,0.2);">
+            <div style="font-size: 0.875rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--cobalt); text-transform: uppercase; letter-spacing: 1px;">🌟 Your Benefits</div>
+            <div id="benefitsList" style="font-size: 0.875rem; color: var(--muted); line-height: 1.8;">
+              <!-- Will be populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Referral Code Card -->
+      <div class="card" style="position: relative; overflow: hidden;">
+        <!-- Animated background -->
+        <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(20,147,255,0.05) 0%, transparent 70%); animation: rotate 25s linear infinite reverse; pointer-events: none;"></div>
+        
+        <div style="position: relative; z-index: 1;">
+          <h2 class="card-title">
+            <span class="card-icon">🎁</span>
+            Share & Earn Rewards
+          </h2>
+          
+          <!-- Value Proposition -->
+          <div style="background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.1) 100%); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(16,185,129,0.2);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.5rem;">💸</span>
+              <span style="font-weight: 800; color: var(--success); font-size: 1.125rem;">Earn up to $45 per referral!</span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--muted); line-height: 1.6;">
+              ✓ Friends get 100 bonus points<br>
+              ✓ You earn rewards when they purchase<br>
+              ✓ Unlimited referrals, unlimited earnings
+            </div>
+          </div>
+          
+          <div class="referral-code-box">
+            <div style="font-size: 0.875rem; font-weight: 700; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+              Your Personal Code
+            </div>
+            <div class="referral-code" id="referralCode">
+              <div class="skeleton-text" style="height: 2.5rem; width: 200px; margin: 1rem auto; background: rgba(20,147,255,0.2); border-radius: 8px; animation: pulse 1.5s ease-in-out infinite;"></div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" id="copyCodeBtn" style="flex: 1;">
+                <span>📋</span> Copy Code
+              </button>
+              <button class="btn btn-ghost" id="shareBtn" style="flex: 1;">
+                <span>🔗</span> Share Link
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+
+    <!-- Referral History -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h2 class="card-title">
+        <span class="card-icon">📊</span>
+        Referral Activity
+      </h2>
+      <div id="referralList" class="referral-list">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Redeem Modal -->
+  <div class="modal-overlay" id="redeemModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Redeem Points</h3>
+      </div>
+      <div class="modal-body">
+        <form id="redeemForm">
+          <div class="form-group">
+            <label class="form-label" for="pointsToRedeem">Points to Redeem</label>
+            <input type="number" id="pointsToRedeem" class="form-input" min="100" step="100" placeholder="100" required>
+            <div style="font-size: 0.875rem; color: var(--muted); margin-top: 0.5rem;">
+              <strong style="color: var(--cobalt);">Conversion:</strong> 100 points = $10 discount
+            </div>
+          </div>
+          <div style="padding: 1.5rem; background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 14px; border: 2px solid var(--border); text-align: center;">
+            <div style="font-size: 0.875rem; font-weight: 700; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+              Discount Value
+            </div>
+            <div style="font-size: 2.5rem; font-weight: 900; color: var(--success);" id="discountValue">$0.00</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="cancelRedeemBtn" style="flex: 1;">Cancel</button>
+        <button class="btn btn-success" id="confirmRedeemBtn" style="flex: 1;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal">
+      <div class="modal-body" style="text-align: center;">
+        <svg class="success-checkmark" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="25"/>
+          <path d="M14 27l7.5 7.5L38 18"/>
+        </svg>
+        <h3 style="font-size: 1.75rem; font-weight: 900; margin-bottom: 0.5rem; color: var(--cobalt);">Success!</h3>
+        <p style="color: var(--muted); font-size: 1.125rem;" id="successMessage">Your discount code is ready to use!</p>
+        <div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, rgba(0,200,83,0.08) 0%, rgba(46,213,115,0.08) 100%); border-radius: 14px; border: 2px dashed var(--success);">
+          <div style="font-size: 0.875rem; font-weight: 700; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+            Discount Code
+          </div>
+          <div style="font-size: 2rem; font-weight: 900; color: var(--success); font-family: 'Courier New', monospace; letter-spacing: 2px;" id="discountCode">CODE123</div>
+        </div>
+        <button class="btn btn-primary" id="closeSuccessBtn" style="width: 100%;">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // API Configuration
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzN7912CA8vCLEGRhnOqz6tA2KOAhlHDqZxEgxOh_n3_aDvDRfYvgqyW4LUxQNqnEgu/exec';
+    
+    // Get user session - match shop.html localStorage key
+    let userEmail = null;
+    const userStr = localStorage.getItem('h2s_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        userEmail = user.email;
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
+    }
+    
+    // Redirect to shop if not logged in
+    if (!userEmail) {
+      console.warn('No user logged in - redirecting to shop');
+      window.location.href = 'shop.html';
+    }
+    
+    // DOM Elements
+    const pointsValue = document.getElementById('pointsValue');
+    const pointsWorth = document.getElementById('pointsWorth');
+    const referralCode = document.getElementById('referralCode');
+    const tierBadge = document.getElementById('tierBadge');
+    const tierProgress = document.getElementById('tierProgress');
+    const totalReferrals = document.getElementById('totalReferrals');
+    const totalEarned = document.getElementById('totalEarned');
+    const referralList = document.getElementById('referralList');
+    const redeemBtn = document.getElementById('redeemBtn');
+    const redeemModal = document.getElementById('redeemModal');
+    const successModal = document.getElementById('successModal');
+    const pointsToRedeem = document.getElementById('pointsToRedeem');
+    const discountValue = document.getElementById('discountValue');
+    const discountCode = document.getElementById('discountCode');
+    const successMessage = document.getElementById('successMessage');
+    
+    // State
+    let userData = null;
+    
+    // Initialize
+    async function init() {
+      await loadUserData();
+      setupEventListeners();
+    }
+    
+    // Load user data
+    async function loadUserData() {
+      try {
+        // Call referral_ensure to get user's referral data (GET method for consistency)
+        const response = await fetch(`${API_URL}?action=referral_ensure&email=${encodeURIComponent(userEmail)}`);
+        
+        const result = await response.json();
+        
+        if (!result.ok) {
+          throw new Error(result.error || 'Failed to load user data');
+        }
+        
+        userData = result;
+        
+        // Update UI
+        updatePointsDisplay(userData.points_available || 0);
+        updateReferralCode(userData.refCode || 'LOADING');  // Fixed: refCode not ref_code
+        updateTierDisplay(
+          userData.tier || 1, 
+          userData.tier === 2 ? 'Power Referrer' : 'Casual Referrer',
+          userData
+        );
+        updateStats(userData.total_referrals || 0, userData.total_points_earned || 0);
+        await loadReferralActivity();
+        
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        
+        // Show error state
+        updatePointsDisplay(0);
+        updateReferralCode('ERROR');
+        updateTierDisplay(1, 'Casual Referrer', {});
+        updateStats(0, 0);
+        referralList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">Failed to load data. Please try refreshing the page.</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Update points display with animations and motivational messaging
+    function updatePointsDisplay(points) {
+      // Animate the number counting up
+      const pointsEl = document.getElementById('pointsValue');
+      pointsEl.style.animation = 'slideInUp 0.6s ease-out';
+      pointsEl.textContent = points.toLocaleString();
+      
+      const dollars = (points / 10).toFixed(2);
+      pointsWorth.textContent = `$${dollars} in rewards`;
+      redeemBtn.disabled = points < 100;
+      
+      // Show motivational banner based on points
+      const motivationBanner = document.getElementById('motivationBanner');
+      const motivationText = document.getElementById('motivationText');
+      
+      if (points > 0 && points < 100) {
+        // Close to first redemption
+        const needed = 100 - points;
+        motivationBanner.style.display = 'block';
+        motivationText.innerHTML = `Just <strong style="color: var(--cobalt);">${needed} more points</strong> until your first redemption! Share your referral code to reach $10 off.`;
+      } else if (points >= 100 && points < 500) {
+        // Have some points
+        motivationBanner.style.display = 'block';
+        motivationText.innerHTML = `You're building momentum! 🚀 Share with <strong style="color: var(--cobalt);">one more friend</strong> to boost your rewards faster.`;
+      } else if (points >= 500) {
+        // High balance
+        motivationBanner.style.display = 'block';
+        motivationBanner.style.background = 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.15) 100%)';
+        motivationBanner.style.borderColor = 'rgba(16,185,129,0.3)';
+        motivationText.innerHTML = `Wow! You're crushing it! 💰 You have <strong style="color: var(--success);">$${dollars}</strong> ready to use. Don't forget to redeem!`;
+      } else {
+        motivationBanner.style.display = 'none';
+      }
+    }
+    
+    // Slide in animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Update referral code
+    function updateReferralCode(code) {
+      referralCode.textContent = code;
+    }
+    
+    // Update tier display with benefits list
+    function updateTierDisplay(tier, tierName, data) {
+      const tierClass = tier === 2 ? 'tier-2' : 'tier-1';
+      const tierIcon = tier === 2 ? '👑' : '⭐';
+      const referrals = data.total_referrals || 0;
+      const progress = tier === 1 ? Math.min((referrals / 5) * 100, 100) : 100;
+      
+      tierBadge.innerHTML = `
+        <div class="tier-badge ${tierClass}">
+          <span>${tierIcon}</span>
+          <span>${tierName}</span>
+        </div>
+      `;
+      
+      if (tier === 1) {
+        const remaining = Math.max(0, 5 - referrals);
+        tierProgress.innerHTML = `
+          <div class="progress-label">
+            <span style="color: var(--cobalt); font-weight: 700;">Progress to Power Referrer</span>
+            <span style="color: var(--azure); font-weight: 800;">${referrals}/5 referrals</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${progress}%"></div>
+          </div>
+          ${remaining > 0 ? `
+          <div style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: var(--muted);">
+            <strong style="color: var(--cobalt);">${remaining} more referral${remaining !== 1 ? 's' : ''}</strong> to unlock exclusive perks!
+          </div>
+          ` : ''}
+        `;
+        
+        // Show current benefits
+        document.getElementById('benefitsList').innerHTML = `
+          ✓ Earn 100 points per referral<br>
+          ✓ Standard reward rate<br>
+          ✓ Unlimited referrals
+        `;
+      } else {
+        tierProgress.innerHTML = `
+          <div style="text-align: center; padding: 1.25rem; background: linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(251,191,36,0.1) 100%); border-radius: 12px; border: 1px solid rgba(245,158,11,0.3); box-shadow: 0 4px 16px rgba(245,158,11,0.2);">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">✨</div>
+            <div style="font-size: 1.125rem; font-weight: 800; color: #D97706;">🎉 Maximum tier unlocked!</div>
+            <div style="font-size: 0.875rem; color: var(--muted); margin-top: 0.25rem;">You're earning the highest rewards possible</div>
+          </div>
+        `;
+        
+        // Show Power Referrer benefits
+        document.getElementById('benefitsList').innerHTML = `
+          ✓ Earn 100 points per referral<br>
+          ✓ <strong style="color: var(--success);">Priority support access</strong><br>
+          ✓ <strong style="color: var(--success);">Exclusive promotions</strong><br>
+          ✓ Early access to new services
+        `;
+      }
+    }
+    
+    // Update stats
+    function updateStats(referrals, earned) {
+      totalReferrals.textContent = referrals;
+      totalEarned.textContent = earned.toLocaleString();
+    }
+    
+    // Load referral activity
+    async function loadReferralActivity() {
+      try {
+        const response = await fetch(`${API_URL}?action=referral_activity&email=${encodeURIComponent(userEmail)}`);
+        const result = await response.json();
+        
+        if (!result.ok || !result.activity || result.activity.length === 0) {
+          referralList.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🎯</div>
+              <div class="empty-text">No referrals yet. Start sharing your code!</div>
+            </div>
+          `;
+          return;
+        }
+        
+        // Render activity items
+        referralList.innerHTML = result.activity.map(activity => {
+          const date = new Date(activity.created_at);
+          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          
+          // Get event description
+          let eventLabel = '';
+          let eventIcon = '';
+          switch(activity.event_type) {
+            case 'signup_welcome':
+              eventLabel = 'Signed up';
+              eventIcon = '✨';
+              break;
+            case 'first_purchase':
+              eventLabel = 'First purchase';
+              eventIcon = '🎉';
+              break;
+            case 'ongoing_purchase':
+              eventLabel = 'Repeat purchase';
+              eventIcon = '🔄';
+              break;
+            case 'tier2_unlock':
+              eventLabel = 'Tier 2 unlock bonus';
+              eventIcon = '👑';
+              break;
+            default:
+              eventLabel = activity.event_type;
+              eventIcon = '⭐';
+          }
+          
+          // Mask referee email for privacy (show first 3 chars + ***)
+          const maskedEmail = activity.referee_email.substring(0, 3) + '***@' + activity.referee_email.split('@')[1];
+          
+          return `
+            <div class="referral-item">
+              <div class="referral-info">
+                <div class="referral-name">
+                  <span style="margin-right: 0.5rem;">${eventIcon}</span>
+                  ${maskedEmail}
+                </div>
+                <div class="referral-date">${eventLabel} • ${dateStr}</div>
+              </div>
+              <div class="referral-points">+${activity.points_awarded}</div>
+            </div>
+          `;
+        }).join('');
+        
+      } catch (error) {
+        console.error('Failed to load referral activity:', error);
+        referralList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">Failed to load activity</div>
+          </div>
+        `;
+      }
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      // Copy code button
+      document.getElementById('copyCodeBtn').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(referralCode.textContent);
+          const btn = document.getElementById('copyCodeBtn');
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<span>✓</span> Copied!';
+          btn.style.background = 'var(--success)';
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.style.background = '';
+          }, 2000);
+        } catch (error) {
+          alert('Failed to copy code');
+        }
+      });
+      
+      // Share button (both instances)
+      const shareHandler = async () => {
+        const code = referralCode.textContent;
+        const baseUrl = window.location.origin + '/shop';
+        const shareData = {
+          title: 'Join Home2Smart',
+          text: `Use my referral code ${code} and get 100 bonus points ($10 value)! 🎁`,
+          url: baseUrl + '?ref=' + code
+        };
+        
+        if (navigator.share) {
+          try {
+            await navigator.share(shareData);
+          } catch (error) {
+            // User cancelled
+          }
+        } else {
+          // Fallback: copy link
+          const link = shareData.url;
+          await navigator.clipboard.writeText(link);
+          const btn = document.activeElement;
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<span>✓</span> Link Copied!';
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+          }, 2000);
+        }
+      };
+      
+      document.getElementById('shareBtn').addEventListener('click', shareHandler);
+      
+      // Share Now button from hero
+      const shareNowBtn = document.getElementById('shareNowBtn');
+      if(shareNowBtn) {
+        shareNowBtn.addEventListener('click', shareHandler);
+      }
+      
+      // Redeem button
+      redeemBtn.addEventListener('click', () => {
+        redeemModal.classList.add('active');
+      });
+      
+      // Cancel redeem
+      document.getElementById('cancelRedeemBtn').addEventListener('click', () => {
+        redeemModal.classList.remove('active');
+      });
+      
+      // Points input change
+      pointsToRedeem.addEventListener('input', (e) => {
+        const points = parseInt(e.target.value) || 0;
+        const dollars = (points / 10).toFixed(2);
+        discountValue.textContent = `$${dollars}`;
+      });
+      
+      // Confirm redeem
+      document.getElementById('confirmRedeemBtn').addEventListener('click', async () => {
+        const points = parseInt(pointsToRedeem.value);
+        
+        if (!points || points < 100 || points > userData.points_available) {
+          alert('Invalid points amount. Minimum 100 points required.');
+          return;
+        }
+        
+        if (points % 100 !== 0) {
+          alert('Points must be in increments of 100');
+          return;
+        }
+        
+        try {
+          // Note: This endpoint needs to be implemented in Shopbackend.js
+          // For now, show a message that this feature is coming soon
+          alert('Points redemption feature coming soon! Your points will be automatically applied at checkout.');
+          
+          // Uncomment when backend endpoint is ready:
+          /*
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `__action=redeem_points&email=${encodeURIComponent(userEmail)}&points=${points}`
+          });
+          
+          const result = await response.json();
+          
+          if (result.ok) {
+            redeemModal.classList.remove('active');
+            discountCode.textContent = result.coupon_code;
+            successMessage.textContent = `Your $${(points / 10).toFixed(2)} discount is ready!`;
+            successModal.classList.add('active');
+            
+            // Reload data
+            await loadUserData();
+          } else {
+            alert(result.error || 'Failed to redeem points');
+          }
+          */
+        } catch (error) {
+          console.error('Redeem error:', error);
+          alert('Failed to redeem points');
+        }
+      });
+      
+      // Close success modal
+      document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+        successModal.classList.remove('active');
+        pointsToRedeem.value = '';
+        discountValue.textContent = '$0.00';
+      });
+      
+      // Sign out - match shop.html
+      document.getElementById('signOutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem('h2s_user');
+        localStorage.removeItem('h2s_referral_code');
+        window.location.href = 'shop.html';
+      });
+      
+      // Close modals on overlay click
+      [redeemModal, successModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('active');
+          }
+        });
+      });
+    }
+    
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

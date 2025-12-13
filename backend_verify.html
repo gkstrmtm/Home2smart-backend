@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispatch System & Performance Verifier v3</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; max-width: 900px; margin: 0 auto; background: #f0f2f5; color: #1a1d23; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        h1 { margin-top: 0; color: #0a2a5a; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status { margin: 1rem 0; padding: 1rem; border-radius: 8px; background: #1e293b; color: #e2e8f0; font-family: 'Consolas', 'Monaco', monospace; white-space: pre-wrap; font-size: 13px; overflow-x: auto; line-height: 1.5; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 1rem; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; }
+        button { background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { opacity: 0.7; cursor: wait; background: #64748b; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .metric { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .metric h3 { margin: 0 0 0.5rem 0; font-size: 14px; color: #64748b; }
+        .metric .value { font-size: 24px; font-weight: bold; color: #0f172a; }
+        .good { color: #16a34a !important; }
+        .warn { color: #ca8a04 !important; }
+        .bad { color: #dc2626 !important; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Dispatch Performance Auditor <span class="badge">v3.0</span></h1>
+        <p>Comprehensive analysis of Frontend Architecture (Lighthouse 90+ Factors) and Backend Integrity.</p>
+        
+        <div class="input-group">
+            <input type="text" id="targetUrl" value="https://home2smart.com/bundles" placeholder="Enter URL to audit (e.g. https://home2smart.com/bundles)">
+            <button id="testBtn" onclick="runFullDiagnostic()">Run Deep Audit</button>
+        </div>
+
+        <div id="metrics" class="grid" style="display:none; margin-bottom: 1rem;">
+            <div class="metric">
+                <h3>HTML Size (TTFB Impact)</h3>
+                <div id="m-size" class="value">-</div>
+            </div>
+            <div class="metric">
+                <h3>Blocking Scripts (FCP Impact)</h3>
+                <div id="m-scripts" class="value">-</div>
+            </div>
+            <div class="metric">
+                <h3>CLS Risks (Layout Shift)</h3>
+                <div id="m-cls" class="value">-</div>
+            </div>
+            <div class="metric">
+                <h3>Backend Latency</h3>
+                <div id="m-api" class="value">-</div>
+            </div>
+        </div>
+
+        <div id="result" class="status" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://h2s-backend.vercel.app/api/bundles-data';
+
+        async function runFullDiagnostic() {
+            const btn = document.getElementById('testBtn');
+            const result = document.getElementById('result');
+            const metricsDiv = document.getElementById('metrics');
+            const url = document.getElementById('targetUrl').value;
+            
+            btn.disabled = true;
+            btn.textContent = 'Running Deep Audit...';
+            result.style.display = 'block';
+            metricsDiv.style.display = 'grid';
+            result.textContent = 'Initializing probes...';
+            
+            let log = '';
+            
+            try {
+                // --- PHASE 1: FRONTEND ARCHITECTURE AUDIT ---
+                log += `🔍 PHASE 1: FRONTEND ARCHITECTURE AUDIT (Lighthouse Factors)\n`;
+                log += `==========================================================\n`;
+                log += `Target: ${url}\n\n`;
+
+                const startFetch = performance.now();
+                
+                let html = '';
+                let fetchTime = 0;
+                
+                try {
+                    const res = await fetch(url);
+                    fetchTime = Math.round(performance.now() - startFetch);
+                    html = await res.text();
+                    log += `✅ HTML Fetch Successful | ${fetchTime}ms\n`;
+                    
+                    // Update Metric
+                    const sizeKb = (html.length / 1024).toFixed(1);
+                    document.getElementById('m-size').textContent = `${sizeKb} KB`;
+                    document.getElementById('m-size').className = sizeKb < 50 ? 'value good' : (sizeKb < 100 ? 'value warn' : 'value bad');
+                    
+                    log += `   ↳ Size: ${sizeKb} KB (Target: <50KB for instant load)\n`;
+
+                } catch (e) {
+                    log += `⚠️ HTML Fetch Blocked by CORS (Expected if not on same domain)\n`;
+                    log += `   ↳ Cannot analyze internal HTML structure. Please run this tool on the same domain or use a local server.\n`;
+                    log += `   ↳ Proceeding with Backend Checks...\n\n`;
+                }
+
+                if (html) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // 1. Blocking Scripts in Head
+                    const headScripts = Array.from(doc.head.querySelectorAll('script'));
+                    const blockingScripts = headScripts.filter(s => !s.hasAttribute('async') && !s.hasAttribute('defer') && s.src);
+                    
+                    document.getElementById('m-scripts').textContent = blockingScripts.length;
+                    document.getElementById('m-scripts').className = blockingScripts.length === 0 ? 'value good' : 'value bad';
+
+                    log += `\n📜 Script Analysis (TBT/LCP Impact)\n`;
+                    if (blockingScripts.length > 0) {
+                        log += `   ❌ Found ${blockingScripts.length} BLOCKING scripts in <head> (Should be 0)\n`;
+                        blockingScripts.forEach(s => log += `      - ${s.src.split('/').pop()}\n`);
+                    } else {
+                        log += `   ✅ No blocking external scripts in <head>\n`;
+                    }
+
+                    // 2. CLS Risks (Images without dimensions)
+                    const images = Array.from(doc.querySelectorAll('img'));
+                    const badImages = images.filter(img => !img.hasAttribute('width') || !img.hasAttribute('height'));
+                    
+                    document.getElementById('m-cls').textContent = `${badImages.length} Risks`;
+                    document.getElementById('m-cls').className = badImages.length === 0 ? 'value good' : 'value warn';
+
+                    log += `\n📐 Layout Shift Risks (CLS)\n`;
+                    if (badImages.length > 0) {
+                        log += `   ⚠️ Found ${badImages.length} images without explicit width/height\n`;
+                        badImages.slice(0, 3).forEach(img => log += `      - ${img.src.split('/').pop() || 'Inline Image'}\n`);
+                        if (badImages.length > 3) log += `      ...and ${badImages.length - 3} more\n`;
+                    } else {
+                        log += `   ✅ All images have explicit dimensions\n`;
+                    }
+
+                    // 3. Critical Text Match (The specific bug we fixed)
+                    log += `\n📝 Content Consistency Check\n`;
+                    const heroText = doc.body.innerText;
+                    if (heroText.includes("Best TV mounting")) {
+                        log += `   ❌ DETECTED OLD STATIC TEXT: "Best TV mounting..."\n`;
+                        log += `      ↳ This causes a Layout Shift when JS replaces it with "Professional..."\n`;
+                    } else if (heroText.includes("Professional, on-time")) {
+                        log += `   ✅ Static text matches Dynamic text ("Professional, on-time...")\n`;
+                    } else {
+                        log += `   ❓ Could not verify specific hero text pattern.\n`;
+                    }
+                }
+
+                // --- PHASE 2: BACKEND PERFORMANCE ---
+                log += `\n🚀 PHASE 2: BACKEND PERFORMANCE (TTFB)\n`;
+                log += `======================================\n`;
+                
+                const startApi = performance.now();
+                try {
+                    await fetch(API_URL);
+                    const apiTime = Math.round(performance.now() - startApi);
+                    
+                    document.getElementById('m-api').textContent = `${apiTime}ms`;
+                    document.getElementById('m-api').className = apiTime < 300 ? 'value good' : (apiTime < 800 ? 'value warn' : 'value bad');
+                    
+                    log += `✅ Main API Latency: ${apiTime}ms\n`;
+                    if (apiTime < 200) log += `   ↳ Excellent! Serverless is warm.\n`;
+                    else if (apiTime < 800) log += `   ↳ Acceptable (Cold start range).\n`;
+                    else log += `   ↳ Slow. Potential cold start or database latency.\n`;
+
+                } catch (e) {
+                    log += `❌ Main API Failed: ${e.message}\n`;
+                }
+
+                // --- PHASE 3: THIRD PARTY IMPACT ---
+                log += `\n📉 PHASE 3: THIRD PARTY IMPACT\n`;
+                log += `==============================\n`;
+                
+                const thirdParties = [
+                    { name: 'Stripe', url: 'https://js.stripe.com/v3/' },
+                    { name: 'Meta Pixel', url: 'https://connect.facebook.net/en_US/fbevents.js' }
+                ];
+
+                for (const tp of thirdParties) {
+                    const startTp = performance.now();
+                    try {
+                        await fetch(tp.url, { mode: 'no-cors' });
+                        const dur = Math.round(performance.now() - startTp);
+                        log += `✅ ${tp.name}: ${dur}ms\n`;
+                    } catch (e) {
+                        log += `❌ ${tp.name}: Failed (${e.message})\n`;
+                    }
+                }
+
+                // --- PHASE 4: INTEGRITY SIMULATION ---
+                log += `\n💾 PHASE 4: INTEGRITY SIMULATION\n`;
+                log += `================================\n`;
+                
+                try {
+                    const testPayload = {
+                        order_id: 'DIAGNOSTIC-' + Date.now(),
+                        install_at: new Date().toISOString(),
+                        email: 'diagnostic@home2smart.com',
+                        timezone: 'America/New_York'
+                    };
+                    
+                    const startBook = performance.now();
+                    const res = await fetch('https://h2s-backend.vercel.app/api/book-appointment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(testPayload)
+                    });
+                    const json = await res.json();
+                    const dur = Math.round(performance.now() - startBook);
+                    
+                    if (json.ok && json.job_id) {
+                        log += `✅ Write Test Successful | ${dur}ms\n`;
+                        log += `   ↳ Job ID: ${json.job_id}\n`;
+                    } else {
+                        log += `❌ Write Test Failed | ${dur}ms\n`;
+                        log += `   ↳ Error: ${json.error}\n`;
+                    }
+                } catch (e) {
+                    log += `❌ Write Test Network Error: ${e.message}\n`;
+                }
+
+            } catch (err) {
+                log += `\n❌ CRITICAL DIAGNOSTIC ERROR: ${err.message}\n`;
+            }
+
+            result.textContent = log;
+            btn.disabled = false;
+            btn.textContent = 'Run Deep Audit';
+        }
+    </script>
+</body>
+</html>

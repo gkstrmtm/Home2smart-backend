@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Diagnostic Tool</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a2a5a 0%, #081020 100%);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #60b5ff 0%, #1493ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .section {
+      background: rgba(10, 42, 90, 0.6);
+      border: 1px solid rgba(96, 181, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #60b5ff;
+    }
+    button {
+      background: linear-gradient(135deg, #1493ff 0%, #0c6fd9 100%);
+      border: 1px solid rgba(96, 181, 255, 0.3);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(20, 147, 255, 0.4);
+    }
+    button.secondary {
+      background: rgba(96, 181, 255, 0.1);
+      border-color: rgba(96, 181, 255, 0.2);
+    }
+    .log {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(96, 181, 255, 0.15);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .success { color: #34d399; }
+    .error { color: #f87171; }
+    .info { color: #60b5ff; }
+    .warning { color: #fbbf24; }
+    input, select {
+      background: rgba(10, 42, 90, 0.8);
+      border: 1px solid rgba(96, 181, 255, 0.3);
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .status-ok { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .status-fail { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Portal Diagnostic Tool</h1>
+    <p style="opacity: 0.7; margin-bottom: 25px;">Test all portal endpoints and features</p>
+
+    <!-- Configuration -->
+    <div class="section">
+      <h2>⚙️ Configuration</h2>
+      <label>Vercel API Base URL</label>
+      <input type="text" id="vercelApi" value="https://h2s-backend-6n08y2sur-tabari-ropers-projects-6f2e090b.vercel.app/api">
+      
+      <label>Session Token (from localStorage or cookie)</label>
+      <input type="text" id="sessionToken" placeholder="Paste your session token here">
+      
+      <label>Test Job ID</label>
+      <input type="text" id="testJobId" placeholder="Enter a job_id to test">
+      
+      <button onclick="saveConfig()">💾 Save Config</button>
+      <button class="secondary" onclick="loadFromLocalStorage()">📂 Load from LocalStorage</button>
+    </div>
+
+    <!-- Endpoint Tests -->
+    <div class="section">
+      <h2>🧪 Endpoint Tests</h2>
+      
+      <button onclick="testEndpoint('portal_on_my_way')">🚗 Test "On My Way"</button>
+      <button onclick="testEndpoint('portal_get_artifacts')">📷 Test Get Photos</button>
+      <button onclick="testEndpoint('portal_jobs')">📋 Test Get Jobs</button>
+      <button onclick="testEndpoint('portal_me')">👤 Test Get Profile</button>
+      
+      <div id="test-log" class="log"></div>
+    </div>
+
+    <!-- Database Verification -->
+    <div class="section">
+      <h2>🗄️ Database Column Check</h2>
+      <p style="opacity: 0.7; font-size: 13px; margin-bottom: 15px;">
+        Copy and run this SQL in Supabase SQL Editor to verify schema:
+      </p>
+      <textarea readonly style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(96,181,255,0.2); border-radius: 6px; padding: 10px; color: #60b5ff; font-family: monospace; font-size: 11px;">SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'h2s_dispatch_jobs'
+AND column_name IN ('tech_en_route_at', 'status', 'photo_count', 'photo_on_file')
+ORDER BY column_name;</textarea>
+      <button onclick="copySQL()">📋 Copy SQL</button>
+    </div>
+
+    <!-- Feature Checklist -->
+    <div class="section">
+      <h2>✅ Feature Status</h2>
+      <div id="feature-status">
+        <p>Click "Run All Tests" to check feature status</p>
+      </div>
+      <button onclick="runAllTests()">▶️ Run All Tests</button>
+    </div>
+  </div>
+
+  <script>
+    let config = {
+      vercelApi: '',
+      sessionToken: '',
+      testJobId: ''
+    };
+
+    function log(message, type = 'info') {
+      const logEl = document.getElementById('test-log');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+      logEl.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function saveConfig() {
+      config.vercelApi = document.getElementById('vercelApi').value;
+      config.sessionToken = document.getElementById('sessionToken').value;
+      config.testJobId = document.getElementById('testJobId').value;
+      localStorage.setItem('diagnosticConfig', JSON.stringify(config));
+      log('✅ Configuration saved', 'success');
+    }
+
+    function loadFromLocalStorage() {
+      // Try to get token from portal localStorage
+      const portalToken = localStorage.getItem('h2s_token');
+      if (portalToken) {
+        document.getElementById('sessionToken').value = portalToken;
+        log('✅ Loaded token from portal localStorage', 'success');
+      } else {
+        log('⚠️ No token found in localStorage', 'warning');
+      }
+
+      // Load saved config
+      const saved = localStorage.getItem('diagnosticConfig');
+      if (saved) {
+        config = JSON.parse(saved);
+        document.getElementById('vercelApi').value = config.vercelApi;
+        document.getElementById('sessionToken').value = config.sessionToken;
+        document.getElementById('testJobId').value = config.testJobId;
+        log('✅ Loaded saved configuration', 'success');
+      }
+    }
+
+    async function testEndpoint(endpoint) {
+      saveConfig();
+      
+      if (!config.sessionToken) {
+        log('❌ No session token configured', 'error');
+        return;
+      }
+
+      const payload = { token: config.sessionToken };
+      
+      if (endpoint === 'portal_on_my_way' || endpoint === 'portal_get_artifacts') {
+        if (!config.testJobId) {
+          log('❌ No test job ID configured', 'error');
+          return;
+        }
+        payload.job_id = config.testJobId;
+      }
+
+      if (endpoint === 'portal_get_artifacts') {
+        payload.type = 'photo';
+      }
+
+      log(`🔄 Testing ${endpoint}...`, 'info');
+      log(`📤 Payload: ${JSON.stringify(payload, null, 2)}`, 'info');
+
+      try {
+        const url = `${config.vercelApi}/${endpoint}`;
+        log(`🌐 URL: ${url}`, 'info');
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+
+        log(`📨 Response status: ${response.status} ${response.statusText}`, 'info');
+
+        const data = await response.json();
+        log(`📦 Response data: ${JSON.stringify(data, null, 2)}`, data.ok ? 'success' : 'error');
+
+        if (data.ok) {
+          log(`✅ ${endpoint} - SUCCESS`, 'success');
+        } else {
+          log(`❌ ${endpoint} - FAILED: ${data.error || 'Unknown error'}`, 'error');
+        }
+
+      } catch (err) {
+        log(`💥 ${endpoint} - EXCEPTION: ${err.message}`, 'error');
+        console.error(err);
+      }
+    }
+
+    function copySQL() {
+      const sql = document.querySelector('textarea').value;
+      navigator.clipboard.writeText(sql);
+      log('📋 SQL copied to clipboard', 'success');
+    }
+
+    async function runAllTests() {
+      document.getElementById('feature-status').innerHTML = '<p>Running tests...</p>';
+      
+      const features = [];
+      
+      // Test 1: Vercel API reachable
+      try {
+        const res = await fetch(config.vercelApi + '/portal_me', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: config.sessionToken })
+        });
+        const data = await res.json();
+        features.push({
+          name: 'Vercel API',
+          status: res.ok,
+          detail: res.ok ? 'Reachable' : data.error
+        });
+      } catch (err) {
+        features.push({
+          name: 'Vercel API',
+          status: false,
+          detail: err.message
+        });
+      }
+
+      // Test 2: Session valid
+      try {
+        const res = await fetch(config.vercelApi + '/portal_me', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: config.sessionToken })
+        });
+        const data = await res.json();
+        features.push({
+          name: 'Session Token',
+          status: data.ok && data.pro,
+          detail: data.ok ? `Pro ID: ${data.pro?.pro_id}` : data.error
+        });
+      } catch (err) {
+        features.push({
+          name: 'Session Token',
+          status: false,
+          detail: err.message
+        });
+      }
+
+      // Render results
+      document.getElementById('feature-status').innerHTML = features.map(f => `
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+          <span>${f.name}</span>
+          <span class="status-badge ${f.status ? 'status-ok' : 'status-fail'}">
+            ${f.status ? '✅ OK' : '❌ FAIL'}
+          </span>
+          <span style="margin-left: 10px; opacity: 0.7; font-size: 12px;">${f.detail}</span>
+        </div>
+      `).join('');
+    }
+
+    // Auto-load on page load
+    window.addEventListener('load', () => {
+      loadFromLocalStorage();
+      log('🚀 Diagnostic tool ready', 'success');
+      log('ℹ️ Load your session token and test job ID to begin testing', 'info');
+    });
+  </script>
+</body>
+</html>

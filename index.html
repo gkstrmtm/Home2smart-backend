@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch Ordering Dashboard - Home2Smart</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ========================= LOGIN SCREEN ========================= */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  z-index: 1000;
+}
+
+.login-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 48px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-logo img {
+  max-width: 200px;
+  height: auto;
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.login-subtitle {
+  font-size: 15px;
+  color: #94a3b8;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  background: rgba(255,255,255,0.12);
+  border-color: #3b82f6;
+}
+
+.error {
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.success {
+  background: rgba(16,185,129,0.2);
+  border: 1px solid rgba(16,185,129,0.4);
+  color: #6ee7b7;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================= DASHBOARD HEADER ========================= */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.h2s-logo {
+  display: inline-block;
+}
+
+.h2s-logo img {
+  max-width: 156px;
+  height: auto;
+}
+
+.header-title-group {
+  flex: 1;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header-info {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.user-email {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-right: 8px;
+}
+
+/* ========================= BUTTONS ========================= */
+
+.btn {
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59,130,246,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* ========================= SEARCH & FILTERS ========================= */
+
+.search-bar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  background: rgba(255,255,255,0.12);
+  border-color: #3b82f6;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-btn {
+  padding: 10px 18px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #3b82f6;
+  color: white;
+}
+
+/* ========================= STATS ========================= */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.08);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(59,130,246,0.4);
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* ========================= JOB CARDS ========================= */
+
+.jobs-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.job-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.job-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(59,130,246,0.4);
+  box-shadow: 0 8px 24px rgba(59,130,246,0.15);
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.job-header-left {
+  flex: 1;
+}
+
+.job-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.job-id {
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 600;
+  background: rgba(59,130,246,0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.job-date {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.urgency-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.urgency-high {
+  background: rgba(239,68,68,0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+
+.urgency-normal {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.3);
+}
+
+.job-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.service-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.job-info {
+  display: grid;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.info-icon {
+  font-size: 16px;
+  opacity: 0.7;
+  min-width: 20px;
+}
+
+.info-content {
+  flex: 1;
+  line-height: 1.6;
+}
+
+.clickable-link {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.clickable-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.equipment-list {
+  background: rgba(255,255,255,0.04);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.equipment-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.equipment-item:last-child {
+  border-bottom: none;
+}
+
+.equipment-name {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.equipment-notes {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.equipment-qty {
+  background: rgba(59,130,246,0.2);
+  color: #3b82f6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.buy-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.buy-link {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.buy-amazon {
+  background: linear-gradient(135deg, #ff9900 0%, #ff7700 100%);
+  color: #000;
+}
+
+.buy-lowes {
+  background: linear-gradient(135deg, #004990 0%, #003366 100%);
+  color: #fff;
+}
+
+.buy-homedepot {
+  background: linear-gradient(135deg, #f96302 0%, #d64e00 100%);
+  color: #fff;
+}
+
+.buy-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.job-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.job-actions .btn {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* ========================= LOADING & EMPTY STATES ========================= */
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255,255,255,0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+/* ========================= DEBUG PANEL ========================= */
+
+.debug-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(15,23,42,0.95);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 400px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.debug-title {
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debug-close {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.debug-close:hover {
+  opacity: 1;
+}
+
+.debug-log {
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.debug-error {
+  color: #fca5a5;
+}
+
+.debug-success {
+  color: #6ee7b7;
+}
+
+.debug-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(59,130,246,0.2);
+  border: 1px solid rgba(59,130,246,0.4);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.2s;
+  font-size: 20px;
+}
+
+.debug-toggle:hover {
+  background: rgba(59,130,246,0.3);
+  transform: scale(1.1);
+}
+
+/* ========================= MOBILE RESPONSIVE ========================= */
+
+@media (max-width: 768px) {
+  body {
+    padding: 12px;
+  }
+
+  .login-card {
+    padding: 32px 24px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .filters {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .job-header {
+    flex-direction: column;
+  }
+
+  .job-actions {
+    flex-direction: column;
+  }
+
+  .job-actions .btn {
+    width: 100%;
+  }
+
+  .buy-links {
+    flex-direction: column;
+  }
+
+  .debug-panel {
+    max-width: calc(100vw - 40px);
+    left: 20px;
+    right: 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="200" height="67">
+    </div>
+    <h1 class="login-title">Dispatch Ordering</h1>
+    <p class="login-subtitle">Equipment ordering dashboard for installation jobs</p>
+    
+    <div id="loginError" class="error hidden"></div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <input type="email" id="email" class="form-input" required autocomplete="username" placeholder="dispatch@home2smart.com">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="Enter your password">
+      </div>
+      
+      <button type="submit" class="btn" style="width: 100%;" id="btnLogin">
+        Sign In
+      </button>
+      
+      <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 12px;" id="btnHealthCheck">
+        🔍 Run Health Check
+      </button>
+    </form>
+    
+    <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; text-align: center;">
+      Default: dispatch@home2smart.com / dispatch2024
+    </div>
+  </div>
+</div>
+
+<!-- Main Dashboard -->
+<div id="dashboard" class="container hidden">
+  <div class="header">
+    <div class="header-left">
+      <a href="#" class="h2s-logo">
+        <img src="https://storage.googleapis.com/msgsndr/7Drmpw623JAkrfDKPdjG/media/68da0ce6f00445991d64a63f.png" alt="Home2Smart" width="156" height="52">
+      </a>
+      <div class="header-title-group">
+        <h1>Dispatch Ordering Dashboard</h1>
+        <p class="header-info">Equipment ordering for installation jobs</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="user-email" id="userEmail"></span>
+      <button id="btnLogout" class="btn btn-secondary btn-small">Sign Out</button>
+    </div>
+  </div>
+  
+  <div class="search-bar">
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Job ID, service type, address, or customer name...">
+    <button id="btnRefresh" class="btn btn-secondary">
+      ↻ Refresh
+    </button>
+  </div>
+  
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All Jobs</button>
+    <button class="filter-btn" data-filter="urgent">⚡ Urgent (Next 3 Days)</button>
+    <button class="filter-btn" data-filter="this_week">📅 This Week</button>
+    <button class="filter-btn" data-filter="needs_list">🤖 Needs AI List</button>
+    <button class="filter-btn" data-filter="has_list">✅ List Generated</button>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-card" data-filter-to="all">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Jobs Needing Equipment</div>
+    </div>
+    <div class="stat-card" data-filter-to="urgent">
+      <div class="stat-value" id="statUrgent">0</div>
+      <div class="stat-label">Urgent Orders</div>
+    </div>
+    <div class="stat-card" data-filter-to="this_week">
+      <div class="stat-value" id="statThisWeek">0</div>
+      <div class="stat-label">This Week</div>
+    </div>
+    <div class="stat-card" data-filter-to="needs_list">
+      <div class="stat-value" id="statNeedsList">0</div>
+      <div class="stat-label">Needs AI List</div>
+    </div>
+  </div>
+  
+  <div id="successMessage" class="success hidden"></div>
+  
+  <div id="jobsList" class="jobs-grid">
+    <div class="loading">
+      <div class="spinner"></div>
+      Loading jobs...
+    </div>
+  </div>
+</div>
+
+<!-- Debug Toggle Button -->
+<div id="debugToggle" class="debug-toggle hidden" title="Show debug logs">
+  🐛
+</div>
+
+<!-- Debug Panel -->
+<div id="debugPanel" class="debug-panel hidden">
+  <div class="debug-title">
+    Debug Console
+    <span class="debug-close" id="debugClose">✕</span>
+  </div>
+  <div id="debugLog" class="debug-log"></div>
+</div>
+
+<script>
+// ========================= CONFIGURATION =========================
+
+const API_URL = 'https://h2s-backend.vercel.app/api/ordering_dashboard';
+let SESSION_ID = localStorage.getItem('dispatch_session_id');
+let USER_EMAIL = localStorage.getItem('dispatch_user_email');
+let currentJobs = [];
+let currentFilter = 'all';
+let DEBUG_MODE = true; // Enable debug logging
+
+// ========================= DEBUG SYSTEM =========================
+
+function debugLog(message, type = 'info') {
+  if (!DEBUG_MODE) return;
+  
+  const timestamp = new Date().toLocaleTimeString();
+  const logEntry = `[${timestamp}] ${message}`;
+  
+  console.log(logEntry);
+  
+  const debugLogDiv = document.getElementById('debugLog');
+  if (debugLogDiv) {
+    const logLine = document.createElement('div');
+    logLine.className = type === 'error' ? 'debug-error' : type === 'success' ? 'debug-success' : '';
+    logLine.textContent = logEntry;
+    debugLogDiv.appendChild(logLine);
+    debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
+    
+    // Keep only last 50 entries
+    while (debugLogDiv.children.length > 50) {
+      debugLogDiv.removeChild(debugLogDiv.firstChild);
+    }
+  }
+}
+
+// ========================= UTILITIES =========================
+
+function $(id) { return document.getElementById(id); }
+
+function showError(message, containerId = 'loginError') {
+  debugLog(`Error: ${message}`, 'error');
+  const errorDiv = $(containerId);
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+  }
+}
+
+function showSuccess(message) {
+  debugLog(`Success: ${message}`, 'success');
+  const successDiv = $('successMessage');
+  if (successDiv) {
+    successDiv.textContent = message;
+    successDiv.classList.remove('hidden');
+    setTimeout(() => successDiv.classList.add('hidden'), 3000);
+  }
+}
+
+async function apiCall(action, params = {}) {
+  debugLog(`API Call: ${action} with params: ${JSON.stringify(params)}`);
+  
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  if (SESSION_ID) url.searchParams.set('session_id', SESSION_ID);
+  
+  Object.keys(params).forEach(key => {
+    if (key !== 'session_id') { // Don't duplicate session_id
+      url.searchParams.set(key, params[key]);
+    }
+  });
+  
+  debugLog(`Request URL: ${url.toString()}`);
+  
+  try {
+    const response = await fetch(url.toString());
+    const contentType = response.headers.get('content-type');
+    
+    debugLog(`Response Content-Type: ${contentType}`);
+    
+    // Check if we got HTML instead of JSON (means backend error)
+    if (contentType && contentType.includes('text/html')) {
+      const htmlText = await response.text();
+      debugLog(`ERROR: Got HTML instead of JSON! First 500 chars: ${htmlText.substring(0, 500)}`, 'error');
+      
+      return {
+        ok: false,
+        error: 'Backend returned HTML instead of JSON. Check that web app is deployed correctly.',
+        hint: 'Go to Apps Script > Deploy > Manage deployments > New version'
+      };
+    }
+    
+    const data = await response.json();
+    
+    debugLog(`API Response (${action}): ${JSON.stringify(data).substring(0, 200)}...`);
+    
+    if (!data.ok && data.error_code === 'auth_required') {
+      debugLog('Auth required - logging out', 'error');
+      logout();
+      return null;
+    }
+    
+    if (!data.ok) {
+      debugLog(`API Error: ${data.error}`, 'error');
+    }
+    
+    return data;
+  } catch (err) {
+    debugLog(`Fetch error: ${err.toString()}`, 'error');
+    debugLog(`Full error: ${JSON.stringify(err)}`, 'error');
+    showError('Network error: ' + err.message + ' | Check that backend is deployed');
+    return null;
+  }
+}
+
+// ========================= AUTHENTICATION =========================
+
+async function login(email, password) {
+  debugLog(`Login attempt for: ${email}`);
+  
+  const btnLogin = $('btnLogin');
+  btnLogin.disabled = true;
+  btnLogin.textContent = 'Signing in...';
+  
+  const result = await apiCall('login', {email, password});
+  
+  btnLogin.disabled = false;
+  btnLogin.textContent = 'Sign In';
+  
+  if (result && result.ok) {
+    debugLog(`Login successful: ${result.session_id}`, 'success');
+    SESSION_ID = result.session_id;
+    USER_EMAIL = result.email || email;
+    localStorage.setItem('dispatch_session_id', SESSION_ID);
+    localStorage.setItem('dispatch_user_email', USER_EMAIL);
+    showDashboard();
+  } else {
+    // Enhanced error message with debug info
+    let errorMsg = result ? result.error : 'Login failed - check credentials';
+    if (result && result.debug_hint) {
+      errorMsg += ' | ' + result.debug_hint;
+    }
+    debugLog(`Login failed: ${errorMsg}`, 'error');
+    if (result) {
+      debugLog(`Full error response: ${JSON.stringify(result)}`, 'error');
+    }
+    showError(errorMsg);
+  }
+}
+
+function logout() {
+  debugLog('Logging out');
+  SESSION_ID = null;
+  USER_EMAIL = null;
+  localStorage.removeItem('dispatch_session_id');
+  localStorage.removeItem('dispatch_user_email');
+  $('loginScreen').classList.remove('hidden');
+  $('dashboard').classList.add('hidden');
+  $('debugToggle').classList.add('hidden');
+}
+
+function showDashboard() {
+  debugLog('Showing dashboard');
+  $('loginScreen').classList.add('hidden');
+  $('dashboard').classList.remove('hidden');
+  $('debugToggle').classList.remove('hidden');
+  
+  if (USER_EMAIL) {
+    $('userEmail').textContent = USER_EMAIL;
+  }
+  
+  loadJobs();
+}
+
+// ========================= JOB LOADING =========================
+
+async function loadJobs() {
+  debugLog('Loading jobs...');
+  $('jobsList').innerHTML = '<div class="loading"><div class="spinner"></div>Loading jobs...</div>';
+  
+  const result = await apiCall('get_jobs');
+  
+  if (!result || !result.ok) {
+    debugLog('Failed to load jobs', 'error');
+    $('jobsList').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error loading jobs</p><p style="margin-top:8px;font-size:13px;">Check console for details</p></div>';
+    return;
+  }
+  
+  currentJobs = result.jobs || [];
+  debugLog(`Loaded ${currentJobs.length} jobs`, 'success');
+  renderJobs(currentJobs);
+  updateStats(currentJobs);
+}
+
+function updateStats(jobs) {
+  $('statTotal').textContent = jobs.length;
+  
+  const now = new Date();
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const urgent = jobs.filter(job => {
+    const jobDate = new Date(job.start_iso);
+    return jobDate <= threeDaysFromNow;
+  });
+  $('statUrgent').textContent = urgent.length;
+  
+  // This week calculation
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+  endOfWeek.setHours(23, 59, 59, 999);
+  const thisWeek = jobs.filter(job => {
+    const jobDate = new Date(job.start_iso);
+    return jobDate <= endOfWeek;
+  });
+  $('statThisWeek').textContent = thisWeek.length;
+  
+  // Count jobs that need AI list
+  setTimeout(() => {
+    const needsList = document.querySelectorAll('.job-card[data-has-list="false"]').length;
+    $('statNeedsList').textContent = needsList;
+  }, 100);
+}
+
+function renderJobs(jobs) {
+  if (jobs.length === 0) {
+    $('jobsList').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>No jobs needing equipment</p><p style="margin-top:8px;font-size:13px;">All jobs have equipment ordered!</p></div>';
+    return;
+  }
+  
+  const html = jobs.map(job => renderJobCard(job)).join('');
+  $('jobsList').innerHTML = html;
+}
+
+function renderJobCard(job) {
+  const jobDate = new Date(job.start_iso);
+  const now = new Date();
+  const daysUntil = Math.ceil((jobDate - now) / (1000 * 60 * 60 * 24));
+  const isUrgent = daysUntil <= 3;
+  
+  const hasEquipmentList = job.equipment_list && job.equipment_list.length > 0;
+  
+  // Format date
+  const dateStr = jobDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  // Build customer info section
+  const customerInfo = `
+    <div class="job-section">
+      <div class="section-title">Customer Info</div>
+      <div class="job-info">
+        <div class="info-row">
+          <span class="info-icon">👤</span>
+          <div class="info-content">${escapeHtml(job.customer_name || 'N/A')}</div>
+        </div>
+        ${job.customer_email ? `
+        <div class="info-row">
+          <span class="info-icon">📧</span>
+          <div class="info-content">
+            <a href="mailto:${escapeHtml(job.customer_email)}" class="clickable-link">${escapeHtml(job.customer_email)}</a>
+          </div>
+        </div>
+        ` : ''}
+        ${job.customer_phone ? `
+        <div class="info-row">
+          <span class="info-icon">📞</span>
+          <div class="info-content">
+            <a href="tel:${escapeHtml(job.customer_phone)}" class="clickable-link">${escapeHtml(job.customer_phone)}</a>
+          </div>
+        </div>
+        ` : ''}
+        <div class="info-row">
+          <span class="info-icon">📍</span>
+          <div class="info-content">
+            ${escapeHtml(job.service_address || 'N/A')}, ${escapeHtml(job.service_city || '')} ${escapeHtml(job.service_state || '')} ${escapeHtml(job.service_zip || '')}
+            <br>
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.service_address + ' ' + job.service_city + ' ' + job.service_state + ' ' + job.service_zip)}" target="_blank" class="clickable-link" style="font-size:13px;margin-top:4px;display:inline-block;">View on Google Maps →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Build equipment section
+  const equipmentSection = hasEquipmentList ? `
+    <div class="job-section">
+      <div class="section-title">Equipment List</div>
+      <div class="equipment-list">
+        ${job.equipment_list.map(item => `
+          <div class="equipment-item">
+            <div>
+              <div class="equipment-name">${escapeHtml(item.name)}</div>
+              ${item.notes ? `<div class="equipment-notes">${escapeHtml(item.notes)}</div>` : ''}
+            </div>
+            <div class="equipment-qty">×${item.qty || 1}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="buy-links">
+        <a href="https://www.amazon.com/s?k=${encodeURIComponent(job.service_id || 'smart home equipment')}" target="_blank" class="buy-link buy-amazon">
+          🛒 Amazon
+        </a>
+        <a href="https://www.lowes.com/search?searchTerm=${encodeURIComponent(job.service_id || 'smart home')}" target="_blank" class="buy-link buy-lowes">
+          🔨 Lowe's
+        </a>
+        <a href="https://www.homedepot.com/s/${encodeURIComponent(job.service_id || 'smart home')}" target="_blank" class="buy-link buy-homedepot">
+          🏠 Home Depot
+        </a>
+      </div>
+    </div>
+  ` : `
+    <div class="job-section">
+      <div class="section-title">Equipment List</div>
+      <p style="opacity: 0.6; font-size: 14px;">No equipment list generated yet. Click "Generate Equipment List" below.</p>
+    </div>
+  `;
+  
+  // Build action buttons
+  const actionButtons = hasEquipmentList ? `
+    <button class="btn btn-success" id="btn-mark-${job.job_id}">
+      ✓ Mark as Ordered
+    </button>
+    <button class="btn btn-secondary" id="btn-generate-${job.job_id}">
+      🔄 Regenerate List
+    </button>
+  ` : `
+    <button class="btn" id="btn-generate-${job.job_id}">
+      🤖 Generate Equipment List
+    </button>
+  `;
+  
+  // Parse service type to show clear job description
+  const serviceType = (job.service_id || '').toLowerCase();
+  let jobDescription = 'Installation Job';
+  let jobIcon = '🔧';
+  
+  if (serviceType.includes('mesh') || serviceType.includes('wifi') || serviceType.includes('network')) {
+    jobDescription = 'Mesh WiFi Installation';
+    jobIcon = '📶';
+  } else if (serviceType.includes('lock') || serviceType.includes('door')) {
+    jobDescription = 'Smart Lock Installation';
+    jobIcon = '🔒';
+  } else if (serviceType.includes('camera') || serviceType.includes('security')) {
+    jobDescription = 'Security Camera Installation';
+    jobIcon = '📹';
+  } else if (serviceType.includes('thermostat') || serviceType.includes('hvac')) {
+    jobDescription = 'Smart Thermostat Installation';
+    jobIcon = '🌡️';
+  } else if (serviceType.includes('light') || serviceType.includes('switch')) {
+    jobDescription = 'Smart Lighting Installation';
+    jobIcon = '💡';
+  } else if (serviceType.includes('doorbell') || serviceType.includes('ring')) {
+    jobDescription = 'Video Doorbell Installation';
+    jobIcon = '🔔';
+  } else if (serviceType.includes('sensor') || serviceType.includes('alarm')) {
+    jobDescription = 'Smart Sensor Installation';
+    jobIcon = '🚨';
+  } else if (job.service_id) {
+    jobDescription = job.service_id;
+    jobIcon = '🏠';
+  }
+  
+  return `
+    <div class="job-card" data-job-id="${job.job_id}" data-has-list="${hasEquipmentList}" data-days-until="${daysUntil}">
+      <div class="job-header">
+        <div class="job-header-left">
+          <div class="job-title">${jobIcon} ${escapeHtml(jobDescription)}</div>
+          <span class="job-id">${escapeHtml(job.job_id)}</span>
+        </div>
+        <div class="urgency-badge ${isUrgent ? 'urgency-high' : 'urgency-normal'}">
+          ${isUrgent ? '⚡ URGENT' : '📅 SCHEDULED'}
+        </div>
+      </div>
+      
+      <div class="job-date">
+        📅 ${dateStr} ${daysUntil >= 0 ? `(${daysUntil} days until job)` : `(${Math.abs(daysUntil)} days overdue)`}
+      </div>
+      
+      ${job.service_id ? `
+      <div class="job-section">
+        <div class="section-title">Service Type (Raw Data)</div>
+        <span class="service-badge">${escapeHtml(job.service_id)}</span>
+        <p style="margin-top: 8px; font-size: 12px; opacity: 0.6;">
+          📊 Data Quality: ${(job.service_id || '').length} chars | 
+          ${job.notes_from_customer ? '✓ Has notes' : '⚠️ No notes'} | 
+          ${job.start_iso ? '✓ Scheduled' : '⚠️ No date'}
+        </p>
+        <p style="margin-top: 4px; font-size: 11px; opacity: 0.5;">
+          AI will order standard package for "${escapeHtml(job.service_id)}" with available data
+        </p>
+      </div>
+      ` : `
+      <div class="job-section">
+        <div class="section-title">⚠️ Missing Service Type</div>
+        <p style="color: #ef4444; font-size: 13px;">
+          No service_id in spreadsheet - AI cannot determine equipment type
+        </p>
+      </div>
+      `}
+      
+      ${job.notes_from_customer ? `
+      <div class="job-section">
+        <div class="section-title">Customer Notes</div>
+        <p style="line-height: 1.6; opacity: 0.9;">${escapeHtml(job.notes_from_customer)}</p>
+      </div>
+      ` : ''}
+      
+      ${customerInfo}
+      
+      ${equipmentSection}
+      
+      <div class="job-actions">
+        ${actionButtons}
+        <button class="btn btn-secondary btn-small" id="btn-copy-addr-${job.job_id}">
+          📋 Copy Address
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ========================= JOB ACTIONS =========================
+
+async function generateEquipmentList(jobId) {
+  debugLog(`Generating equipment list for job: ${jobId}`);
+  
+  const btn = $(`btn-generate-${jobId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🤖 Generating...';
+  }
+  
+  const result = await apiCall('generate_list', {job_id: jobId});
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🤖 Generate Equipment List';
+  }
+  
+  if (result && result.ok) {
+    debugLog(`Equipment list generated for ${jobId}`, 'success');
+    showSuccess('Equipment list generated! ✓');
+    
+    // Update the job in currentJobs
+    const jobIndex = currentJobs.findIndex(j => j.job_id === jobId);
+    if (jobIndex !== -1) {
+      currentJobs[jobIndex].equipment_list = result.equipment_list.items;
+      renderJobs(currentJobs);
+      updateStats(currentJobs);
+    }
+  } else {
+    showError(result ? result.error : 'Failed to generate equipment list');
+  }
+}
+
+async function markAsOrdered(jobId) {
+  debugLog(`Marking job as ordered: ${jobId}`);
+  
+  if (!confirm('Mark this equipment as ordered? This will remove the job from this dashboard.')) {
+    return;
+  }
+  
+  const btn = $(`btn-mark-${jobId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Updating...';
+  }
+  
+  const result = await apiCall('mark_ordered', {job_id: jobId});
+  
+  if (result && result.ok) {
+    debugLog(`Job ${jobId} marked as ordered`, 'success');
+    showSuccess('Equipment marked as ordered! ✓');
+    
+    // Remove job from list and re-render
+    currentJobs = currentJobs.filter(j => j.job_id !== jobId);
+    renderJobs(currentJobs);
+    updateStats(currentJobs);
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✓ Mark as Ordered';
+    }
+    showError(result ? result.error : 'Failed to mark as ordered');
+  }
+}
+
+function copyAddress(jobId) {
+  const job = currentJobs.find(j => j.job_id === jobId);
+  if (!job) return;
+  
+  const address = `${job.service_address}, ${job.service_city} ${job.service_state} ${job.service_zip}`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(address).then(() => {
+      debugLog(`Address copied: ${address}`);
+      showSuccess('Address copied to clipboard! 📋');
+    });
+  } else {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = address;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    debugLog(`Address copied (fallback): ${address}`);
+    showSuccess('Address copied to clipboard! 📋');
+  }
+}
+
+// ========================= FILTERING & SEARCH =========================
+
+function applyFilter(filterType) {
+  debugLog(`Applying filter: ${filterType}`);
+  currentFilter = filterType;
+  
+  let filteredJobs = [...currentJobs];
+  const now = new Date();
+  
+  switch(filterType) {
+    case 'urgent':
+      const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      filteredJobs = filteredJobs.filter(job => new Date(job.start_iso) <= threeDays);
+      break;
+    case 'this_week':
+      const endOfWeek = new Date(now);
+      endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+      endOfWeek.setHours(23, 59, 59, 999);
+      filteredJobs = filteredJobs.filter(job => new Date(job.start_iso) <= endOfWeek);
+      break;
+    case 'needs_list':
+      filteredJobs = filteredJobs.filter(job => !job.equipment_list || job.equipment_list.length === 0);
+      break;
+    case 'has_list':
+      filteredJobs = filteredJobs.filter(job => job.equipment_list && job.equipment_list.length > 0);
+      break;
+    case 'all':
+    default:
+      // No filter
+      break;
+  }
+  
+  debugLog(`Filter result: ${filteredJobs.length} jobs`);
+  renderJobs(filteredJobs);
+}
+
+function searchJobs(query) {
+  if (!query) {
+    applyFilter(currentFilter);
+    return;
+  }
+  
+  debugLog(`Searching for: ${query}`);
+  const lowerQuery = query.toLowerCase();
+  
+  const results = currentJobs.filter(job => {
+    return (
+      (job.job_id || '').toLowerCase().includes(lowerQuery) ||
+      (job.service_id || '').toLowerCase().includes(lowerQuery) ||
+      (job.customer_name || '').toLowerCase().includes(lowerQuery) ||
+      (job.service_address || '').toLowerCase().includes(lowerQuery) ||
+      (job.notes_from_customer || '').toLowerCase().includes(lowerQuery)
+    );
+  });
+  
+  debugLog(`Search results: ${results.length} jobs`);
+  renderJobs(results);
+}
+
+// ========================= EVENT LISTENERS =========================
+
+// Login form
+$('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  login(email, password);
+});
+
+// Logout button
+$('btnLogout').addEventListener('click', logout);
+
+// Health check button (on login screen)
+$('btnHealthCheck').addEventListener('click', async () => {
+  debugLog('Running health check...');
+  const btn = $('btnHealthCheck');
+  btn.disabled = true;
+  btn.textContent = '🔍 Checking...';
+  
+  const result = await apiCall('health_check');
+  
+  btn.disabled = false;
+  btn.textContent = '🔍 Run Health Check';
+  
+  if (result && result.ok) {
+    debugLog('Health check passed!', 'success');
+    alert('✅ Health Check PASSED!\n\nAll systems operational:\n' + 
+          result.checks.map(c => `${c.passed ? '✓' : '✗'} ${c.test}`).join('\n') +
+          '\n\nYou can now login.');
+  } else if (result) {
+    debugLog('Health check failed', 'error');
+    const failed = result.checks.filter(c => !c.passed);
+    alert('⚠️ Health Check FAILED!\n\nIssues found:\n' + 
+          failed.map(c => `✗ ${c.test}: ${c.value || c.error}`).join('\n') +
+          '\n\nCheck debug console (🐛) for details.');
+  } else {
+    debugLog('Health check error - no response', 'error');
+    alert('❌ Health Check ERROR!\n\nCould not connect to backend. Check:\n' +
+          '1. Web app URL is correct\n' +
+          '2. Backend is deployed\n' +
+          '3. Check browser console (F12)');
+  }
+});
+
+// Refresh button
+$('btnRefresh').addEventListener('click', loadJobs);
+
+// Search input
+let searchTimeout;
+$('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchJobs(e.target.value.trim());
+  }, 300);
+});
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter(btn.dataset.filter);
+  });
+});
+
+// Stat cards clickable filtering
+document.querySelectorAll('.stat-card[data-filter-to]').forEach(card => {
+  card.addEventListener('click', () => {
+    const filterType = card.dataset.filterTo;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    const filterBtn = document.querySelector(`.filter-btn[data-filter="${filterType}"]`);
+    if (filterBtn) filterBtn.classList.add('active');
+    applyFilter(filterType);
+  });
+});
+
+// Event delegation for dynamic job card buttons
+document.addEventListener('click', (e) => {
+  const target = e.target;
+  
+  if (target.id && target.id.startsWith('btn-generate-')) {
+    const jobId = target.id.replace('btn-generate-', '');
+    generateEquipmentList(jobId);
+  }
+  
+  if (target.id && target.id.startsWith('btn-mark-')) {
+    const jobId = target.id.replace('btn-mark-', '');
+    markAsOrdered(jobId);
+  }
+  
+  if (target.id && target.id.startsWith('btn-copy-addr-')) {
+    const jobId = target.id.replace('btn-copy-addr-', '');
+    copyAddress(jobId);
+  }
+});
+
+// Debug panel toggle
+$('debugToggle').addEventListener('click', () => {
+  const panel = $('debugPanel');
+  panel.classList.toggle('hidden');
+  $('debugToggle').classList.toggle('hidden');
+});
+
+$('debugClose').addEventListener('click', () => {
+  $('debugPanel').classList.add('hidden');
+  $('debugToggle').classList.remove('hidden');
+});
+
+// ========================= UTILITIES =========================
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ========================= INITIALIZATION =========================
+
+debugLog('Application initialized');
+debugLog(`API URL: ${API_URL}`);
+debugLog(`Session ID: ${SESSION_ID ? 'Present' : 'None'}`);
+
+if (SESSION_ID) {
+  debugLog('Existing session found - loading dashboard');
+  showDashboard();
+} else {
+  debugLog('No session - showing login screen');
+}
+</script>
+
+</body>
+</html>

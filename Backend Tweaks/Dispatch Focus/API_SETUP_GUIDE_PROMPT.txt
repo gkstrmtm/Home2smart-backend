@@ -1,0 +1,188 @@
+=========================================
+VENDOR API SETUP GUIDE - ChatGPT Prompt
+=========================================
+
+Copy this entire prompt into ChatGPT to get step-by-step guidance on setting up all vendor API integrations for our dispatch ordering system.
+
+---
+
+PROMPT START:
+
+---
+
+I'm setting up automated equipment ordering for my smart home installation business. I need to integrate with multiple vendor APIs to automate product searches, pricing comparisons, and direct ordering. Please guide me through setting up API access for each vendor step-by-step.
+
+**Business Details:**
+- Company: Home2Smart (smart home installation services)
+- Order Volume: ~50-100 equipment orders per month
+- Average Order: $200-500 per job
+- Equipment Types: Security cameras, smart locks, mesh WiFi, thermostats, doorbells, sensors
+- Current Vendors: Amazon, Home Depot, Lowe's (manual ordering)
+
+**Technical Setup:**
+- Backend: Google Apps Script (JavaScript)
+- Frontend: HTML/CSS/JavaScript dashboard
+- Database: Supabase PostgreSQL
+- Current Features: AI equipment list generation, multi-vendor selection, order workflow
+
+**APIs I Need to Set Up:**
+
+1. **Amazon Product Advertising API (PA-API 5.0)**
+   - Purpose: Search products, get pricing, check availability
+   - Use case: Automated product search by keyword, real-time pricing
+   
+2. **Amazon SP-API (Selling Partner API)** 
+   - Purpose: Order management for Amazon Business accounts
+   - Use case: Create orders programmatically, track shipments
+   
+3. **Home Depot Commercial/Pro API**
+   - Purpose: Product catalog, store inventory, commercial pricing
+   - Use case: Check local store inventory, same-day pickup scheduling
+
+4. **Lowe's Pro Services API**
+   - Purpose: Product search, pro account management
+   - Use case: Price comparison, pro pricing tiers
+
+5. **(Optional) ADI (Alarm Detection Inc) Dealer API**
+   - Purpose: Professional security equipment supplier
+   - Use case: Trade pricing on cameras, access control equipment
+
+**For Each Vendor API, Please Provide:**
+
+1. **Account Requirements**
+   - What type of business account do I need?
+   - Are there minimum order volumes or fees?
+   - Do I need a tax ID/business license?
+   - What verification documents are needed?
+
+2. **Step-by-Step Setup Process**
+   - Exact URL to apply for API access
+   - Forms to fill out
+   - Information required (business details, use case description)
+   - Approval timeline (how long until I get access?)
+
+3. **API Credentials & Authentication**
+   - What credentials will I receive (API keys, secrets, tokens)?
+   - Where do I find them after approval?
+   - How do I authenticate requests (OAuth, API key header, etc.)?
+   - Are there sandbox/test environments?
+
+4. **Rate Limits & Restrictions**
+   - How many API calls per minute/hour/day?
+   - Are there usage costs or fees?
+   - What operations are allowed?
+   - Any prohibited use cases I should avoid?
+
+5. **Code Implementation Guidance**
+   - Sample API request for product search
+   - Sample response structure
+   - How to handle pagination
+   - Error handling best practices
+
+6. **Testing & Validation**
+   - How do I test without placing real orders?
+   - Sandbox credentials if available
+   - How to validate my setup is working
+
+7. **Compliance & Legal**
+   - Terms of service I must follow
+   - Data usage restrictions
+   - Attribution requirements (logos, disclaimers)
+   - Privacy policy requirements
+
+8. **Support Resources**
+   - Developer documentation links
+   - Support contact if I get stuck
+   - Community forums or Slack channels
+   - Known issues or common pitfalls
+
+**My Specific Questions:**
+
+A. **Amazon Setup:**
+   - Do I need both PA-API (Product Advertising) AND SP-API (Selling Partner)?
+   - Can I use PA-API to search and SP-API to order, or is there overlap?
+   - Do I need an Amazon Business account vs. regular seller account?
+   - What's the Associate Program tag and do I need one?
+
+B. **Home Depot:**
+   - Is API access only for suppliers, or can service businesses get it?
+   - Do I need a Pro Xtra account first?
+   - Can I access store-specific inventory via API?
+
+C. **Lowe's:**
+   - Same questions as Home Depot
+   - Is their API as robust as Home Depot's?
+
+D. **ADI:**
+   - Do I need to be an approved security dealer first?
+   - What are the requirements to become an ADI dealer?
+   - Can I get API access without a physical storefront?
+
+**Implementation Priority:**
+
+Please help me set these up in this order:
+1. Amazon (highest volume, easiest setup)
+2. Home Depot (local inventory important)
+3. Lowe's (price comparison)
+4. ADI (if time permits and requirements are reasonable)
+
+**Expected Output:**
+
+For each vendor, give me:
+- ✅ Checklist of prerequisites
+- 📝 Exact steps to apply for API access
+- 🔑 How to obtain and store credentials securely
+- 💻 Sample code to make my first API call
+- ⚠️ Common mistakes to avoid
+- ⏱️ Realistic timeline for approval
+
+**Additional Context:**
+
+- I'm comfortable with JavaScript and REST APIs
+- I can handle OAuth flows if needed
+- I have a registered LLC with EIN
+- I have commercial insurance
+- I already order regularly from these vendors (just want to automate it)
+
+Please be as detailed as possible, including screenshots or links where helpful. If any vendor doesn't offer public API access, suggest alternative solutions (web scraping, browser automation, third-party services, etc.).
+
+Start with Amazon PA-API setup since that's my priority #1.
+
+---
+
+PROMPT END
+
+---
+
+USAGE INSTRUCTIONS:
+
+1. Copy everything from "PROMPT START" to "PROMPT END"
+2. Paste into ChatGPT (GPT-4 recommended for detailed technical guidance)
+3. Follow the step-by-step instructions it provides
+4. Save all API credentials in Google Apps Script > Project Settings > Script Properties
+5. Test each API in sandbox/test mode before going live
+6. Come back to update the dispatch system with the credentials once obtained
+
+ESTIMATED TIMELINE:
+
+- Amazon PA-API: 1-2 business days approval
+- Amazon SP-API: 3-5 business days (requires business verification)
+- Home Depot: 1-2 weeks (requires commercial account setup)
+- Lowe's: 1-2 weeks
+- ADI: 2-4 weeks (dealer application process)
+
+TOTAL SETUP TIME: 2-4 weeks for all APIs
+
+Once you have the credentials, you'll add them to Script Properties:
+
+AMAZON_API_KEY = [from Amazon Developer Console]
+AMAZON_SECRET_KEY = [from Amazon Developer Console]
+AMAZON_ASSOCIATE_TAG = [from Amazon Associates Program]
+HOMEDEPOT_API_KEY = [from Home Depot Developer Portal]
+HOMEDEPOT_ACCOUNT_ID = [your commercial account ID]
+LOWES_API_KEY = [from Lowe's Developer Portal]
+LOWES_PRO_ID = [your Pro account ID]
+ADI_DEALER_ID = [your dealer number]
+ADI_API_KEY = [from ADI Developer Portal]
+
+After that, we'll wire up the backend functions to actually use these APIs for automated ordering.

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>H2S Analytics Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    header { background: #111; border-bottom: 2px solid #222; padding: 20px 0; margin-bottom: 30px; }
+    h1 { font-size: 28px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+    .subtitle { color: #888; font-size: 14px; }
+    .refresh-btn { background: #2563eb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; margin-top: 15px; transition: background 0.2s; }
+    .refresh-btn:hover { background: #1d4ed8; }
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .spinner { border: 3px solid #222; border-top: 3px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .error { background: #7f1d1d; border: 1px solid #991b1b; border-radius: 6px; padding: 20px; color: #fca5a5; margin: 20px 0; }
+    #dashboard { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Analytics Dashboard</h1>
+      <p class="subtitle">AI-Powered Business Intelligence</p>
+      <button class="refresh-btn" onclick="loadAnalysis()">Refresh Analysis</button>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading business intelligence...</p>
+    </div>
+    
+    <div id="error" style="display:none;" class="error"></div>
+    
+    <div id="dashboard">
+      <h2 style="color: #10b981;">Dashboard Loaded Successfully!</h2>
+      <p id="data"></p>
+    </div>
+  </div>
+  
+  <script>
+    function loadAnalysis() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+      
+      var url = 'https://script.google.com/macros/s/AKfycbxvkqZG4mCec7Pol-tlZy9o6aIfnnh7xuQWYpFayGTwPDKd2f1Px3Qj_a-D0zjM5bM_jw/exec?action=getAnalytics';
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('loading').style.display = 'none';
+          if (!data.ok) {
+            showError(data.error || 'Failed to load analytics');
+            return;
+          }
+          document.getElementById('dashboard').style.display = 'block';
+          document.getElementById('data').textContent = JSON.stringify(data.metrics, null, 2);
+        })
+        .catch(err => {
+          showError('Network error: ' + err.message);
+        });
+    }
+    
+    function showError(message) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error').textContent = 'Error: ' + message;
+    }
+    
+    loadAnalysis();
+  </script>
+</body>
+</html>

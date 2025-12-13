@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Material Manager - H2S</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 5px; }
+    .header p { opacity: 0.9; font-size: 14px; }
+    
+    .tabs {
+      display: flex;
+      background: #f7fafc;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .tab {
+      flex: 1;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 500;
+      color: #64748b;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+    .tab:hover { background: #edf2f7; color: #334155; }
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+    
+    .tab-content { display: none; padding: 30px; }
+    .tab-content.active { display: block; }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #334155;
+      font-size: 14px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border 0.2s;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    .btn-danger:hover { background: #dc2626; }
+    
+    .video-list {
+      display: grid;
+      gap: 15px;
+    }
+    .video-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 15px;
+      align-items: center;
+      transition: border 0.2s;
+    }
+    .video-card:hover { border-color: #667eea; }
+    
+    .video-thumbnail {
+      width: 80px;
+      height: 60px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .video-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .video-thumbnail.no-thumb {
+      background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+      color: #667eea;
+      font-size: 24px;
+    }
+    
+    .video-info h3 {
+      font-size: 16px;
+      color: #1e293b;
+      margin-bottom: 5px;
+    }
+    .video-meta {
+      display: flex;
+      gap: 15px;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .video-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .video-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-module {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge-level {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .badge-hidden {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      animation: slideIn 0.3s;
+    }
+    .toast.show { display: flex; }
+    .toast.success { border-left: 4px solid #10b981; }
+    .toast.error { border-left: 4px solid #ef4444; }
+    
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e2e8f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-card .number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+    .stat-card .label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Training Material Manager</h1>
+      <p>Manage videos, modules, and training content</p>
+    </div>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('videos')">Videos</div>
+      <div class="tab" onclick="switchTab('add')">Add New Video</div>
+      <div class="tab" onclick="switchTab('modules')">Modules</div>
+    </div>
+    
+    <!-- VIDEOS TAB -->
+    <div id="videos-tab" class="tab-content active">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="number" id="total-videos">0</div>
+          <div class="label">Total Videos</div>
+        </div>
+        <div class="stat-card">
+          <div class="number" id="total-modules">0</div>
+          <div class="label">Modules</div>
+        </div>
+        <div class="stat-card">
+          <div class="number" id="total-duration">0m</div>
+          <div class="label">Total Duration</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <button class="btn btn-primary" onclick="loadVideos()">🔄 Refresh Videos</button>
+      </div>
+      
+      <div id="video-list" class="video-list">
+        <p style="text-align: center; color: #94a3b8; padding: 40px;">Click "Refresh Videos" to load training content</p>
+      </div>
+    </div>
+    
+    <!-- ADD VIDEO TAB -->
+    <div id="add-tab" class="tab-content">
+      <h2 style="margin-bottom: 20px; color: #1e293b;">Add New Training Video</h2>
+      
+      <form id="add-video-form" onsubmit="addVideo(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Video ID *</label>
+            <input type="text" name="video_id" required placeholder="e.g., onboarding_001">
+          </div>
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" name="title" required placeholder="e.g., Welcome to H2S">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" placeholder="Brief description of what this video covers..."></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Video URL *</label>
+            <input type="url" name="url" required placeholder="https://loom.com/share/...">
+          </div>
+          <div class="form-group">
+            <label>Thumbnail URL</label>
+            <input type="url" name="thumbnail" placeholder="https://...">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Module *</label>
+            <input type="text" name="module" required placeholder="e.g., onboarding, Technical, Safety">
+          </div>
+          <div class="form-group">
+            <label>Platform</label>
+            <select name="platform">
+              <option value="loom">Loom</option>
+              <option value="youtube">YouTube</option>
+              <option value="vimeo">Vimeo</option>
+              <option value="generic">Other</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duration (seconds)</label>
+            <input type="number" name="duration_sec" placeholder="e.g., 300 for 5 minutes">
+          </div>
+          <div class="form-group">
+            <label>Level</label>
+            <select name="level">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Order (for sorting)</label>
+            <input type="number" name="order_num" placeholder="1, 2, 3...">
+          </div>
+          <div class="form-group">
+            <label>Visible</label>
+            <select name="visible">
+              <option value="true">Yes - Show to Pros</option>
+              <option value="false">No - Hide (Draft)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 30px;">
+          <button type="submit" class="btn btn-primary">✅ Add Video</button>
+          <button type="reset" class="btn btn-secondary">Clear Form</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- MODULES TAB -->
+    <div id="modules-tab" class="tab-content">
+      <h2 style="margin-bottom: 20px; color: #1e293b;">Training Modules</h2>
+      <div id="modules-list">
+        <p style="text-align: center; color: #94a3b8; padding: 40px;">Load videos first to see modules</p>
+      </div>
+    </div>
+  </div>
+  
+  <div id="toast" class="toast">
+    <span id="toast-message"></span>
+  </div>
+  
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    let allVideos = [];
+    
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tab + '-tab').classList.add('active');
+    }
+    
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const messageEl = document.getElementById('toast-message');
+      
+      messageEl.textContent = message;
+      toast.className = 'toast ' + type + ' show';
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+    
+    async function loadVideos() {
+      const listEl = document.getElementById('video-list');
+      listEl.innerHTML = '<p style="text-align: center; padding: 40px;"><div class="loading"></div> Loading videos...</p>';
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/h2s_training_videos?select=*&order=module,order_num`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load videos');
+        
+        allVideos = await response.json();
+        
+        // Update stats
+        document.getElementById('total-videos').textContent = allVideos.length;
+        const modules = [...new Set(allVideos.map(v => v.module))];
+        document.getElementById('total-modules').textContent = modules.length;
+        const totalSec = allVideos.reduce((sum, v) => sum + (v.duration_sec || 0), 0);
+        document.getElementById('total-duration').textContent = Math.round(totalSec / 60) + 'm';
+        
+        // Render videos
+        if (allVideos.length === 0) {
+          listEl.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 40px;">No videos found. Add your first video!</p>';
+          return;
+        }
+        
+        let html = '';
+        let currentModule = '';
+        
+        allVideos.forEach(video => {
+          if (video.module !== currentModule) {
+            currentModule = video.module;
+            html += `<h3 style="margin: 30px 0 15px; color: #334155; font-size: 18px;">📁 ${currentModule}</h3>`;
+          }
+          
+          const duration = video.duration_sec ? Math.floor(video.duration_sec / 60) + ':' + (video.duration_sec % 60).toString().padStart(2, '0') : 'N/A';
+          
+          html += `
+            <div class="video-card">
+              <div class="video-thumbnail ${video.thumbnail ? '' : 'no-thumb'}">
+                ${video.thumbnail ? `<img src="${video.thumbnail}" alt="${video.title}">` : '🎬'}
+              </div>
+              <div class="video-info">
+                <h3>${video.title}</h3>
+                <div class="video-meta">
+                  <span>⏱️ ${duration}</span>
+                  <span>📊 ${video.level || 'beginner'}</span>
+                  <span>🔗 ${video.platform || 'loom'}</span>
+                  ${!video.visible ? '<span class="badge badge-hidden">Hidden</span>' : ''}
+                </div>
+              </div>
+              <div class="video-actions">
+                <button class="btn btn-secondary" onclick="editVideo('${video.video_id}')">Edit</button>
+                <button class="btn btn-danger" onclick="deleteVideo('${video.video_id}', '${video.title}')">Delete</button>
+              </div>
+            </div>
+          `;
+        });
+        
+        listEl.innerHTML = html;
+        renderModules(modules);
+        
+      } catch (error) {
+        console.error('Load error:', error);
+        showToast('Failed to load videos: ' + error.message, 'error');
+        listEl.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 40px;">Error loading videos. Check console.</p>';
+      }
+    }
+    
+    function renderModules(modules) {
+      const modulesEl = document.getElementById('modules-list');
+      
+      const moduleStats = modules.map(mod => {
+        const videos = allVideos.filter(v => v.module === mod);
+        const totalSec = videos.reduce((sum, v) => sum + (v.duration_sec || 0), 0);
+        return {
+          name: mod,
+          count: videos.length,
+          duration: Math.round(totalSec / 60)
+        };
+      });
+      
+      let html = '<div class="stats">';
+      moduleStats.forEach(mod => {
+        html += `
+          <div class="stat-card">
+            <div class="number">${mod.count}</div>
+            <div class="label">${mod.name}</div>
+            <div style="margin-top: 5px; font-size: 12px; color: #94a3b8;">${mod.duration} minutes</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      modulesEl.innerHTML = html;
+    }
+    
+    async function addVideo(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const videoData = {
+        video_id: formData.get('video_id'),
+        title: formData.get('title'),
+        description: formData.get('description'),
+        url: formData.get('url'),
+        thumbnail: formData.get('thumbnail'),
+        module: formData.get('module'),
+        category: formData.get('module').toLowerCase().replace(/\s+/g, '_'),
+        platform: formData.get('platform'),
+        duration_sec: parseInt(formData.get('duration_sec')) || 0,
+        level: formData.get('level'),
+        order_num: parseInt(formData.get('order_num')) || 0,
+        visible: formData.get('visible') === 'true'
+      };
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/h2s_training_videos`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(videoData)
+        });
+        
+        if (!response.ok) throw new Error('Failed to add video');
+        
+        showToast('✅ Video added successfully!');
+        form.reset();
+        switchTab('videos');
+        loadVideos();
+        
+      } catch (error) {
+        console.error('Add error:', error);
+        showToast('Failed to add video: ' + error.message, 'error');
+      }
+    }
+    
+    async function deleteVideo(videoId, title) {
+      if (!confirm(`Delete "${title}"?\n\nThis will permanently remove the video from the database.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/h2s_training_videos?video_id=eq.${videoId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete video');
+        
+        showToast('🗑️ Video deleted');
+        loadVideos();
+        
+      } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Failed to delete: ' + error.message, 'error');
+      }
+    }
+    
+    function editVideo(videoId) {
+      showToast('Edit feature coming soon! For now, delete and re-add.', 'error');
+    }
+  </script>
+</body>
+</html>

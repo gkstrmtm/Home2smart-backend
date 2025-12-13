@@ -1,0 +1,690 @@
+﻿import { createClient } from '@supabase/supabase-js';
+import { calculatePayout } from './utils/payout_calculator.js';
+import { enrichLineItemWithBundleDetails, formatBundleForDisplay } from './bundle_definitions.js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  // CORS - Allow all origins
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    console.log('[portal_jobs] Request received:', { method: req.method, hasBody: !!req.body });
+    
+    // Parse body if needed
+    let body = req.body;
+    if (typeof body === 'string') {
+      body = JSON.parse(body);
+    }
+    
+    const token = body?.token || req.query?.token;
+    console.log('[portal_jobs] Token present:', !!token);
+
+    if (!token) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Missing token',
+        error_code: 'no_token'
+      });
+    }
+
+    // Validate session
+    console.log('[portal_jobs] Validating session...');
+    const { data: sessions, error: sessionError } = await supabase
+      .from('h2s_sessions')
+      .select('pro_id, expires_at')
+      .eq('session_id', token)
+      .single();
+    
+    console.log('[portal_jobs] Session query result:', { 
+      hasData: !!sessions, 
+      hasError: !!sessionError,
+      errorMsg: sessionError?.message 
+    });
+
+    if (sessionError || !sessions) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid/expired session',
+        error_code: 'bad_session'
+      });
+    }
+
+    // Check if expired
+    const expiresAt = new Date(sessions.expires_at);
+    if (new Date() > expiresAt) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Invalid/expired session',
+        error_code: 'bad_session'
+      });
+    }
+
+    // Update last_seen_at (async, don't wait)
+    supabase
+      .from('h2s_sessions')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('session_id', token)
+      .then(() => {})
+      .catch(err => console.error('[portal_jobs] Failed to update last_seen:', err));
+
+    // Get tech's profile (need location and service radius)
+    console.log('[portal_jobs] Fetching tech profile for pro_id:', sessions.pro_id);
+    const { data: techProfile, error: profileError } = await supabase
+      .from('h2s_pros')
+      .select('geo_lat, geo_lng, service_radius_miles')
+      .eq('pro_id', sessions.pro_id)
+      .single();
+    
+    if (profileError || !techProfile) {
+      console.error('[portal_jobs] Failed to get tech profile:', profileError);
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to load tech profile',
+        error_code: 'profile_error'
+      });
+    }
+
+    const techLat = parseFloat(techProfile.geo_lat);
+    const techLng = parseFloat(techProfile.geo_lng);
+    const serviceRadius = parseFloat(techProfile.service_radius_miles) || 50; // Default 50 miles
+
+    console.log('[portal_jobs] Tech location:', { lat: techLat, lng: techLng, radius: serviceRadius });
+
+    // Get ALL available jobs within radius (pending OR accepted - we need both)
+    console.log('[portal_jobs] Fetching available jobs with status pending_assign, pending, OR accepted');
+    const { data: availableJobs, error: availableError } = await supabase
+      .from('h2s_dispatch_jobs')
+      .select('*')
+      .in('status', ['pending_assign', 'pending', 'accepted', 'scheduled'])
+      .not('geo_lat', 'is', null)
+      .not('geo_lng', 'is', null);
+    
+    if (availableError) {
+      console.error('[portal_jobs] Failed to fetch available jobs:', availableError);
+    }
+
+    console.log('[portal_jobs] Found', availableJobs?.length || 0, 'available jobs total');
+    
+    // Log each job's coordinates for debugging
+    (availableJobs || []).forEach(job => {
+      console.log('[portal_jobs] Job:', job.job_id, 'at', job.geo_lat, ',', job.geo_lng, 'customer:', job.customer_name);
+    });
+
+    // Filter jobs within service radius
+    const jobsWithinRadius = (availableJobs || []).filter(job => {
+      const jobLat = parseFloat(job.geo_lat);
+      const jobLng = parseFloat(job.geo_lng);
+      
+      if (isNaN(jobLat) || isNaN(jobLng) || isNaN(techLat) || isNaN(techLng)) {
+        return false;
+      }
+
+      const distance = calculateDistance(techLat, techLng, jobLat, jobLng);
+      console.log('[portal_jobs] Job', job.job_id, 'distance:', distance, 'miles (radius:', serviceRadius, ')');
+      return distance <= serviceRadius;
+    }).map(job => {
+      const jobLat = parseFloat(job.geo_lat);
+      const jobLng = parseFloat(job.geo_lng);
+      const distance = calculateDistance(techLat, techLng, jobLat, jobLng);
+      return {
+        ...job,
+        distance_miles: Math.round(distance * 10) / 10,
+        payout_estimated: job.metadata?.estimated_payout || 0,
+        referral_code: job.metadata?.referral_code || null
+      };
+    });
+
+    console.log('[portal_jobs] Jobs within radius:', jobsWithinRadius.length);
+
+    // Get job assignments for this pro, then fetch job details
+    console.log('[portal_jobs] Fetching job assignments for pro_id:', sessions.pro_id);
+    const { data: assignments, error: assignError } = await supabase
+      .from('h2s_dispatch_job_assignments')
+      .select('job_id, state, distance_miles, offer_sent_at, accepted_at, declined_at')
+      .eq('pro_id', sessions.pro_id)
+      .order('offer_sent_at', { ascending: false });
+    
+    console.log('[portal_jobs] Assignments query result:', { 
+      assignmentCount: assignments?.length || 0, 
+      hasError: !!assignError,
+      errorMsg: assignError?.message 
+    });
+    
+    // 🔍 DEBUG: Log all assignments and their states
+    if (assignments && assignments.length > 0) {
+      console.log('[portal_jobs] 📋 ASSIGNMENTS FETCHED:');
+      assignments.forEach((a, idx) => {
+        console.log(`  ${idx + 1}. Job: ${a.job_id}, State: ${a.state}, Accepted: ${a.accepted_at || 'N/A'}`);
+      });
+    }
+
+    if (assignError) {
+      console.error('[portal_jobs] Assignment fetch failed:', assignError);
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to fetch job assignments',
+        error_code: 'db_error',
+        details: assignError.message
+      });
+    }
+
+    // If no assignments, still return available jobs within radius
+    if (!assignments || assignments.length === 0) {
+      console.log('[portal_jobs] No assignments found, but returning', jobsWithinRadius.length, 'jobs within radius');
+      return res.json({
+        ok: true,
+        offers: jobsWithinRadius,
+        upcoming: [],
+        completed: []
+      });
+    }
+
+    // Get full job details for assigned jobs
+    const jobIds = assignments.map(a => a.job_id);
+    console.log('[portal_jobs] Fetching details for', jobIds.length, 'jobs');
+    console.log('[portal_jobs] Job IDs from assignments:', jobIds);
+    
+    const { data: jobs, error: jobsError } = await supabase
+      .from('h2s_dispatch_jobs')
+      .select('*')
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false });
+    
+    console.log('[portal_jobs] Jobs query result:', { 
+      jobCount: jobs?.length || 0, 
+      hasError: !!jobsError,
+      errorMsg: jobsError?.message 
+    });
+    
+    console.log('[portal_jobs] Fetched jobs with statuses:', (jobs || []).map(j => `${j.job_id}: ${j.status}`).join(', '));
+
+    if (jobsError) {
+      console.error('[portal_jobs] Job fetch failed:', jobsError);
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to fetch jobs',
+        error_code: 'db_error',
+        details: jobsError.message
+      });
+    }
+
+    // === ENRICHMENT: Fetch Line Items, Service Names, AND ORDERS ===
+    const allJobsToEnrich = [...jobsWithinRadius, ...(jobs || [])];
+    const uniqueJobIds = [...new Set(allJobsToEnrich.map(j => j.job_id))];
+    const uniqueServiceIds = [...new Set(allJobsToEnrich.map(j => j.service_id).filter(Boolean))];
+    
+    // Collect Order IDs to fetch dates from h2s_orders
+    const orderIds = [...new Set(allJobsToEnrich.map(j => j.order_id || j.metadata?.order_id).filter(Boolean))];
+
+    console.log('[portal_jobs] Enriching', uniqueJobIds.length, 'jobs with details...');
+    console.log('[portal_jobs] Fetching details for', orderIds.length, 'orders...');
+
+    let jobLinesMap = {};
+    let lineServiceIds = new Set();
+    let ordersMap = {};
+
+    // Parallel fetch for lines and orders
+    const promises = [];
+
+    if (uniqueJobIds.length > 0) {
+        promises.push(
+            supabase
+                .from('h2s_dispatch_job_lines')
+                .select('*')
+                .in('job_id', uniqueJobIds)
+                .then(({ data }) => {
+                    (data || []).forEach(l => {
+                        if (!jobLinesMap[l.job_id]) jobLinesMap[l.job_id] = [];
+                        jobLinesMap[l.job_id].push(l);
+                        if (l.service_id) lineServiceIds.add(l.service_id);
+                    });
+                })
+        );
+    }
+    
+    if (orderIds.length > 0) {
+        promises.push(
+            supabase
+              .from('h2s_orders')
+              .select('order_id, delivery_date, delivery_time, created_at, service_name, items, customer_name, customer_phone, customer_email, shipping_city, shipping_state, shipping_zip, shipping_address')
+                .in('order_id', orderIds)
+                .then(({ data }) => {
+                    console.log('[portal_jobs] Fetched', data?.length || 0, 'orders from h2s_orders');
+                    (data || []).forEach(o => {
+                        ordersMap[o.order_id] = o;
+                        console.log('[portal_jobs] Order', o.order_id, '- has items:', !!o.items, '- items type:', typeof o.items);
+                    });
+                })
+        );
+    }
+
+    await Promise.all(promises);
+
+    const allServiceIds = new Set([...uniqueServiceIds, ...lineServiceIds]);
+    const allServiceIdsArray = Array.from(allServiceIds);
+
+    let serviceNamesMap = {};
+    if (allServiceIdsArray.length > 0) {
+        const { data: services } = await supabase
+            .from('h2s_dispatch_services')
+            .select('service_id, name')
+            .in('service_id', allServiceIdsArray);
+            
+        (services || []).forEach(s => {
+            serviceNamesMap[s.service_id] = s.name;
+        });
+    }
+
+    // Enrich line items with names
+    Object.values(jobLinesMap).forEach(lines => {
+        lines.forEach(l => {
+            l.name = serviceNamesMap[l.service_id] || "Item";
+            l.title = l.name;
+        });
+    });
+    // ====================================================
+
+    // Merge assignment state with job data
+    const assignmentMap = {};
+    assignments.forEach(a => {
+      // ✅ FIX: Only keep the newest assignment (assignments are ordered by offer_sent_at DESC)
+      // This prevents older 'offered' states from overwriting newer 'accepted' states if duplicates exist
+      if (!assignmentMap[a.job_id]) {
+        assignmentMap[a.job_id] = {
+          state: a.state,
+          distance_miles: a.distance_miles,
+          offer_sent_at: a.offer_sent_at,
+          accepted_at: a.accepted_at,
+          declined_at: a.declined_at
+        };
+      } else {
+        console.log(`[portal_jobs] ⚠️ DUPLICATE assignment for ${a.job_id} - keeping state: ${assignmentMap[a.job_id].state}, ignoring state: ${a.state}`);
+      }
+    });
+
+    console.log('[portal_jobs] 🗺️ assignmentMap has', Object.keys(assignmentMap).length, 'entries');
+    Object.entries(assignmentMap).forEach(([jobId, assignment]) => {
+      console.log(`  - Job ${jobId}: state=${assignment.state}, accepted_at=${assignment.accepted_at || 'N/A'}`);
+    });
+
+    // Categorize jobs based on assignment state
+    // SMART: Merge assignment data into ALL jobs (including those without full job records)
+    const offersMap = new Map();
+    const upcoming = [];
+    const completed = [];
+    
+    // First, add all available jobs in radius (but check assignment state first)
+    jobsWithinRadius.forEach(job => {
+      const assignment = assignmentMap[job.job_id];
+      
+      // Skip if this job has an assignment and it's not 'offered' state
+      // (it will be processed in the second loop with full assignment data)
+      if (assignment && assignment.state !== 'offered') {
+        console.log('[portal_jobs] Skipping job', job.job_id, 'from jobsWithinRadius - has assignment state:', assignment.state);
+        return;
+      }
+      
+      console.log('[portal_jobs] Processing job', job.job_id, '- assignment:', assignment ? 'FOUND' : 'NOT FOUND', '- distance:', assignment?.distance_miles);
+      
+      // INTELLIGENT: Use assignment distance if it exists, otherwise use calculated distance
+      let finalDistance = job.distance_miles; // Default to what was calculated
+      
+      if (assignment?.distance_miles != null) {
+        finalDistance = parseFloat(assignment.distance_miles);
+        console.log('[portal_jobs] Using assignment distance:', finalDistance);
+      } else {
+        console.log('[portal_jobs] No assignment distance, using calculated:', finalDistance);
+      }
+      
+      // ✅ DATE & SERVICE ENRICHMENT: Pull from h2s_orders if missing
+      const orderId = job.order_id || job.metadata?.order_id;
+      const order = ordersMap[orderId];
+      let startIso = job.start_iso;
+      let window = job.window;
+      let serviceName = serviceNamesMap[job.service_id];
+      
+        if (order) {
+          if (!startIso && order.delivery_date) startIso = order.delivery_date;
+          if (!window && order.delivery_time) window = order.delivery_time;
+          // If service name is missing or generic, try order's service name
+          if ((!serviceName || serviceName === 'Service') && order.service_name) {
+            serviceName = order.service_name;
+          }
+          // Enrich customer fields if missing on job
+          job.customer_name = job.customer_name || order.customer_name || job.metadata?.customer_name || '';
+          job.customer_phone = job.customer_phone || order.customer_phone || job.metadata?.customer_phone || '';
+          job.customer_email = job.customer_email || order.customer_email || job.metadata?.customer_email || '';
+          // Enrich location if missing - PRIORITIZE JOB RECORDS (service_*)
+          job.city = job.service_city || job.city || order.shipping_city || job.metadata?.city || '';
+          job.state = job.service_state || job.state || order.shipping_state || job.metadata?.state || '';
+          job.zip = job.service_zip || job.zip || order.shipping_zip || job.metadata?.zip || '';
+          job.address = job.service_address || job.address || order.shipping_address || job.metadata?.address || '';
+        }
+      
+      if (!serviceName) serviceName = "Service";
+
+      // ╭──────────────────────────────────────────────────────────────╮
+      // │ Build line items with fallback to order.items when missing   │
+      // ╰──────────────────────────────────────────────────────────────╯
+      let effectiveLines = jobLinesMap[job.job_id] || [];
+      console.log('[portal_jobs OFFERS] Job', job.job_id, '- jobLines:', effectiveLines.length, '- orderId:', orderId, '- order:', !!order, '- order.items type:', order?.items ? (typeof order.items) : 'NO');
+      
+      // Try order.items first (if order exists)
+      if ((!effectiveLines || effectiveLines.length === 0) && order && order.items) {
+        console.log('[portal_jobs OFFERS] Fallback: parsing order.items for job', job.job_id);
+        try {
+          const raw = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+          console.log('[portal_jobs OFFERS] Parsed order.items:', raw);
+          if (Array.isArray(raw) && raw.length > 0) {
+            effectiveLines = raw.map((it, idx) => ({
+              job_id: job.job_id,
+              service_id: it.service_id || it.bundle_id || it.sku || null,
+              title: it.title || it.name || `Item ${idx + 1}`,
+              name: it.title || it.name || `Item ${idx + 1}`,
+              qty: it.qty || it.quantity || 1,
+              variant_code: it.variant_code || it.variant || 'BASE',
+              customer_total: it.customer_total || it.price || 0
+            }));
+            console.log('[portal_jobs OFFERS] Built effectiveLines from order.items:', effectiveLines);
+          }
+        } catch (e) {
+          console.warn('[portal_jobs OFFERS] Could not parse order.items for job', job.job_id, e?.message);
+        }
+      }
+      
+      // ✅ NEW: Try metadata.items_json (for shop orders without order_id link)
+      if ((!effectiveLines || effectiveLines.length === 0) && job.metadata?.items_json) {
+        console.log('[portal_jobs OFFERS] Fallback: parsing metadata.items_json for job', job.job_id);
+        try {
+          const raw = Array.isArray(job.metadata.items_json) ? job.metadata.items_json : JSON.parse(job.metadata.items_json);
+          console.log('[portal_jobs OFFERS] Parsed metadata.items_json:', raw);
+          if (Array.isArray(raw) && raw.length > 0) {
+            effectiveLines = raw.map((it, idx) => {
+              // Create base line item
+              const lineItem = {
+                job_id: job.job_id,
+                bundle_id: it.bundle_id || null,
+                service_id: it.service_id || it.bundle_id || it.sku || null,
+                title: it.service_name || it.title || it.name || `Item ${idx + 1}`,
+                name: it.service_name || it.title || it.name || `Item ${idx + 1}`,
+                qty: it.qty || it.quantity || 1,
+                variant_code: it.variant_code || it.variant || 'BASE',
+                // ⚠️ IMPORTANT: Prices in items_json are in DOLLARS already (not cents)
+                // 599 means $599, NOT $5.99
+                customer_total: it.line_total || it.customer_total || it.price || 0
+              };
+              
+              // ✅ Enrich with bundle details for technician display
+              return enrichLineItemWithBundleDetails(lineItem);
+            });
+            console.log('[portal_jobs OFFERS] Built effectiveLines from metadata.items_json:', effectiveLines);
+          }
+        } catch (e) {
+          console.warn('[portal_jobs OFFERS] Could not parse metadata.items_json for job', job.job_id, e?.message);
+        }
+      }
+      
+      console.log('[portal_jobs OFFERS] Final effectiveLines:', effectiveLines);
+
+      // Calculate payout if missing from metadata
+      let payoutAmount = job.metadata?.estimated_payout || 0;
+      if (!payoutAmount || payoutAmount == 0) {
+          const calc = calculatePayout(job, effectiveLines, null);
+          payoutAmount = calc.total;
+      }
+      
+      // ✅ FALLBACK: If still no line_items, create from service_id
+      if ((!effectiveLines || effectiveLines.length === 0) && job.service_id) {
+        console.log('[portal_jobs OFFERS] Last resort: creating line_item from service_id:', job.service_id);
+        effectiveLines = [{
+          job_id: job.job_id,
+          service_id: job.service_id,
+          title: serviceName,
+          name: serviceName,
+          qty: 1,
+          variant_code: job.metadata?.variant_code || 'BASE',
+          customer_total: payoutAmount || 0
+        }];
+      }
+
+      offersMap.set(job.job_id, {
+        ...job,
+        start_iso: startIso,
+        window: window,
+        line_items: effectiveLines,
+        description: serviceName, // ✅ Add description field
+        service_name: serviceName,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
+        payout_estimated: payoutAmount,
+        referral_code: job.metadata?.referral_code || null
+      });
+    });
+
+    // Then process assigned jobs
+    (jobs || []).forEach(job => {
+      const assignment = assignmentMap[job.job_id];
+      const state = assignment?.state || '';
+      
+      console.log(`[portal_jobs] Processing assigned job ${job.job_id}: status=${job.status}, assignment_state=${state}`);
+      
+      // INTELLIGENT: Calculate distance from assignment OR pro location OR job metadata
+      let finalDistance = null;
+      
+      // Priority 1: Use assignment distance (most accurate)
+      if (assignment?.distance_miles != null) {
+        finalDistance = parseFloat(assignment.distance_miles);
+      }
+      // Priority 2: Calculate from pro location if available
+      else if (!isNaN(techLat) && !isNaN(techLng)) {
+        const jobLat = parseFloat(job.geo_lat);
+        const jobLng = parseFloat(job.geo_lng);
+        if (!isNaN(jobLat) && !isNaN(jobLng)) {
+          finalDistance = calculateDistance(techLat, techLng, jobLat, jobLng);
+        }
+      }
+      // Priority 3: Try metadata (if backend stored it)
+      else if (job.metadata?.geo_lat && job.metadata?.geo_lng && !isNaN(techLat) && !isNaN(techLng)) {
+        const jobLat = parseFloat(job.metadata.geo_lat);
+        const jobLng = parseFloat(job.metadata.geo_lng);
+        if (!isNaN(jobLat) && !isNaN(jobLng)) {
+          finalDistance = calculateDistance(techLat, techLng, jobLat, jobLng);
+        }
+      }
+      
+      // ✅ DATE & SERVICE ENRICHMENT: Pull from h2s_orders if missing
+      const orderId = job.order_id || job.metadata?.order_id;
+      const order = ordersMap[orderId];
+      let startIso = job.start_iso;
+      let window = job.window;
+      let serviceName = serviceNamesMap[job.service_id];
+      
+        if (order) {
+          if (!startIso && order.delivery_date) startIso = order.delivery_date;
+          if (!window && order.delivery_time) window = order.delivery_time;
+          // If service name is missing or generic, try order's service name
+          if ((!serviceName || serviceName === 'Service') && order.service_name) {
+            serviceName = order.service_name;
+          }
+          // Enrich customer fields if missing on job
+          job.customer_name = job.customer_name || order.customer_name || job.metadata?.customer_name || '';
+          job.customer_phone = job.customer_phone || order.customer_phone || job.metadata?.customer_phone || '';
+          job.customer_email = job.customer_email || order.customer_email || job.metadata?.customer_email || '';
+          // Enrich location if missing - PRIORITIZE JOB RECORDS (service_*)
+          job.city = job.service_city || job.city || order.shipping_city || job.metadata?.city || '';
+          job.state = job.service_state || job.state || order.shipping_state || job.metadata?.state || '';
+          job.zip = job.service_zip || job.zip || order.shipping_zip || job.metadata?.zip || '';
+          job.address = job.service_address || job.address || order.shipping_address || job.metadata?.address || '';
+        }
+      
+      if (!serviceName) serviceName = "Service";
+
+      // ╭──────────────────────────────────────────────────────────────╮
+      // │ Build line items with fallback to order.items when missing   │
+      // ╰──────────────────────────────────────────────────────────────╯
+      let effectiveLines = jobLinesMap[job.job_id] || [];
+      
+      // Try order.items first (if order exists)
+      if ((!effectiveLines || effectiveLines.length === 0) && order && order.items) {
+        try {
+          const raw = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+          if (Array.isArray(raw)) {
+            effectiveLines = raw.map((it, idx) => ({
+              job_id: job.job_id,
+              service_id: it.service_id || it.bundle_id || it.sku || null,
+              title: it.title || it.name || `Item ${idx + 1}`,
+              name: it.title || it.name || `Item ${idx + 1}`,
+              qty: it.qty || it.quantity || 1,
+              variant_code: it.variant_code || it.variant || 'BASE',
+              customer_total: it.customer_total || it.price || 0
+            }));
+          }
+        } catch (e) {
+          console.warn('[portal_jobs] Could not parse order.items for job', job.job_id, e?.message);
+        }
+      }
+      
+      // ✅ NEW: Try metadata.items_json (for shop orders without order_id link)
+      if ((!effectiveLines || effectiveLines.length === 0) && job.metadata?.items_json) {
+        try {
+          const raw = Array.isArray(job.metadata.items_json) ? job.metadata.items_json : JSON.parse(job.metadata.items_json);
+          if (Array.isArray(raw) && raw.length > 0) {
+            effectiveLines = raw.map((it, idx) => {
+              // Create base line item
+              const lineItem = {
+                job_id: job.job_id,
+                bundle_id: it.bundle_id || null,
+                service_id: it.service_id || it.bundle_id || it.sku || null,
+                title: it.service_name || it.title || it.name || `Item ${idx + 1}`,
+                name: it.service_name || it.title || it.name || `Item ${idx + 1}`,
+                qty: it.qty || it.quantity || 1,
+                variant_code: it.variant_code || it.variant || 'BASE',
+                // ⚠️ IMPORTANT: Prices in items_json are in DOLLARS already (not cents)
+                // 599 means $599, NOT $5.99
+                customer_total: it.line_total || it.customer_total || it.price || 0
+              };
+              
+              // ✅ Enrich with bundle details for technician display
+              return enrichLineItemWithBundleDetails(lineItem);
+            });
+          }
+        } catch (e) {
+          console.warn('[portal_jobs] Could not parse metadata.items_json for job', job.job_id, e?.message);
+        }
+      }
+      
+      // Calculate payout if missing from metadata
+      let payoutAmount = job.metadata?.estimated_payout || 0;
+      if (!payoutAmount || payoutAmount == 0) {
+          const calc = calculatePayout(job, effectiveLines, null);
+          payoutAmount = calc.total;
+      }
+      
+      // ✅ FALLBACK: If still no line_items, create from service_id
+      if ((!effectiveLines || effectiveLines.length === 0) && job.service_id) {
+        effectiveLines = [{
+          job_id: job.job_id,
+          service_id: job.service_id,
+          title: serviceName,
+          name: serviceName,
+          qty: 1,
+          variant_code: job.metadata?.variant_code || 'BASE',
+          customer_total: payoutAmount || 0
+        }];
+      }
+
+      // Add assignment metadata to job
+      const jobWithAssignment = {
+        ...job,
+        start_iso: startIso,
+        window: window,
+        line_items: effectiveLines,
+        description: serviceName, // ✅ Add description field
+        service_name: serviceName,
+        distance_miles: finalDistance != null ? Math.round(finalDistance * 100) / 100 : null,
+        is_primary: assignment?.is_primary,
+        responded_at: assignment?.responded_at,
+        // Expose payout info
+        payout_estimated: payoutAmount,
+        referral_code: job.metadata?.referral_code || null
+      };
+      
+      // ✅ DEFENSIVE: Check job.status as fallback if assignment state is stale
+      const jobStatus = job.status?.toLowerCase();
+      const effectiveState = (jobStatus === 'completed' || jobStatus === 'paid') ? 'completed' : state;
+      
+      if (effectiveState !== state) {
+        console.log(`[portal_jobs] ⚠️ STATE MISMATCH for ${job.job_id}: assignment='${state}' but job.status='${jobStatus}' - using job.status`);
+      }
+      
+      if (effectiveState === 'offered') {
+        console.log(`[portal_jobs] ➡️ CATEGORIZED as OFFER: ${job.job_id}`);
+        // Update the existing entry with assignment data (preserves distance from assignment)
+        offersMap.set(job.job_id, jobWithAssignment);
+      } else if (effectiveState === 'accepted') {
+        console.log(`[portal_jobs] ✅ CATEGORIZED as UPCOMING: ${job.job_id}`);
+        upcoming.push(jobWithAssignment);
+      } else if (effectiveState === 'completed' || effectiveState === 'paid') {
+        console.log(`[portal_jobs] ✔️ CATEGORIZED as COMPLETED: ${job.job_id}`);
+        completed.push(jobWithAssignment);
+      } else {
+        console.log(`[portal_jobs] ❓ UNKNOWN state '${effectiveState}' for job ${job.job_id} - not categorized`);
+      }
+    });
+    
+    const offers = Array.from(offersMap.values());
+    
+    console.log('[portal_jobs] 📊 FINAL CATEGORIZATION:', { 
+      offersCount: offers.length, 
+      upcomingCount: upcoming.length, 
+      completedCount: completed.length 
+    });
+    console.log('[portal_jobs] Offers:', offers.map(o => o.job_id));
+    console.log('[portal_jobs] Upcoming:', upcoming.map(u => u.job_id));
+    console.log('[portal_jobs] Completed:', completed.map(c => c.job_id));
+
+    return res.json({
+      ok: true,
+      offers,
+      upcoming,
+      completed
+    });
+
+  } catch (error) {
+    console.error('Error in portal_jobs:', error);
+    return res.status(500).json({
+      ok: false,
+      error: 'Server error',
+      error_code: 'server_error',
+      details: error.message
+    });
+  }
+}
+
+// Haversine distance calculation
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 3959; // Earth radius in miles
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(degrees) {
+  return degrees * (Math.PI / 180);
+}
