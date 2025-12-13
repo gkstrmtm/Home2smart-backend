@@ -162,18 +162,33 @@ export default async function handler(req, res) {
       }
 
       // First, verify the record exists and belongs to this pro
+      // Note: Table uses 'avail_id' as the column name (not 'availability_id')
       const { data: existingRecord, error: checkError } = await supabase
         .from('h2s_dispatch_pros_availability')
-        .select('availability_id, pro_id, type, date_local')
-        .eq('availability_id', availabilityId)
+        .select('avail_id, pro_id, type, date_local')
+        .eq('avail_id', availabilityId)
         .eq('pro_id', proId)
-        .single();
+        .maybeSingle();
 
-      if (checkError || !existingRecord) {
-        console.error('[portal_availability] ❌ Record not found or access denied:', {
+      if (checkError) {
+        console.error('[portal_availability] ❌ Check error:', {
           availabilityId,
           proId,
-          error: checkError?.message
+          error: checkError.message,
+          code: checkError.code,
+          details: checkError.details
+        });
+        return res.status(500).json({
+          ok: false,
+          error: 'Failed to verify record: ' + checkError.message,
+          error_code: 'check_error'
+        });
+      }
+
+      if (!existingRecord) {
+        console.error('[portal_availability] ❌ Record not found or access denied:', {
+          availabilityId,
+          proId
         });
         return res.status(404).json({
           ok: false,
@@ -183,28 +198,38 @@ export default async function handler(req, res) {
       }
 
       console.log('[portal_availability] ✅ Record verified:', {
-        availability_id: existingRecord.availability_id,
+        avail_id: existingRecord.avail_id,
         type: existingRecord.type,
         date_local: existingRecord.date_local
       });
 
-      // Delete the record
-      const { error } = await supabase
+      // Delete the record - use 'avail_id' column name
+      const { error, data: deleteResult } = await supabase
         .from('h2s_dispatch_pros_availability')
         .delete()
-        .eq('availability_id', availabilityId)
-        .eq('pro_id', proId); // Security: ensure pro owns this record
+        .eq('avail_id', availabilityId)
+        .eq('pro_id', proId) // Security: ensure pro owns this record
+        .select();
 
       if (error) {
-        console.error('[portal_availability] ❌ Delete error:', error);
+        console.error('[portal_availability] ❌ Delete error:', {
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          availabilityId,
+          proId
+        });
         return res.status(500).json({
           ok: false,
-          error: 'Failed to delete availability',
+          error: 'Failed to delete availability: ' + error.message,
           error_code: 'delete_error'
         });
       }
 
-      console.log(`[portal_availability] ✅ Availability deleted successfully: ${availabilityId} (pro: ${proId})`);
+      console.log(`[portal_availability] ✅ Availability deleted successfully: ${availabilityId} (pro: ${proId})`, {
+        deletedRows: deleteResult?.length || 0
+      });
 
       return res.json({ 
         ok: true,
