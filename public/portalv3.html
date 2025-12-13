@@ -15962,66 +15962,9 @@ function updateTrainingStats() {
 }
 
 function buildDynamicCategoryTabs() {
-  if (!trainingCatalog || !trainingCatalog.videos || trainingCatalog.videos.length === 0) {
-    $("trainingCategoriesOverview").style.display = "none";
-    return;
-  }
-  
-  // Group videos by module to get counts
-  const moduleGroups = {};
-  trainingCatalog.videos.forEach(v => {
-    const module = v.module || 'Uncategorized';
-    if (!moduleGroups[module]) moduleGroups[module] = [];
-    moduleGroups[module].push(v);
-  });
-  
-  const modules = Object.keys(moduleGroups).sort();
-  
-  if (modules.length === 0) {
-    $("trainingCategoriesOverview").style.display = "none";
-    return;
-  }
-  
-  // Show the overview section
-  $("trainingCategoriesOverview").style.display = "block";
-  
-  // Build category pills
-  const pillsContainer = $("trainingCategoryPills");
-  let pillsHTML = '';
-  modules.forEach(module => {
-    const count = moduleGroups[module].length;
-    const moduleSlug = module.toLowerCase().replace(/\s+/g, '_');
-    pillsHTML += `
-      <div class="category-pill" data-module="${esc(moduleSlug)}">
-        <span class="name">${esc(module)}</span>
-        <span class="count">${count}</span>
-      </div>
-    `;
-  });
-  pillsContainer.innerHTML = pillsHTML;
-  
-  // Filter tabs UI removed - categories not used in UI
-  // Categories still exist in data and can be shown as tags on cards
-  
-  // Add click handlers for pills (scroll to category tab and activate it)
-  pillsContainer.onclick = e => {
-    const pill = e.target.closest('.category-pill');
-    if (!pill) return;
-    
-    const moduleSlug = pill.dataset.module;
-    const tab = document.querySelector(`.filter-tab[data-category="${moduleSlug}"]`);
-    if (tab) {
-      // Activate the tab
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      
-      // Scroll to filters section
-      $("trainingFilterTabs").scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      
-      // Render filtered content
-      renderTrainingContent();
-    }
-  };
+  // Categories UI removed - function kept for compatibility but does nothing
+  // Categories data still exists in trainingCatalog but is not displayed in UI
+  return;
 }
 
 async function loadTrainingProgress(videoIds) {
