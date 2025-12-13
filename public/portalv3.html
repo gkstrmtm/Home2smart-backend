@@ -15802,11 +15802,20 @@ async function loadTraining() {
     console.log("🔍 TRAINING DEBUG: Starting loadTraining()");
     console.log("🔍 Current token:", token ? token.substring(0, 20) + '...' : 'MISSING');
     
+    // ✅ FIX: Ensure tab is visible before rendering
+    const trainingTab = $("tab-training");
+    if (trainingTab && trainingTab.style.display === "none") {
+      // Tab not visible yet, wait for next frame
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+    
     // ✅ PERFORMANCE: Check cache first (1 hour TTL for training)
     const cached = getCache('training');
     if (cached) {
       console.log("✅ Using cached training catalog");
       trainingCatalog = cached;
+      // ✅ FIX: Ensure DOM is ready before rendering
+      await new Promise(resolve => requestAnimationFrame(resolve));
       updateTrainingStats();
       renderTrainingContent();
       renderResources();
@@ -16034,6 +16043,26 @@ let trainingBatchState = {
 function renderTrainingContent() {
   if (!trainingCatalog) return;
   
+  // ✅ FIX: Ensure training tab is visible before rendering
+  const trainingTab = $("tab-training");
+  if (!trainingTab || trainingTab.style.display === "none") {
+    // Tab not visible, defer rendering
+    setTimeout(() => {
+      if (trainingCatalog) renderTrainingContent();
+    }, 100);
+    return;
+  }
+  
+  // ✅ FIX: Ensure DOM elements exist
+  const contentBox = $("training-content");
+  if (!contentBox) {
+    console.warn("[Training] training-content element not found, deferring render");
+    setTimeout(() => {
+      if (trainingCatalog) renderTrainingContent();
+    }, 100);
+    return;
+  }
+  
   // Category filtering disabled - show all videos
   const activeCategory = 'all';
   const statusFilterEl = document.getElementById('trainingStatusFilter');
@@ -16046,9 +16075,11 @@ function renderTrainingContent() {
   // Show skeletons briefly if catalog exists but is empty/loading
   if (!videos || videos.length === 0) {
     const box = $("training-content");
+    if (!box) return;
     box.innerHTML = "";
     box.appendChild(renderTrainingSkeletons(6));
-    $("training-load-more-container").style.display = "none";
+    const loadMoreContainer = $("training-load-more-container");
+    if (loadMoreContainer) loadMoreContainer.style.display = "none";
     return;
   }
   
