@@ -95,8 +95,20 @@ export default async function handler(req, res) {
       reason: reason || 'at your request'
     };
 
+    // Duplicate prevention: Check if reschedule notification already sent recently
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: recentEmail } = await supabase
+      .from('email_messages')
+      .select('id')
+      .eq('order_id', order_id)
+      .eq('message_type', 'appointment_rescheduled')
+      .gte('sent_at', twoMinutesAgo)
+      .limit(1);
+
+    const shouldSend = !recentEmail || recentEmail.length === 0;
+
     // Send SMS
-    if (order.customer_phone && process.env.TWILIO_ENABLED !== 'false') {
+    if (shouldSend && order.customer_phone && process.env.TWILIO_ENABLED !== 'false') {
       try {
         const smsResponse = await fetch(`${getBaseUrl(req)}/api/send-sms`, {
           method: 'POST',
@@ -115,10 +127,12 @@ export default async function handler(req, res) {
       } catch (err) {
         console.error('[Reschedule] SMS error:', err);
       }
+    } else if (!shouldSend) {
+      console.log('[Reschedule] ⏭️ Skipping duplicate notification (sent within last 2 minutes)');
     }
 
     // Send Email
-    if (order.customer_email && process.env.SENDGRID_ENABLED !== 'false') {
+    if (shouldSend && order.customer_email && process.env.SENDGRID_ENABLED !== 'false') {
       try {
         const emailResponse = await fetch(`${getBaseUrl(req)}/api/send-email`, {
           method: 'POST',
@@ -140,17 +154,74 @@ export default async function handler(req, res) {
     }
 
     // 4. Update dispatch job if it exists
+    let jobId = null;
     try {
-      await supabase
+      const { data: job } = await supabase
         .from('h2s_dispatch_jobs')
-        .update({
-          start_iso: `${delivery_date}T${convertTo24Hour(delivery_time)}:00`,
-          status: 'scheduled',
-          updated_at: new Date().toISOString()
-        })
-        .eq('order_id', order_id);
+        .select('job_id')
+        .eq('order_id', order_id)
+        .single();
+      
+      if (job) {
+        jobId = job.job_id;
+        await supabase
+          .from('h2s_dispatch_jobs')
+          .update({
+            start_iso: `${delivery_date}T${convertTo24Hour(delivery_time)}:00`,
+            status: 'scheduled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('order_id', order_id);
+        console.log('[Reschedule] ✅ Dispatch job updated');
+      }
     } catch (err) {
       console.warn('[Reschedule] Dispatch job update failed (non-critical):', err);
+    }
+
+    // 5. Notify assigned tech if job exists and has accepted assignment
+    if (jobId) {
+      try {
+        const { data: assignment } = await supabase
+          .from('h2s_dispatch_job_assignments')
+          .select('pro_id')
+          .eq('job_id', jobId)
+          .eq('state', 'accepted')
+          .single();
+        
+        if (assignment?.pro_id) {
+          const { data: proData } = await supabase
+            .from('h2s_pros')
+            .select('name, phone, email')
+            .eq('pro_id', assignment.pro_id)
+            .single();
+
+          if (proData) {
+            const notifyEndpoint = process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}/api/notify-pro`
+              : 'https://h2s-backend.vercel.app/api/notify-pro';
+            
+            await fetch(notifyEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                job_id: jobId,
+                pro_id: assignment.pro_id,
+                type: 'job_rescheduled',
+                data: {
+                  old_date: formatDate(oldDate),
+                  old_time: oldTime,
+                  new_date: formatDate(delivery_date),
+                  new_time: delivery_time,
+                  reason: reason || 'Customer request'
+                }
+              })
+            });
+            console.log('[Reschedule] ✅ Tech notified');
+          }
+        }
+      } catch (notifyErr) {
+        console.warn('[Reschedule] Tech notification failed (non-critical):', notifyErr.message);
+      }
     }
 
     return res.json({ 

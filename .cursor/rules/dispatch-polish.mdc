@@ -1,0 +1,53 @@
+---
+alwaysApply: true
+---
+# Project Rules — Home2Smart Dispatch Portal
+
+## Project summary
+- Product: Home2Smart Dispatch Portal (internal ops portal for dispatching jobs, managing pros, tracking requests, and keeping ops clean)
+- Current focus: polish UI, fix bugs, close functional gaps, improve reliability without changing core behavior
+- Users: dispatch/admin team (primary), pros/techs (secondary if applicable)
+
+## Stack (current)
+- Frontend: TBD (web app UI rendered and displayed inside GoHighLevel pages)
+- Backend/API: Vercel-hosted server-side (API/server functions) + Supabase integration
+- Auth: TBD
+- Data: Supabase
+- Hosting/Display: Server-side on Vercel, UI displayed inside GoHighLevel
+
+## Non-negotiables for this repo
+- Keep changes minimal and targeted. No rewrite or new architecture unless asked.
+- Do not rename, move, or delete files unless asked.
+- Do not add heavy dependencies unless asked.
+- Any new UI must be mobile-first and polished on desktop.
+- If editing existing flows, preserve current behavior and only fix the issue requested.
+
+## Repo map
+- UI/screens: TBD
+- Components/shared UI: TBD
+- API calls/data layer: TBD
+- Auth/session handling: TBD
+- Config/env: TBD
+- Assets/images: TBD
+
+## Protected areas (edit only if explicitly asked)
+- Payment logic: TBD
+- Auth + permissions: TBD
+- Database schema/migrations: TBD
+- Webhook handlers: TBD
+
+## Performance + UX baseline
+- Optimize images and avoid unnecessary client-heavy work.
+- Keep UI responsive, fast, and low-friction. No cramped layouts or tiny tap targets.
+
+## How to verify work (commands)
+- Install: TBD
+- Dev: TBD
+- Build: TBD
+- Tests: TBD
+- Lint/format: TBD
+
+## Done criteria for portal work
+- The fix works on mobile and desktop.
+- No new bugs introduced in adjacent flows.
+- Any change that affects ops flow includes a quick note: what changed and how to test it.

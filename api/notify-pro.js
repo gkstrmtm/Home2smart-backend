@@ -16,10 +16,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { type, job_id, pro_id, data } = req.body;
+    const { type, job_id, pro_id, data, debug, force_sms_to, force_email_to } = req.body;
 
     if (!type || !job_id) {
       return res.status(400).json({ error: 'Missing required fields: type, job_id' });
+    }
+
+    // Debug mode: Get manager allowlists if provided
+    let debugSmsRecipients = null;
+    let debugEmailRecipients = null;
+    if (debug === true && process.env.DEBUG_FIRE_KEY) {
+      if (force_sms_to) {
+        debugSmsRecipients = force_sms_to.split(',').map(p => p.trim()).filter(Boolean);
+      }
+      if (force_email_to) {
+        debugEmailRecipients = force_email_to.split(',').map(e => e.trim()).filter(Boolean);
+      }
     }
 
     // Initialize Supabase
@@ -100,6 +112,12 @@ Where: ${job.service_address}, ${job.service_city}, ${job.service_state} ${job.s
 Phone: ${job.customer_email || 'N/A'}
 
 ${job.notes_from_customer ? `Notes: ${job.notes_from_customer}\n\n` : ''}Tap to accept/view: https://home2smart.com/portal`;
+        
+        // Debug mode: Override recipient
+        if (debugSmsRecipients && debugSmsRecipients.length > 0) {
+          recipient = debugSmsRecipients;
+          message = `[TEST:${type}] ${message}`;
+        }
         break;
 
       case 'job_accepted_confirmation':
@@ -155,6 +173,42 @@ ${job.service_address}
 Call: ${job.customer_email || 'See portal'}
 
 Tap when heading out to notify customer: https://home2smart.com/portal?notify=${job_id}`;
+        break;
+
+      case 'job_rescheduled':
+        if (!pro) {
+          return res.status(400).json({ error: 'Pro ID required for reschedule notification' });
+        }
+        recipient = pro.phone;
+        const oldTime = data.old_time || 'TBD';
+        const newTime = data.new_time || 'TBD';
+        const rescheduleReason = data.reason || 'Customer request';
+        message = `Hi ${pro.name}! 📅 JOB RESCHEDULED
+
+${job.customer_name} - ${job.service_name || job.service_type}
+
+Old time: ${data.old_date || 'TBD'} at ${oldTime}
+New time: ${data.new_date || 'TBD'} at ${newTime}
+Reason: ${rescheduleReason}
+
+View updated details: https://home2smart.com/portal`;
+        break;
+
+      case 'payout_approved':
+        if (!pro) {
+          return res.status(400).json({ error: 'Pro ID required for payout notification' });
+        }
+        recipient = pro.phone;
+        const amount = data.amount || '0.00';
+        const jobRef = data.job_ref || `Job #${job_id?.substring(0, 8) || 'N/A'}`;
+        message = `Hi ${pro.name}! ✅ PAYOUT APPROVED
+
+Amount: $${amount}
+Job: ${jobRef}
+
+Payment is approved. You'll receive it per standard payout timing.
+
+View details: https://home2smart.com/portal`;
         break;
 
       case 'customer_cancellation':
@@ -227,6 +281,14 @@ Complete now: https://home2smart.com/portal?complete=${job_id}`;
         return res.status(400).json({ error: `Unknown notification type: ${type}` });
     }
 
+    // Debug mode: Override recipient and add test prefix
+    if (debug === true && process.env.DEBUG_FIRE_KEY) {
+      if (debugSmsRecipients && debugSmsRecipients.length > 0) {
+        recipient = debugSmsRecipients;
+      }
+      message = `[TEST:${type}] ${message}`;
+    }
+
     // Send SMS via send-sms endpoint
     // Handle single recipient or multiple (array)
     const recipients = Array.isArray(recipient) ? recipient : [recipient];
@@ -234,21 +296,32 @@ Complete now: https://home2smart.com/portal?complete=${job_id}`;
     const emailResults = [];
 
     for (const phone of recipients) {
+      const smsPayload = {
+        to: phone,
+        message
+      };
+      
+      // Add debug flags if in debug mode
+      if (debug === true && process.env.DEBUG_FIRE_KEY) {
+        smsPayload.debug = true;
+        if (debugSmsRecipients && debugSmsRecipients.length > 0) {
+          smsPayload.force_to = debugSmsRecipients.join(',');
+        }
+      }
+
       const smsResponse = await fetch(`${req.headers.host}/api/send-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: phone,
-          message
-        })
+        body: JSON.stringify(smsPayload)
       });
 
       const smsResult = await smsResponse.json();
       smsResults.push({ phone, result: smsResult });
     }
 
-    // Also send email if pro has email address
-    if (pro && pro.email && process.env.SENDGRID_ENABLED !== 'false') {
+    // Also send email if pro has email address (or debug mode with force_email_to)
+    const shouldSendEmail = (pro && pro.email) || (debug === true && debugEmailRecipients && debugEmailRecipients.length > 0);
+    if (shouldSendEmail && process.env.SENDGRID_ENABLED !== 'false') {
       try {
         const emailData = {
           proName: pro.name,

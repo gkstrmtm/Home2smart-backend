@@ -127,6 +127,66 @@ export default async function handler(req, res) {
       });
     }
 
+    // Get job details for notifications
+    const { data: job } = await supabase
+      .from('h2s_dispatch_jobs')
+      .select('job_id, customer_name, service_name, service_city, service_state, start_iso')
+      .eq('job_id', jobId)
+      .single();
+
+    // Reopen job: Set status back to 'pending' so it can be offered again
+    // Check if there are any other active offers first
+    const { data: otherOffers } = await supabase
+      .from('h2s_dispatch_job_assignments')
+      .select('assign_id')
+      .eq('job_id', jobId)
+      .eq('state', 'offered')
+      .limit(1);
+
+    // Only reopen if no other active offers exist
+    if (!otherOffers || otherOffers.length === 0) {
+      await supabase
+        .from('h2s_dispatch_jobs')
+        .update({ 
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('job_id', jobId);
+      console.log('[portal_decline] ✅ Job reopened to pending status');
+    }
+
+    // Notify dispatch/admin about decline
+    try {
+      const { data: proData } = await supabase
+        .from('h2s_pros')
+        .select('name')
+        .eq('pro_id', proId)
+        .single();
+
+      const notifyEndpoint = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}/api/notify-management`
+        : 'https://h2s-backend.vercel.app/api/notify-management';
+
+      await fetch(notifyEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'proDeclined',
+          data: {
+            job_id: jobId,
+            pro_name: proData?.name || 'Unknown',
+            customer_name: job?.customer_name || 'Unknown',
+            service: job?.service_name || 'Service',
+            location: `${job?.service_city || ''}, ${job?.service_state || ''}`,
+            scheduled: job?.start_iso ? new Date(job.start_iso).toLocaleString() : 'Not set'
+          }
+        })
+      });
+      console.log('[portal_decline] ✅ Dispatch notified');
+    } catch (notifyError) {
+      console.warn('[portal_decline] Dispatch notification failed (non-critical):', notifyError.message);
+    }
+
     return res.json({ ok: true });
 
   } catch (error) {

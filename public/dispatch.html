@@ -2381,6 +2381,16 @@ body {
     }
 
     async function updatePayoutStatus(payoutId, action) {
+        // Disable approve button during request
+        const approveBtn = document.querySelector(`button[onclick*="approvePayout('${payoutId}')"]`);
+        const originalText = approveBtn?.textContent;
+        if (approveBtn && action === 'approve') {
+            approveBtn.disabled = true;
+            approveBtn.style.opacity = '0.6';
+            approveBtn.style.cursor = 'not-allowed';
+            approveBtn.textContent = 'Approving...';
+        }
+
         try {
             console.log(`[PAYOUT] Updating ${payoutId} to ${action}...`);
             const res = await fetchWithRetry(`${API_BASE}/admin_approve_payout`, {
@@ -2392,9 +2402,21 @@ body {
             if (data.ok) {
                 console.log('[PAYOUT] Success:', data.message || 'Updated');
                 
-                // Show success feedback
+                // Show success feedback with notification status
                 const actionText = action === 'approve' ? 'approved' : 'rejected';
-                showToast(`✅ Payout ${actionText} successfully`, 'success');
+                let toastMessage = `✅ Payout ${actionText} successfully`;
+                
+                if (action === 'approve' && data.notification) {
+                    if (data.notification.sent) {
+                        toastMessage += ' • Tech notified';
+                    } else if (data.notification.skipped) {
+                        toastMessage += ' • Tech notification skipped (already sent)';
+                    } else if (data.notification.error) {
+                        toastMessage += ' • Tech notify failed: ' + data.notification.error;
+                    }
+                }
+                
+                showToast(toastMessage, 'success');
                 
                 // Refresh both payouts list and metrics (to update top performers)
                 await Promise.all([
@@ -2407,6 +2429,14 @@ body {
         } catch (err) {
             console.error('Payout update error:', err);
             alert('❌ Failed to update payout: ' + err.message);
+        } finally {
+            // Re-enable button
+            if (approveBtn && action === 'approve') {
+                approveBtn.disabled = false;
+                approveBtn.style.opacity = '1';
+                approveBtn.style.cursor = 'pointer';
+                if (originalText) approveBtn.textContent = originalText;
+            }
         }
     }
 

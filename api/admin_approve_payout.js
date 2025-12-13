@@ -5,6 +5,12 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+// Service role client for notification queries (bypasses RLS)
+const supabaseService = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+);
+
 export const config = {
   api: { bodyParser: true },
 };
@@ -99,14 +105,137 @@ export default async function handler(req, res) {
 
     console.log(`[ADMIN APPROVE] Payout ${payoutId} set to ${newState}`);
 
+    // Send tech notification if approved (non-blocking)
+    let notificationResult = { sent: false, skipped: false, error: null };
+    if (newState === 'approved' && data) {
+      try {
+        notificationResult = await notifyTechPayoutApproved(data);
+      } catch (notifyErr) {
+        console.warn('[ADMIN APPROVE] Notification failed (non-critical):', notifyErr.message);
+        notificationResult.error = notifyErr.message;
+      }
+    }
+
     return res.json({ 
       ok: true, 
       data,
-      message: `Payout ${newState} successfully`
+      message: `Payout ${newState} successfully`,
+      notification: notificationResult
     });
 
   } catch (error) {
     console.error('[ADMIN APPROVE] Error:', error);
     return res.status(500).json({ ok: false, error: error.message });
+  }
+}
+
+/**
+ * Notify tech that payout was approved
+ * Returns: { sent: boolean, skipped: boolean, error: string|null }
+ */
+async function notifyTechPayoutApproved(payout) {
+  const { payout_id, pro_id, job_id, amount, total_amount } = payout;
+  const payoutAmount = amount || total_amount || 0;
+  
+  if (!pro_id || !job_id) {
+    return { sent: false, skipped: true, error: 'Missing pro_id or job_id' };
+  }
+
+  // Idempotency: Check if notification already sent in last 24 hours
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentSms } = await supabaseService
+    .from('h2s_sms_log')
+    .select('id')
+    .eq('job_id', job_id)
+    .eq('pro_id', pro_id)
+    .eq('template_name', 'payout_approved')
+    .gte('sent_at', twentyFourHoursAgo)
+    .limit(1);
+
+  // Also check by payout_id if available (check message content)
+  let duplicateByPayoutId = false;
+  if (payout_id) {
+    const { data: recentByPayout } = await supabaseService
+      .from('h2s_sms_log')
+      .select('id, message')
+      .eq('template_name', 'payout_approved')
+      .eq('pro_id', pro_id)
+      .gte('sent_at', twentyFourHoursAgo)
+      .limit(5); // Check last 5 messages
+    
+    if (recentByPayout && recentByPayout.length > 0) {
+      for (const msg of recentByPayout) {
+        if (msg.message && msg.message.includes(payout_id)) {
+          duplicateByPayoutId = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if (recentSms && recentSms.length > 0) {
+    console.log('[ADMIN APPROVE] Notification skipped (duplicate within 24h)');
+    return { sent: false, skipped: true, error: null };
+  }
+
+  if (duplicateByPayoutId) {
+    console.log('[ADMIN APPROVE] Notification skipped (duplicate by payout_id)');
+    return { sent: false, skipped: true, error: null };
+  }
+
+  // Get pro details
+  const { data: pro } = await supabaseService
+    .from('h2s_dispatch_pros')
+    .select('pro_id, name, phone, email')
+    .eq('pro_id', pro_id)
+    .single();
+
+  if (!pro) {
+    return { sent: false, skipped: true, error: 'Pro not found' };
+  }
+
+  // Get job details for context
+  const { data: job } = await supabaseService
+    .from('h2s_dispatch_jobs')
+    .select('job_id, service_name, service_type, customer_name')
+    .eq('job_id', job_id)
+    .single();
+
+  const jobRef = job?.service_name || job?.service_type || `Job #${job_id.substring(0, 8)}`;
+  const customerName = job?.customer_name || 'Customer';
+
+  // Send notification via notify-pro endpoint
+  const notifyEndpoint = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}/api/notify-pro`
+    : 'https://h2s-backend.vercel.app/api/notify-pro';
+
+  try {
+    const notifyResponse = await fetch(notifyEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_id: job_id,
+        pro_id: pro_id,
+        type: 'payout_approved',
+        data: {
+          amount: payoutAmount.toFixed(2),
+          job_ref: jobRef,
+          customer_name: customerName,
+          payout_id: payout_id
+        }
+      })
+    });
+
+    const notifyResult = await notifyResponse.json();
+    
+    if (notifyResult.ok || notifyResponse.ok) {
+      console.log(`[ADMIN APPROVE] ✅ Tech notified: ${pro.name} (${pro.phone})`);
+      return { sent: true, skipped: false, error: null };
+    } else {
+      throw new Error(notifyResult.error || 'Notification failed');
+    }
+  } catch (err) {
+    console.error('[ADMIN APPROVE] Notification error:', err);
+    return { sent: false, skipped: false, error: err.message };
   }
 }

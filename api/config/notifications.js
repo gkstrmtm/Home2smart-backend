@@ -65,6 +65,11 @@ export const SMS_TEMPLATES = {
   mgmt_quote_request: {
     message: "📋 NEW QUOTE: {customerName} ({phone}) - {service}. Details: {details}",
     requiresConsent: false
+  },
+  
+  mgmt_pro_declined: {
+    message: "⚠️ TECH DECLINED: {pro_name} declined job #{job_id} for {customer_name} ({service}). Location: {location}. Scheduled: {scheduled}. Job reopened for reassignment.",
+    requiresConsent: false
   }
 };
 

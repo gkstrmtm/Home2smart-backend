@@ -23,8 +23,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { to, template, template_key, data, job_id = null } = req.body;
+    const { to, template, template_key, data, job_id = null, debug, force_to } = req.body;
     let { message } = req.body;
+
+    // Debug mode: Override recipient if force_to provided and debug=true
+    let actualRecipient = to;
+    if (debug === true && force_to && process.env.DEBUG_FIRE_KEY) {
+      // Use first recipient from force_to (comma-separated)
+      actualRecipient = force_to.split(',')[0].trim();
+      console.log('[Send SMS] DEBUG MODE: Overriding recipient', { original: to, override: actualRecipient });
+    }
 
     // Resolve message from template if not provided
     const key = template_key || template;
@@ -36,8 +44,14 @@ export default async function handler(req, res) {
       message = text;
     }
 
-    if (!to || !message) {
+    if (!actualRecipient || !message) {
       return res.status(400).json({ ok: false, error: 'Missing required fields: to, message (or valid template)' });
+    }
+
+    // Add test prefix if debug mode
+    if (debug === true && process.env.DEBUG_FIRE_KEY) {
+      const templateName = template_key || template || 'unknown';
+      message = `[TEST:${templateName}] ${message}`;
     }
 
     // Initialize Supabase
@@ -46,19 +60,47 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // Check if user has opted out
-    const { data: user } = await supabase
-      .from('h2s_users')
-      .select('sms_opt_out')
-      .eq('phone', to)
-      .single();
+    // Idempotency: Check if same message sent recently (same job_id + template within 5 minutes)
+    // Skip idempotency check in debug mode
+    if (!debug && job_id && template) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recent } = await supabase
+        .from('h2s_sms_log')
+        .select('id')
+        .eq('phone', actualRecipient)
+        .eq('job_id', job_id)
+        .eq('template_name', template)
+        .eq('status', 'sent')
+        .gte('sent_at', fiveMinutesAgo)
+        .limit(1);
+      
+      if (recent && recent.length > 0) {
+        console.log('[Send SMS] Duplicate detected, skipping');
+        return res.status(200).json({
+          ok: true,
+          skipped: true,
+          reason: 'Duplicate message prevented (sent within last 5 minutes)'
+        });
+      }
+    }
+
+    // Check if user has opted out (skip in debug mode)
+    let user = null;
+    if (!debug) {
+      const { data: userData } = await supabase
+        .from('h2s_users')
+        .select('sms_opt_out')
+        .eq('phone', actualRecipient)
+        .single();
+      user = userData;
+    }
 
     if (user?.sms_opt_out) {
       console.log('[Send SMS] User opted out:', to);
       
       // Log as skipped
       await supabase.from('h2s_sms_log').insert({
-        phone: to,
+        phone: actualRecipient,
         message,
         status: 'skipped',
         template_name: template,
@@ -132,11 +174,11 @@ export default async function handler(req, res) {
         const smsResult = await client.messages.create({
           body: message,
           from: fromPhone,
-          to: to
+          to: actualRecipient
         });
 
         console.log('[Send SMS] Twilio SUCCESS:', {
-          to,
+          to: actualRecipient,
           template,
           sid: smsResult.sid,
           status: smsResult.status,
@@ -146,7 +188,7 @@ export default async function handler(req, res) {
 
         // Log success
         await supabase.from('h2s_sms_log').insert({
-          phone: to,
+          phone: actualRecipient,
           message,
           status: 'sent',
           template_name: template,
@@ -170,7 +212,7 @@ export default async function handler(req, res) {
         
         // Log failure with full details
         await supabase.from('h2s_sms_log').insert({
-          phone: to,
+          phone: actualRecipient,
           message,
           status: 'failed',
           template_name: template,
@@ -189,7 +231,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ ok: false, error: 'No SMS provider configured' });
     }
 
-    const emailBody = `SMS to ${to}:\n\n${message}`;
+    const emailBody = `SMS to ${actualRecipient}:\n\n${message}`;
     const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
@@ -198,7 +240,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         personalizations: [{
-          to: [{ email: `${to.replace(/\D/g, '')}@tmomail.net` }]
+          to: [{ email: `${actualRecipient.replace(/\D/g, '')}@tmomail.net` }]
         }],
         from: { email: 'noreply@home2smart.com', name: 'Home2Smart' },
         subject: 'Message from Home2Smart',
@@ -207,10 +249,10 @@ export default async function handler(req, res) {
     });
 
     if (sendGridResponse.ok) {
-      console.log('[Send SMS] SendGrid fallback sent:', to);
+      console.log('[Send SMS] SendGrid fallback sent:', actualRecipient);
       
       await supabase.from('h2s_sms_log').insert({
-        phone: to,
+        phone: actualRecipient,
         message,
         status: 'sent',
         template_name: template,
@@ -227,7 +269,7 @@ export default async function handler(req, res) {
       console.error('[Send SMS] All methods failed:', errorText);
       
       await supabase.from('h2s_sms_log').insert({
-        phone: to,
+        phone: actualRecipient,
         message,
         status: 'failed',
         template_name: template,

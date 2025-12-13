@@ -284,6 +284,86 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     }
 
+    // ===================
+    // ACTION: RECOMMEND (AI-powered video recommendations)
+    // ===================
+    if (action === 'recommend') {
+      const { query, videos } = req.body || {};
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ ok: false, error: 'Missing or invalid query' });
+      }
+      if (!Array.isArray(videos) || videos.length === 0) {
+        return res.status(400).json({ ok: false, error: 'No videos provided' });
+      }
+
+      // Simple keyword matching (can be enhanced with AI later)
+      const queryLower = query.toLowerCase();
+      const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+      
+      const scored = videos.map(v => {
+        const title = (v.title || '').toLowerCase();
+        const desc = (v.description || '').toLowerCase();
+        const module = (v.module || '').toLowerCase();
+        const tags = (v.tags || []).join(' ').toLowerCase();
+        const text = `${title} ${desc} ${module} ${tags}`;
+        
+        let score = 0;
+        let matchedTerms = [];
+        
+        // Exact phrase match (high confidence)
+        if (text.includes(queryLower)) {
+          score += 10;
+          matchedTerms.push('exact phrase');
+        }
+        
+        // Word matches
+        queryWords.forEach(word => {
+          if (title.includes(word)) {
+            score += 5;
+            matchedTerms.push(word);
+          } else if (desc.includes(word)) {
+            score += 3;
+            matchedTerms.push(word);
+          } else if (module.includes(word) || tags.includes(word)) {
+            score += 2;
+            matchedTerms.push(word);
+          }
+        });
+        
+        // Boost for critical/setup videos
+        if (title.includes('setup') || title.includes('getting started') || title.includes('onboarding')) {
+          score += 2;
+        }
+        if (title.includes('required') || title.includes('critical') || title.includes('policy')) {
+          score += 3;
+        }
+        
+        return { video: v, score, matchedTerms: [...new Set(matchedTerms)] };
+      }).filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3); // Top 3 only
+      
+      if (scored.length === 0) {
+        // Low confidence - ask clarifying question
+        return res.json({
+          ok: true,
+          clarifying_question: "What specific task or topic are you trying to learn? (e.g., 'smart thermostat installation', 'customer communication', 'troubleshooting')"
+        });
+      }
+      
+      // High confidence - return recommendations
+      const recommendations = scored.map(item => ({
+        id: item.video.id || item.video.video_id,
+        title: item.video.title,
+        reason: item.matchedTerms.length > 0 
+          ? `Matches: ${item.matchedTerms.slice(0, 2).join(', ')}`
+          : 'Relevant to your question',
+        confidence: item.score >= 10 ? 'high' : item.score >= 5 ? 'medium' : 'low'
+      }));
+      
+      return res.json({ ok: true, recommendations });
+    }
+
     // Unknown action
     return res.status(400).json({ ok: false, error: `Unknown action: ${action}` });
 

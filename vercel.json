@@ -16,6 +16,18 @@
     {
       "path": "/api/send-review-requests",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/tech-reminders?type=day_before",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/tech-reminders?type=morning_of",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/tech-reminders?type=two_hour",
+      "schedule": "0 * * * *"
     }
   ],
   "functions": {

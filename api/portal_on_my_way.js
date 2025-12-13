@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     // Verify this pro is assigned to this job
     const { data: job, error: jobError } = await supabase
       .from('h2s_dispatch_jobs')
-      .select('job_id, order_id, status, customer_name, customer_email, customer_phone')
+      .select('job_id, order_id, status, customer_name, customer_email, customer_phone, tech_en_route_at')
       .eq('job_id', jobId)
       .eq('assigned_pro_id', proId)
       .single();
@@ -80,6 +80,16 @@ export default async function handler(req, res) {
         ok: false,
         error: 'Job not found or not assigned to you',
         error_code: 'job_not_found'
+      });
+    }
+
+    // Idempotency: Check if already marked en_route
+    if (job.tech_en_route_at) {
+      console.log('[portal_on_my_way] Already marked en_route, skipping SMS');
+      return res.json({ 
+        ok: true,
+        message: 'Status already updated',
+        already_sent: true
       });
     }
 

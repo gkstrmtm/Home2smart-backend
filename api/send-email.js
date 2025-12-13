@@ -23,9 +23,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { template_key, data, to_email, order_id, user_id } = req.body;
+  const { template_key, data, to_email, order_id, user_id, debug, force_email_to } = req.body;
 
-  if (!template_key || !data || !to_email) {
+  // Debug mode: Override recipient if force_email_to provided and debug=true
+  let actualRecipient = to_email;
+  if (debug === true && force_email_to && process.env.DEBUG_FIRE_KEY) {
+    // Use first recipient from force_email_to (comma-separated)
+    actualRecipient = force_email_to.split(',')[0].trim();
+    console.log('[Send Email] DEBUG MODE: Overriding recipient', { original: to_email, override: actualRecipient });
+  }
+
+  if (!template_key || !data || !actualRecipient) {
     return res.status(400).json({ 
       error: 'Missing required fields: template_key, data, to_email' 
     });
@@ -67,15 +75,20 @@ export default async function handler(req, res) {
     }
 
     // Render template with data
-    const subject = renderTemplate(template.subject, data);
+    let subject = renderTemplate(template.subject, data);
     const htmlBody = renderTemplate(template.html_body, data);
-    const textBody = renderTemplate(template.text_body, data);
+    const textBody = renderTemplate(template.html_body, data);
+
+    // Add test prefix if debug mode
+    if (debug === true && process.env.DEBUG_FIRE_KEY) {
+      subject = `[TEST:${template_key}] ${subject}`;
+    }
 
     // Log email to database BEFORE sending
     const { data: emailRecord, error: logError } = await supabase
       .from('email_messages')
       .insert({
-        to_email,
+        to_email: actualRecipient,
         from_email: fromEmail,
         subject,
         html_body: htmlBody,
@@ -95,7 +108,7 @@ export default async function handler(req, res) {
     // Send email if enabled
     if (emailEnabled) {
       const msg = {
-        to: to_email,
+        to: actualRecipient,
         from: fromEmail,
         subject,
         text: textBody,
@@ -128,15 +141,15 @@ export default async function handler(req, res) {
           .eq('id', order_id);
       }
 
-      console.log(`✅ Email sent via ${template_key} to ${to_email}`);
+      console.log(`✅ Email sent via ${template_key} to ${actualRecipient}`);
       return res.json({ 
         ok: true, 
         message_id: messageId,
         template_key,
-        to: to_email 
+        to: actualRecipient 
       });
     } else {
-      console.log(`📧 Email queued (disabled): ${template_key} to ${to_email}`);
+      console.log(`📧 Email queued (disabled): ${template_key} to ${actualRecipient}`);
       return res.json({ 
         ok: true, 
         queued: true, 

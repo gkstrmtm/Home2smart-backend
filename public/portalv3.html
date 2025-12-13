@@ -98,6 +98,20 @@ if ('serviceWorker' in navigator) {
   --h2s-secondary:rgba(30, 58, 138, 0.4);
   --h2s-bg-card-soft:#081A33;
   
+  /* ===== TRAINING PAGE MOBILE DESIGN SYSTEM ===== */
+  --pad: 16px; /* Page padding constant */
+  --gap-sm: 8px; /* Small gap (chip spacing, tight groups) */
+  --gap-md: 12px; /* Medium gap (input to button, label to content) */
+  --gap-lg: 16px; /* Large gap (section spacing) */
+  --gap-xl: 24px; /* Extra large gap (major section breaks) */
+  --radius: 12px; /* Standard border radius */
+  --radius-sm: 10px; /* Smaller radius (buttons inside cards) */
+  --radius-pill: 20px; /* Pill shape (chips) */
+  --border: 1px solid rgba(255,255,255,.14); /* Standard border */
+  --surface: rgba(10,42,90,.4); /* Card/surface background */
+  --surface-input: rgba(10,42,90,.6); /* Input background */
+  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1); /* Standard transition */
+  
   /* Legacy aliases for backward compatibility */
   --navy-950:#000108;
   --navy-900:#040814;
@@ -1422,92 +1436,373 @@ select.input:hover,select.select:hover{
 }
 .training-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .training-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
-  gap:24px;
-  margin-top:20px
+  display:flex;
+  flex-direction:column;
+  gap:12px; /* Compact gap for list */
+  margin-top:12px;
+  scroll-behavior:smooth;
+  width:100%;
+  box-sizing:border-box;
+}
+/* Desktop: Multi-column grid */
+@media (min-width:768px){
+  .training-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+    gap:24px;
+    margin-top:20px;
+  }
+}
+/* Smooth scrolling for training content container */
+#training-content{
+  scroll-behavior:smooth;
+  /* Custom scrollbar for vertical scrolling if needed */
+  scrollbar-width:thin;
+  scrollbar-color:rgba(59,130,246,0.4) rgba(10,42,90,0.2);
+}
+#training-content::-webkit-scrollbar{
+  width:10px;
+}
+#training-content::-webkit-scrollbar-track{
+  background:rgba(10,42,90,0.2);
+  border-radius:10px;
+}
+#training-content::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg, rgba(59,130,246,0.6), rgba(96,165,250,0.6));
+  border-radius:10px;
+  transition:background 0.2s ease;
+}
+#training-content::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg, rgba(59,130,246,0.8), rgba(96,165,250,0.8));
 }
 
-/* ===== NEW TRAINING HUB STYLES ===== */
-.training-dashboard-header{
-  background:linear-gradient(135deg,rgba(20,147,255,.12) 0%,rgba(10,80,180,.08) 100%);
-  border:1px solid rgba(20,147,255,.2);
-  border-radius:16px;
-  padding:28px;
-  margin-bottom:32px
+/* ===== TRAINING HUB STYLES REMOVED ===== */
+/* Training dashboard header card removed - no longer functional */
+
+/* ===== TRAINING PAGE UNIFIED DESIGN SYSTEM ===== */
+/* All sections use consistent padding */
+.training-page-header,
+.ask-training-container,
+.training-video-count,
+.training-shelf-title{
+  padding-left:var(--pad);
+  padding-right:var(--pad);
 }
-.training-header-content h2{font-size:28px;font-weight:900;margin:0;color:#fff}
-.training-header-content .muted{font-size:15px;opacity:.85}
-.training-stats-cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:16px;
-  margin-top:24px
+
+/* Header */
+.training-page-header{
+  margin-bottom:var(--gap-lg);
 }
-.stat-card{
-  background:rgba(10,42,90,.5);
-  backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:12px;
-  padding:16px;
+.training-page-header h2{
+  font-size:22px;
+  font-weight:900;
+  margin:0 0 var(--gap-sm);
+  color:#fff;
+  line-height:1.2;
+}
+.training-page-header p{
+  font-size:14px;
+  color:#94a3b8;
+  margin:0;
+  line-height:1.5;
+}
+
+/* Search block */
+.ask-training-container{
+  margin-bottom:var(--gap-lg);
+}
+.ask-training-input-wrapper{
+  position:relative;
+  margin-bottom:var(--gap-md);
+}
+.ask-training-input{
+  width:100%;
+  background:var(--surface-input);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:var(--radius);
+  padding:10px 48px 10px var(--gap-lg);
+  font-size:16px;
+  color:#fff;
+  min-height:40px;
+  height:40px;
+  box-sizing:border-box;
+  appearance:none;
+  -webkit-appearance:none;
+  transition:border-color var(--transition),background var(--transition),box-shadow var(--transition);
+  font-family:inherit;
+}
+.ask-training-input::placeholder{
+  color:rgba(148,163,184,.85);
+  font-size:15px;
+  opacity:1;
+  font-weight:400;
+}
+.ask-training-input:focus{
+  outline:none;
+  border-color:rgba(59,130,246,.6);
+  background:rgba(10,42,90,.75);
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.ask-training-input:focus::placeholder{
+  color:rgba(148,163,184,.6);
+}
+.ask-training-mic{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:36px;
+  height:36px;
+  background:transparent;
+  border:none;
+  color:#60a5fa;
+  cursor:pointer;
   display:flex;
   align-items:center;
-  gap:12px;
-  transition:all .3s
+  justify-content:center;
+  padding:0;
+  transition:all var(--transition);
+  border-radius:50%;
+  z-index:1;
 }
-.stat-card:hover{
-  transform:translateY(-2px);
-  border-color:rgba(20,147,255,.4);
-  box-shadow:0 4px 12px rgba(20,147,255,.15)
+.ask-training-mic svg{
+  width:18px;
+  height:18px;
+  display:block;
 }
-.stat-icon{
-  font-size:32px;
-  line-height:1
+.ask-training-mic:hover{
+  background:rgba(59,130,246,.15);
+  color:#7ab8ff;
 }
-.stat-info{flex:1}
-.stat-value{
-  font-size:24px;
-  font-weight:900;
-  color:#fff;
-  line-height:1.2
+.ask-training-mic:active{
+  background:rgba(59,130,246,.25);
+  transform:translateY(-50%) scale(0.92);
+  color:#93c5fd;
 }
-.stat-label{
-  font-size:12px;
-  opacity:.75;
-  margin-top:4px;
-  text-transform:uppercase;
-  letter-spacing:.5px
+.ask-training-submit{
+  width:100%;
+  padding:8px var(--gap-lg);
+  font-size:13px;
+  font-weight:600;
+  min-height:36px;
+  border-radius:var(--radius);
+  transition:all var(--transition);
 }
-.stat-completed .stat-value{color:#10b981}
-.stat-progress .stat-value{color:#3b82f6}
-.stat-certificates .stat-value{color:#f59e0b}
-.stat-hours .stat-value{color:#8b5cf6}
+.ask-training-submit:active{
+  transform:scale(0.98);
+  opacity:.9;
+}
+.ask-training-submit:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
 
-/* Training Sections */
-.training-section{
-  margin-bottom:56px;
-  padding:0 4px
+/* Labels - unified styling */
+.ask-training-label,
+.training-filter-label,
+.training-shelf-title{
+  font-size:12px;
+  color:#64748b;
+  margin-bottom:var(--gap-sm);
+  font-weight:500;
+  letter-spacing:0.01em;
 }
-.section-header{
+.training-shelf-title{
+  font-size:14px;
+  font-weight:600;
+  color:#fff;
+  margin-bottom:var(--gap-md);
+}
+
+/* Chip rows - intentional horizontal scroll */
+.ask-training-suggestions-wrapper{
+  margin-top:var(--gap-md);
+}
+.ask-training-suggestions{
   display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  margin-bottom:24px;
-  flex-wrap:wrap;
-  gap:16px
+  gap:var(--gap-sm);
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:4px;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  scroll-padding-left:var(--pad);
+  scroll-padding-right:var(--pad);
+  position:relative;
+  mask-image:linear-gradient(to right,black calc(100% - 40px),transparent);
+  -webkit-mask-image:linear-gradient(to right,black calc(100% - 40px),transparent);
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
+}
+.ask-training-suggestions::-webkit-scrollbar{
+  display:none;
+}
+.suggestion-chip{
+  flex-shrink:0;
+  padding:8px 14px;
+  background:rgba(59,130,246,.15);
+  border:1px solid rgba(59,130,246,.3);
+  border-radius:var(--radius-pill);
+  color:#93c5fd;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all var(--transition);
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.suggestion-chip:hover{
+  background:rgba(59,130,246,.25);
+  transform:translateY(-1px);
+}
+.suggestion-chip:active{
+  transform:translateY(0) scale(0.97);
+  opacity:.85;
+}
+
+/* Filter chips section */
+.training-video-count{
+  margin-top:var(--gap-md);
+  margin-bottom:var(--gap-lg);
+}
+.section-subtitle{
+  margin:0;
+  font-size:13px;
+  color:#94a3b8;
+  opacity:.75;
+}
+
+/* Load more button */
+#training-load-more-container{
+  padding:var(--gap-lg) var(--pad);
+  text-align:center;
+}
+#training-load-more-btn{
+  min-width:140px;
+  padding:10px 20px;
+  font-size:14px;
+  min-height:40px;
+  border-radius:var(--radius);
+  transition:all var(--transition);
+}
+#training-load-more-btn:active{
+  transform:scale(0.98);
+  opacity:.9;
+}
+#training-load-more-btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+#training-load-more-counter{
+  margin:var(--gap-sm) 0 0;
+  font-size:12px;
+  color:#94a3b8;
+  opacity:.75;
+}
+
+/* Training section */
+.training-section{
+  margin-bottom:var(--gap-xl);
+  padding:0;
+  width:100%;
+  box-sizing:border-box;
+}
+
+/* Recommendation cards */
+.recommendation-card{
+  background:var(--surface);
+  border:1px solid rgba(59,130,246,.3);
+  border-radius:var(--radius);
+  padding:var(--gap-md) var(--gap-lg);
+  margin-bottom:var(--gap-md);
+  display:flex;
+  flex-direction:column;
+  gap:var(--gap-md);
+}
+.recommendation-content{
+  display:flex;
+  flex-direction:column;
+  gap:var(--gap-sm);
+}
+.recommendation-title{
+  font-size:15px;
+  font-weight:700;
+  margin:0;
+  color:#fff;
+  line-height:1.3;
+}
+.recommendation-reason{
+  font-size:12px;
+  color:#93c5fd;
+  margin:0;
+  line-height:1.4;
+  opacity:.9;
+}
+.recommendation-card .btn{
+  width:100%;
+  padding:8px 14px;
+  font-size:12px;
+  font-weight:600;
+  min-height:36px;
+  border-radius:var(--radius-sm);
+  transition:all var(--transition);
+}
+.recommendation-card .btn:active{
+  transform:scale(0.98);
+  opacity:.9;
+}
+.ask-training-results{
+  margin-top:var(--gap-lg);
+}
+.ask-training-clarifying{
+  margin-top:var(--gap-md);
+  padding:var(--gap-md) var(--gap-lg);
+  background:rgba(59,130,246,.1);
+  border:1px solid rgba(59,130,246,.2);
+  border-radius:var(--radius);
+  font-size:14px;
+  color:#93c5fd;
+  line-height:1.5;
+}
+/* Desktop: More spacing */
+@media (min-width:768px){
+  .training-section{
+    margin-bottom:56px;
+    padding:0 4px;
+  }
+  .section-header{
+    margin-bottom:24px;
+  }
+  .training-shelf-title{
+    font-size:18px;
+    margin-bottom:16px;
+  }
 }
 .section-title{
-  font-size:24px;
+  font-size:18px; /* Smaller on mobile */
   font-weight:900;
   margin:0;
   color:#fff;
-  letter-spacing:-0.02em
+  letter-spacing:-0.02em;
+  line-height:1.3;
 }
 .section-subtitle{
-  font-size:14px;
+  font-size:13px; /* Smaller on mobile */
   opacity:.8;
-  margin:8px 0 0;
-  line-height:1.5
+  margin:6px 0 0;
+  line-height:1.4;
+}
+/* Desktop: Larger text */
+@media (min-width:768px){
+  .section-title{
+    font-size:24px;
+  }
+  .section-subtitle{
+    font-size:14px;
+    margin:8px 0 0;
+  }
 }
 .btn-text{
   background:none;
@@ -1621,40 +1916,148 @@ select.input:hover,select.select:hover{
   opacity:.85
 }
 
-/* Filters Bar */
+/* Filters Bar - Mobile First */
 .training-filters-bar{
   background:rgba(10,42,90,.35);
   border:1px solid rgba(255,255,255,.12);
-  border-radius:18px;
-  padding:28px;
-  margin-bottom:32px;
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:20px;
   backdrop-filter:blur(12px);
   box-shadow:0 4px 16px rgba(0,0,0,.15);
-  overflow:hidden; /* Prevent content bleeding */
+  overflow:hidden;
   box-sizing:border-box;
+  width:100%;
+  /* Mobile: Lightweight - no background/border */
+  background:transparent;
+  border:none;
+  padding:0;
+  margin-bottom:12px;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+/* Desktop: Enhanced styling */
+@media (min-width:768px){
+  .training-filters-bar{
+    background:rgba(10,42,90,.35);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    padding:28px;
+    margin-bottom:32px;
+    box-shadow:0 4px 16px rgba(0,0,0,.15);
+    backdrop-filter:blur(12px);
+  }
+}
+.filter-tabs-wrapper{
+  position:relative;
+  margin-bottom:20px;
+  /* Mobile: No wrapper styling needed */
+}
+/* Desktop: Keep wrapper styling */
+@media (min-width:768px){
+  .filter-tabs-wrapper{
+    margin-bottom:20px;
+  }
 }
 .filter-tabs{
   display:flex;
   gap:10px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-  padding:4px 0
+  flex-wrap:nowrap; /* Prevent wrapping on mobile - horizontal scroll only */
+  padding:4px 0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(59,130,246,0.4) rgba(10,42,90,0.2);
+  scrollbar-gutter:stable;
+  position:relative;
+}
+/* Desktop: Allow wrapping */
+@media (min-width:768px){
+  .filter-tabs{
+    flex-wrap:wrap;
+  }
+}
+/* Styled horizontal scrollbar for filter tabs */
+.filter-tabs::-webkit-scrollbar{
+  height:8px;
+}
+.filter-tabs::-webkit-scrollbar-track{
+  background:rgba(10,42,90,0.3);
+  border-radius:10px;
+  margin:0 4px;
+}
+.filter-tabs::-webkit-scrollbar-thumb{
+  background:linear-gradient(90deg, rgba(59,130,246,0.6), rgba(96,165,250,0.6));
+  border-radius:10px;
+  transition:background 0.2s ease;
+}
+.filter-tabs::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(90deg, rgba(59,130,246,0.8), rgba(96,165,250,0.8));
+}
+/* Scroll indicators for filter tabs */
+.scroll-indicator{
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:40px;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.3s ease;
+  z-index:10;
+}
+.scroll-indicator-left{
+  left:0;
+  background:linear-gradient(to right, rgba(10,42,90,0.95), transparent);
+}
+.scroll-indicator-right{
+  right:0;
+  background:linear-gradient(to left, rgba(10,42,90,0.95), transparent);
+}
+.scroll-indicator.visible{
+  opacity:1;
 }
 .filter-tab{
   background:rgba(30,41,59,0.6);
   border:1.5px solid rgba(59,130,246,0.25);
-  border-radius:11px;
-  padding:11px 22px;
-  font-size:14px;
+  border-radius:10px; /* Smaller radius on mobile */
+  padding:10px 18px; /* Compact padding on mobile */
+  font-size:13px; /* Smaller text on mobile */
   font-weight:600;
   color:rgba(226,232,240,0.85);
   cursor:pointer;
   transition:all .25s cubic-bezier(.4,0,.2,1);
   white-space:nowrap;
-  min-height:44px;
+  min-height:44px; /* iOS touch target minimum */
+  min-width:44px; /* Ensure touch target width */
   display:inline-flex;
   align-items:center;
-  gap:7px
+  justify-content:center;
+  gap:6px;
+  flex-shrink:0;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent; /* Remove tap highlight */
+}
+.filter-tab:active{ /* Mobile touch feedback */
+  transform:scale(0.95);
+  background:rgba(59,130,246,.18);
+}
+/* Desktop: Enhanced styling */
+@media (min-width:768px){
+  .filter-tab{
+    border-radius:11px;
+    padding:11px 22px;
+    font-size:14px;
+    min-width:auto;
+  }
+  .filter-tab:hover{
+    background:rgba(59,130,246,.18);
+    border-color:rgba(59,130,246,.5);
+    color:#e0f2fe;
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(59,130,246,.2);
+  }
 }
 .filter-tab:hover{
   background:rgba(59,130,246,.18);
@@ -1671,34 +2074,56 @@ select.input:hover,select.select:hover{
   transform:translateY(-2px)
 }
 
-/* Category Pills */
+/* Category Pills - Mobile First */
 .category-pill{
   background:rgba(139, 92, 246, 0.15);
   border:1px solid rgba(139, 92, 246, 0.4);
-  border-radius:30px;
-  padding:12px 24px;
+  border-radius:20px; /* Smaller radius on mobile */
+  padding:10px 16px; /* Compact padding on mobile */
   display:inline-flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   transition:all 0.2s;
   cursor:pointer;
-  font-size:14px;
+  font-size:13px; /* Smaller text on mobile */
   font-weight:600;
-  color:#e2e8f0
+  color:#e2e8f0;
+  flex-shrink:0; /* Prevent shrinking */
+  min-height:40px; /* Touch target */
+  white-space:nowrap; /* Prevent wrapping */
 }
-.category-pill:hover{
+.category-pill:active{ /* Mobile touch feedback */
+  transform:scale(0.95);
   background:rgba(139, 92, 246, 0.25);
-  border-color:#8b5cf6;
-  transform:translateY(-2px);
-  box-shadow:0 4px 12px rgba(139, 92, 246, 0.2)
 }
 .category-pill .count{
   background:rgba(236, 72, 153, 0.3);
-  border-radius:12px;
-  padding:4px 10px;
-  font-size:12px;
+  border-radius:10px;
+  padding:3px 8px;
+  font-size:11px;
   font-weight:700;
-  color:#fbbf24
+  color:#fbbf24;
+  flex-shrink:0;
+}
+/* Desktop: Enhanced styling */
+@media (min-width:768px){
+  .category-pill{
+    border-radius:30px;
+    padding:12px 24px;
+    font-size:14px;
+    min-height:auto;
+  }
+  .category-pill:hover{
+    background:rgba(139, 92, 246, 0.25);
+    border-color:#8b5cf6;
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(139, 92, 246, 0.2);
+  }
+  .category-pill .count{
+    border-radius:12px;
+    padding:4px 10px;
+    font-size:12px;
+  }
 }
 
 .search-box:focus-within {
@@ -1706,20 +2131,34 @@ select.input:hover,select.select:hover{
 }
 .filter-controls{
   display:flex;
+  flex-direction:column; /* Stack on mobile */
   gap:12px;
-  flex-wrap:wrap;
-  align-items:center;
-  overflow:hidden; /* Prevent bleeding over boundaries */
+  align-items:stretch; /* Full width on mobile */
+  overflow:hidden;
+  width:100%;
+}
+/* Desktop: Horizontal layout */
+@media (min-width:768px){
+  .filter-controls{
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+  }
 }
 .search-box-training{
-  flex:1;
-  min-width:260px;
-  max-width:400px;
+  width:100%; /* Full width on mobile */
   position:relative;
   display:flex;
   align-items:center;
-  max-width:100%; /* Never exceed container */
   box-sizing:border-box;
+}
+/* Desktop: Flexible width */
+@media (min-width:768px){
+  .search-box-training{
+    flex:1;
+    min-width:260px;
+    max-width:400px;
+  }
 }
 .search-icon{
   position:absolute;
@@ -1733,10 +2172,14 @@ select.input:hover,select.select:hover{
   background:rgba(10,42,90,.6);
   border:1px solid rgba(255,255,255,.14);
   border-radius:10px;
-  padding:10px 14px 10px 40px;
-  font-size:14px;
+  padding:12px 14px 12px 40px; /* Increased padding for touch target */
+  font-size:16px; /* Prevent iOS zoom */
   color:#fff;
-  transition:all .2s
+  transition:all .2s;
+  min-height:44px; /* Touch target */
+  box-sizing:border-box;
+  appearance:none; /* Remove iOS styling */
+  -webkit-appearance:none;
 }
 .search-input-training::placeholder{color:rgba(255,255,255,.5)}
 .search-input-training:focus{
@@ -1749,12 +2192,23 @@ select.input:hover,select.select:hover{
   background:rgba(10,42,90,.6);
   border:1px solid rgba(255,255,255,.14);
   border-radius:10px;
-  padding:10px 14px;
-  font-size:14px;
+  padding:12px 14px; /* Increased padding for touch target */
+  font-size:16px; /* Prevent iOS zoom */
   color:#fff;
   cursor:pointer;
   transition:all .2s;
-  min-width:160px
+  min-width:100%; /* Full width on mobile */
+  min-height:44px; /* Touch target */
+  box-sizing:border-box;
+  appearance:none; /* Remove iOS styling */
+  -webkit-appearance:none;
+}
+/* Desktop: Fixed width */
+@media (min-width:768px){
+  .input-filter{
+    min-width:160px;
+    font-size:14px;
+  }
 }
 .input-filter:hover{
   border-color:rgba(20,147,255,.3);
@@ -1803,21 +2257,89 @@ select.input:hover,select.select:hover{
   gap:20px;
   padding-bottom:8px
 }
+/* Shelf carousel styling - unified with chip rows */
+.shelf-row{
+  display:flex;
+  gap:var(--gap-md);
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-left:var(--pad);
+  padding-right:var(--pad);
+  padding-bottom:var(--gap-sm);
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  scroll-padding-left:var(--pad);
+  scroll-padding-right:var(--pad);
+  scroll-snap-type:x mandatory;
+  scroll-snap-stop:always;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
+  position:relative;
+  mask-image:linear-gradient(to right,black calc(100% - 40px),transparent);
+  -webkit-mask-image:linear-gradient(to right,black calc(100% - 40px),transparent);
+}
+.shelf-row::-webkit-scrollbar{
+  display:none;
+}
+.shelf-card{
+  flex-shrink:0;
+  border-radius:var(--radius);
+  background:var(--surface);
+  border:var(--border);
+}
+.shelf-card .training-body{
+  padding:var(--gap-md) var(--gap-lg);
+}
+.shelf-card .btn{
+  padding:8px 14px;
+  font-size:12px;
+  font-weight:600;
+  min-height:36px;
+  border-radius:var(--radius-sm);
+  width:100%;
+  transition:all var(--transition);
+}
+.shelf-card .btn:active{
+  transform:scale(0.98);
+  opacity:.9;
+}
 
-/* Enhanced Training Cards */
-/* Enhanced Training Cards */
+/* Training Cards - Unified Design System */
 .training-card{
-  background:var(--gradient-card);
-  border:1px solid rgba(255,255,255,.14);
-  border-radius:16px;
+  background:var(--surface);
+  border:var(--border);
+  border-radius:var(--radius);
   padding:0;
   overflow:hidden;
-  transition:all .35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:all var(--transition);
   cursor:pointer;
-  box-shadow:var(--e1);
-  will-change:transform,box-shadow;
-  contain:layout style paint;
-  position:relative
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  position:relative;
+  width:100%;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  /* Mobile: Horizontal list layout */
+  display:flex;
+  flex-direction:row;
+  align-items:stretch;
+  gap:0;
+}
+.training-card:active{
+  transform:scale(0.98);
+  opacity:.95;
+}
+/* Desktop: Vertical card layout with hover */
+@media (min-width:768px){
+  .training-card{
+    border-radius:16px;
+    display:block; /* Reset to block for vertical layout */
+    flex-direction:column;
+  }
+  .training-card:hover{
+    transform:translateY(-8px) scale(1.015);
+    box-shadow:0 20px 40px rgba(20,147,255,.3), 0 8px 16px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.4);
+    border-color:rgba(20,147,255,.6);
+  }
 }
 .training-card::after{
   content:"";
@@ -1833,22 +2355,48 @@ select.input:hover,select.select:hover{
   opacity:0;
   transition:opacity .35s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.training-card:hover{
-  transform:translateY(-8px) scale(1.015);
-  box-shadow:0 20px 40px rgba(20,147,255,.3), 0 8px 16px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.4);
-  border-color:rgba(20,147,255,.6);
+/* Hover only on desktop */
+@media (min-width:768px){
+  .training-card:hover{
+    transform:translateY(-8px) scale(1.015);
+    box-shadow:0 20px 40px rgba(20,147,255,.3), 0 8px 16px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.4);
+    border-color:rgba(20,147,255,.6);
+  }
+  .training-card:hover::after{opacity:1}
 }
-.training-card:hover::after{opacity:1}
 .training-thumb{
-  width:100%;
-  aspect-ratio:16/9;
+  /* Icon placeholder only - NO images */
+  width:64px;
+  height:64px;
+  min-width:64px;
+  flex-shrink:0;
   background:linear-gradient(135deg,#1a4a7a 0%,#0f2d52 100%);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:52px;
+  font-size:24px;
   position:relative;
-  overflow:hidden
+  overflow:hidden;
+  border-radius:var(--radius-sm) 0 0 var(--radius-sm);
+}
+/* Force-disable any image rendering in thumbnails */
+.training-thumb img,
+.training-thumb[style*="background-image"]{
+  display:none !important;
+}
+.training-thumb{
+  background-image:none !important;
+}
+/* Desktop: Full-width top thumbnail */
+@media (min-width:768px){
+  .training-thumb{
+    width:100%;
+    height:auto;
+    min-width:auto;
+    aspect-ratio:16/9;
+    font-size:52px;
+    border-radius:16px 16px 0 0;
+  }
 }
 .training-thumb::before{
   content:"";
@@ -1862,19 +2410,29 @@ select.input:hover,select.select:hover{
 .training-thumb img{width:100%;height:100%;object-fit:cover}
 .training-badge{
   position:absolute;
-  top:12px;
-  right:12px;
+  top:8px; /* Closer to edge on mobile */
+  right:8px;
   background:rgba(10,42,90,.95);
   backdrop-filter:blur(10px);
   color:#fff;
-  padding:6px 12px;
-  border-radius:8px;
-  font-size:12px;
+  padding:4px 10px; /* Smaller on mobile */
+  border-radius:6px;
+  font-size:10px; /* Smaller on mobile */
   font-weight:800;
   border:1px solid rgba(255,255,255,.25);
   box-shadow:0 2px 8px rgba(0,0,0,.3);
   text-transform:uppercase;
-  letter-spacing:.5px
+  letter-spacing:.5px;
+}
+/* Desktop: Larger badge */
+@media (min-width:768px){
+  .training-badge{
+    top:12px;
+    right:12px;
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:12px;
+  }
 }
 .badge-completed{
   background:linear-gradient(135deg,rgba(16,185,129,.95) 0%,rgba(5,150,105,.95) 100%);
@@ -1889,38 +2447,107 @@ select.input:hover,select.select:hover{
   border-color:rgba(251,191,36,.4);
   color:#0a2a5a
 }
-.training-body{padding:18px 20px}
-.training-title{font-size:18px;font-weight:900;margin:0 0 10px;line-height:1.3;color:#fff}
-.training-meta{
-  font-size:13px;
-  opacity:.9;
+.training-body{
+  flex:1;
+  padding:var(--gap-md) var(--gap-lg);
   display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:12px;
-  color:#9bc8ff
+  flex-direction:column;
+  justify-content:space-between;
+  min-width:0;
+  gap:var(--gap-sm);
 }
-.training-meta span{display:inline-flex;align-items:center;gap:4px}
-.training-desc{
-  font-size:14px;
-  opacity:.9;
-  line-height:1.6;
-  margin:12px 0;
+.training-title{
+  font-size:15px;
+  font-weight:700;
+  margin:0;
+  line-height:1.3;
+  color:#fff;
   display:-webkit-box;
   -webkit-line-clamp:2;
   line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
-  color:#b8d9ff
+}
+.training-meta{
+  font-size:11px;
+  opacity:.85;
+  display:flex;
+  gap:var(--gap-sm);
+  flex-wrap:wrap;
+  margin:0;
+  color:#9bc8ff;
+  line-height:1.2;
+}
+.training-meta span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+.training-desc{
+  font-size:12px;
+  opacity:.8;
+  line-height:1.4;
+  margin:0;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  color:#b8d9ff;
+}
+.training-body .btn{
+  padding:8px 14px;
+  font-size:12px;
+  font-weight:600;
+  min-height:36px;
+  border-radius:var(--radius-sm);
+  width:100%;
+  margin-top:auto;
+  transition:all var(--transition);
+}
+.training-body .btn:active{
+  transform:scale(0.98);
+  opacity:.9;
+}
+/* Desktop: Larger sizes, vertical layout */
+@media (min-width:768px){
+  .training-body{
+    padding:18px 20px;
+  }
+  .training-title{
+    font-size:18px;
+    margin:0 0 10px;
+    -webkit-line-clamp:unset;
+    line-clamp:unset;
+  }
+  .training-meta{
+    font-size:13px;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .training-desc{
+    font-size:14px;
+    line-height:1.6;
+    margin:12px 0;
+  }
 }
 .training-progress{
   width:100%;
-  height:6px;
+  height:4px; /* Thinner on mobile */
   background:rgba(255,255,255,.1);
-  border-radius:3px;
-  margin:12px 0;
+  border-radius:2px;
+  margin:10px 0; /* Tighter margin on mobile */
   overflow:hidden;
-  box-shadow:inset 0 1px 3px rgba(0,0,0,.3)
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.3);
+}
+/* Desktop: Larger progress bar */
+@media (min-width:768px){
+  .training-progress{
+    height:6px;
+    border-radius:3px;
+    margin:12px 0;
+  }
 }
 .training-progress-bar{
   height:100%;
@@ -2180,12 +2807,291 @@ select.input:hover,select.select:hover{
 /* Accessibility */
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-/* Mobile tweaks */
+/* Mobile tweaks - Aggressive mobile optimization */
 @media (max-width:800px){
   .tr{grid-template-columns:1fr 1fr;gap:10px}
   .actions-sm{justify-content:flex-start}
-  .training-grid{grid-template-columns:1fr}
   .video-stats{gap:12px}
+  /* Ensure no horizontal overflow */
+  #tab-training{
+    overflow-x:hidden;
+    width:100%;
+    max-width:100%;
+  }
+  /* Category pills container - prevent overflow */
+  #trainingCategoryPills{
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:8px;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  #trainingCategoryPills::-webkit-scrollbar{
+    display:none;
+  }
+}
+/* Mobile-first list layout at 480px and below */
+@media (max-width:480px){
+  /* Hide stats panel */
+  .training-dashboard-header{
+    display:none !important;
+  }
+  
+  /* Mobile page padding constant: 16px */
+  /* All sections share this alignment */
+  .training-page-header,
+  .ask-training-container,
+  .training-filter-chips,
+  .section-header,
+  .training-shelf-title{
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+  
+  /* Training header - compact */
+  .training-page-header{
+    margin-bottom:16px !important;
+  }
+  .training-page-header h2{
+    font-size:22px !important;
+    margin-bottom:8px !important;
+  }
+  .training-page-header p{
+    font-size:13px !important;
+  }
+  
+  /* Ask Training - compact assistant card */
+  .ask-training-container{
+    margin-bottom:16px !important;
+  }
+  .ask-training-input-wrapper{
+    margin-bottom:12px !important;
+  }
+  .ask-training-input{
+    padding-right:48px !important;
+    font-size:16px !important; /* Prevent iOS zoom */
+    min-height:40px !important;
+    height:40px !important;
+  }
+  .ask-training-mic{
+    right:6px !important;
+    width:36px !important;
+    height:36px !important;
+  }
+  .ask-training-submit{
+    padding:8px 16px !important;
+    min-height:36px !important;
+    font-size:13px !important;
+    width:100% !important;
+    border-radius:12px !important;
+  }
+  .ask-training-suggestions-wrapper{
+    margin-top:12px !important;
+  }
+  .ask-training-label{
+    font-size:12px !important;
+    color:#64748b !important;
+    margin-bottom:var(--gap-sm) !important;
+    font-weight:500 !important;
+  }
+  .ask-training-suggestions{
+    display:flex !important;
+    gap:var(--gap-sm) !important;
+    overflow-x:auto !important;
+    padding-bottom:4px !important;
+    scrollbar-width:none !important;
+    -ms-overflow-style:none !important;
+    scroll-padding-left:var(--pad) !important;
+    scroll-padding-right:var(--pad) !important;
+    position:relative !important;
+    mask-image:linear-gradient(to right,black calc(100% - 40px),transparent) !important;
+    -webkit-mask-image:linear-gradient(to right,black calc(100% - 40px),transparent) !important;
+  }
+  .ask-training-suggestions::-webkit-scrollbar{
+    display:none !important;
+  }
+  .suggestion-chip{
+    flex-shrink:0 !important;
+    padding:8px 14px !important;
+    background:rgba(59,130,246,.15) !important;
+    border:1px solid rgba(59,130,246,.3) !important;
+    border-radius:var(--radius-pill) !important;
+    color:#93c5fd !important;
+    font-size:13px !important;
+    cursor:pointer !important;
+    white-space:nowrap !important;
+    transition:all var(--transition) !important;
+    min-height:36px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+  }
+  .suggestion-chip:hover{
+    background:rgba(59,130,246,.25) !important;
+    transform:translateY(-1px) !important;
+  }
+  .suggestion-chip:active{
+    transform:translateY(0) scale(0.97) !important;
+    opacity:.85 !important;
+  }
+  .training-video-count{
+    margin-top:var(--gap-md) !important;
+    margin-bottom:var(--gap-lg) !important;
+  }
+  .section-subtitle{
+    margin:0 !important;
+    font-size:13px !important;
+    color:#94a3b8 !important;
+    opacity:.75 !important;
+  }
+  
+  /* Priority Next shelf - proper carousel */
+  .training-shelf-title{
+    font-size:14px !important;
+    font-weight:600 !important;
+    margin:0 0 12px !important;
+    color:#fff !important;
+  }
+  .shelf-row{
+    gap:var(--gap-md) !important;
+    padding-left:var(--pad) !important;
+    padding-right:var(--pad) !important;
+    padding-bottom:var(--gap-sm) !important;
+    scroll-padding-left:var(--pad) !important;
+    scroll-padding-right:var(--pad) !important;
+  }
+  .shelf-card{
+    min-width:calc(82vw - 32px) !important;
+    max-width:calc(82vw - 32px) !important;
+    border-radius:var(--radius) !important;
+  }
+  .shelf-card .training-body{
+    padding:var(--gap-md) var(--gap-lg) !important;
+  }
+  /* Shelf title - compact */
+  .training-shelf h3{
+    font-size:14px !important;
+    margin:0 0 10px !important;
+    padding:0 16px !important;
+  }
+  
+  /* Main grid - list layout */
+  .training-grid{
+    gap:12px !important;
+    margin-top:12px !important;
+  }
+  .training-card{
+    border-radius:10px !important;
+    display:flex !important;
+    flex-direction:row !important;
+    min-width:0 !important;
+    width:100% !important;
+  }
+  .training-thumb{
+    width:72px !important;
+    height:72px !important;
+    min-width:72px !important;
+    aspect-ratio:unset !important;
+    font-size:28px !important;
+    border-radius:8px 0 0 8px !important;
+  }
+  .training-body{
+    padding:12px 14px !important;
+    flex:1 !important;
+  }
+  .training-title{
+    font-size:15px !important;
+    margin:0 0 6px !important;
+    line-height:1.3 !important;
+    -webkit-line-clamp:2 !important;
+    line-clamp:2 !important;
+  }
+  .training-meta{
+    font-size:11px !important;
+    gap:6px !important;
+    margin-bottom:8px !important;
+  }
+  .training-desc{
+    font-size:12px !important;
+    margin:0 0 8px !important;
+    line-height:1.4 !important;
+    -webkit-line-clamp:2 !important;
+    line-clamp:2 !important;
+  }
+  .training-body .btn{
+    padding:8px 16px !important;
+    font-size:13px !important;
+    min-height:36px !important;
+    margin-top:auto !important;
+  }
+  .training-badge{
+    top:6px !important;
+    right:6px !important;
+    padding:3px 8px !important;
+    font-size:9px !important;
+  }
+  .training-progress{
+    height:3px !important;
+    margin:8px 0 !important;
+  }
+  /* Reduce section spacing */
+  .training-section{
+    margin-bottom:16px !important;
+  }
+  .section-header{
+    margin-bottom:16px !important;
+  }
+  .section-title{
+    font-size:16px !important;
+  }
+  .section-subtitle{
+    font-size:12px !important;
+    margin:4px 0 0 !important;
+  }
+  /* Training dashboard - very compact */
+  .training-dashboard-header{
+    padding:12px !important;
+    margin-bottom:12px !important;
+  }
+  .training-header-content h2{
+    font-size:16px !important;
+  }
+  .training-header-content .muted{
+    font-size:11px !important;
+  }
+  .training-stats-cards{
+    margin-top:10px !important;
+    gap:8px !important;
+  }
+  .stat-card{
+    padding:8px 10px !important;
+    min-width:90px !important;
+    min-height:56px !important;
+  }
+  .stat-icon{
+    font-size:20px !important;
+  }
+  .stat-value{
+    font-size:16px !important;
+  }
+  .stat-label{
+    font-size:9px !important;
+  }
+  /* Filters - very compact */
+  .training-filters-bar{
+    padding:12px !important;
+    margin-bottom:12px !important;
+  }
+  .filter-tabs{
+    margin-bottom:10px !important;
+    gap:6px !important;
+  }
+  .filter-tab{
+    padding:8px 14px !important;
+    font-size:12px !important;
+    min-height:40px !important;
+  }
 }
 @media (max-width:540px){
   .header{padding:12px 16px}
@@ -2202,6 +3108,52 @@ select.input:hover,select.select:hover{
   .training-controls select{width:100%}
   #trainingSearch{width:100%;max-width:100%}
   .big-num{font-size:40px}
+  /* Training area mobile optimizations - ensure proper spacing */
+  .training-section{
+    margin-bottom:20px !important;
+  }
+  /* Categories overview - mobile optimization */
+  .categories-overview{
+    padding:20px 16px !important;
+    margin-bottom:20px !important;
+    border-radius:12px !important;
+  }
+  .categories-overview h3{
+    font-size:16px !important;
+    margin-bottom:12px !important;
+  }
+  /* Training dashboard header - compact on mobile */
+  .training-dashboard-header{
+    padding:16px !important;
+    margin-bottom:16px !important;
+    border-radius:12px !important;
+  }
+  .training-header-content h2{
+    font-size:18px !important;
+  }
+  .training-header-content .muted{
+    font-size:12px !important;
+    margin-top:4px !important;
+  }
+  .training-stats-cards{
+    margin-top:12px !important;
+    gap:10px !important;
+  }
+  .stat-card{
+    padding:10px 12px !important;
+    min-width:100px !important;
+  }
+  .stat-value{
+    font-size:18px !important;
+  }
+  .stat-label{
+    font-size:10px !important;
+  }
+  /* Training filters - compact */
+  .training-filters-bar{
+    padding:14px !important;
+    margin-bottom:16px !important;
+  }
 }
 
 /* AGGRESSIVE MOBILE OPTIMIZATIONS - iOS Standard */
@@ -2361,51 +3313,90 @@ select.input:hover,select.select:hover{
     display:none !important;
   }
   #communicationHub{
-    padding:20px 18px !important;
-    margin-bottom:24px !important;
+    width:100% !important;
+    max-width:100% !important;
+    padding:var(--gap-md) var(--pad) !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+    margin-bottom:var(--gap-lg) !important;
+    margin-top:var(--gap-md) !important;
+    border-radius:var(--radius) !important;
+    box-sizing:border-box !important;
+    min-height:auto !important;
+    height:auto !important;
   }
-  /* Center the header on mobile */
+  /* Left-align header on mobile (not centered) */
   #activeAnnouncementsSection > div:first-child {
-    justify-content: center !important;
+    text-align:left !important;
+    margin-bottom:var(--gap-md) !important;
   }
   .announcement-header-clickable{
-    transition:all 0.2s ease !important;
+    transition:all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
     display:flex !important;
     align-items:center !important;
-    gap:14px !important;
-    justify-content: center !important;
-    width: 100% !important;
-    text-align: left; /* Keep text left-aligned relative to icon */
+    gap:var(--gap-md) !important;
+    justify-content:flex-start !important;
+    width:100% !important;
+    text-align:left !important;
+    cursor:pointer !important;
+    padding:4px 0 !important;
+    border-radius:var(--radius-sm) !important;
   }
   .announcement-header-clickable:active{
-    opacity:0.7 !important;
-    transform:scale(0.98) !important;
+    opacity:0.85 !important;
+    transform:scale(0.97) !important;
+    background:rgba(20,147,255,0.05) !important;
   }
   .announcement-icon{
-    width:36px !important;
-    height:36px !important;
+    width:44px !important;
+    height:44px !important;
     flex-shrink:0 !important;
-    border-radius:10px !important;
+    border-radius:var(--radius-sm) !important;
     display:flex !important;
     align-items:center !important;
     justify-content:center !important;
+    background:#1493ff !important;
+    box-shadow:0 4px 12px rgba(20,147,255,0.3) !important;
   }
   .announcement-icon svg{
-    width:18px !important;
-    height:18px !important;
+    width:22px !important;
+    height:22px !important;
+    stroke:#ffffff !important;
+    stroke-width:2.5 !important;
   }
   .announcement-title{
-    font-size:16px !important;
+    font-size:17px !important;
     font-weight:700 !important;
     letter-spacing:-0.01em !important;
     margin:0 !important;
     line-height:1.2 !important;
+    color:#f7f9ff !important;
   }
   .announcement-subtitle{
-    font-size:12px !important;
-    opacity:0.8 !important;
-    margin-top:4px !important;
-    line-height:1.3 !important;
+    font-size:13px !important;
+    color:#94a3b8 !important;
+    opacity:0.9 !important;
+    margin-top:6px !important;
+    line-height:1.5 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    max-width:100% !important;
+    display:block !important;
+  }
+  /* Show empty state message if no announcements */
+  #cultureSloganSection{
+    text-align:left !important;
+    padding:var(--gap-md) 0 !important;
+  }
+  #cultureSloganSection h3{
+    font-size:16px !important;
+    margin-bottom:var(--gap-sm) !important;
+  }
+  #cultureSloganSection p{
+    font-size:13px !important;
+    color:#94a3b8 !important;
+    opacity:.75 !important;
   }
   .announcement-card{
     padding:16px !important;
@@ -2448,32 +3439,39 @@ select.input:hover,select.select:hover{
     max-height:calc(100vh - 80px) !important;
   }
   
-  /* TRAINING SEARCH - HIDE ON MOBILE */
+  /* TRAINING SEARCH - HIDE ON MOBILE (keep status filter visible) */
   .search-box-training{
     display:none !important; /* Categories are better navigation on mobile */
   }
   .filter-controls{
-    justify-content:flex-end !important;
+    gap:12px !important; /* Consistent spacing */
   }
   .training-filters-bar{
     padding:16px !important;
-    border-radius:0 !important;
-    margin-bottom:0 !important;
-    border-left:none !important;
-    border-right:none !important;
+    border-radius:12px !important;
+    margin-bottom:20px !important;
   }
   .filter-tabs{
     gap:8px !important;
-    margin-bottom:14px !important;
+    margin-bottom:12px !important;
     overflow-x:auto !important;
-    padding-bottom:8px !important;
+    overflow-y:hidden !important;
+    padding-bottom:12px !important;
+    padding-right:4px !important;
     -webkit-overflow-scrolling:touch !important;
+    scroll-behavior:smooth !important;
+    scrollbar-width:none !important; /* Hide scrollbar on mobile */
+    -ms-overflow-style:none !important;
+  }
+  .filter-tabs::-webkit-scrollbar{
+    display:none !important; /* Hide scrollbar on mobile */
   }
   .filter-tab{
-    padding:8px 16px !important;
-    font-size:14px !important;
-    min-height:40px !important;
+    padding:10px 18px !important;
+    font-size:13px !important;
+    min-height:44px !important; /* iOS touch target */
     flex-shrink:0 !important;
+    touch-action:pan-y !important;
   }
   
   /* Job list mobile optimization - Smart pagination */
@@ -5030,29 +6028,29 @@ a:focus-visible{
         </div>
 
         <!-- Section 4.3: Team Updates with soft blue glow, no harsh square overlay -->
-        <div id="communicationHub" style="background:linear-gradient(135deg, #071b30 0%, #0b2238 100%);border:1px solid rgba(20,147,255,0.2);border-radius:20px;padding:24px;margin-bottom:28px;position:relative;box-shadow:0 0 24px rgba(20,147,255,0.15), 0 8px 16px rgba(2,12,35,0.4)">
+        <div id="communicationHub" style="background:linear-gradient(135deg, #071b30 0%, #0b2238 100%);border:1px solid rgba(20,147,255,0.2);border-radius:var(--radius);padding:var(--gap-md) var(--pad);margin-bottom:var(--gap-lg);margin-top:var(--gap-md);position:relative;box-shadow:0 0 24px rgba(20,147,255,0.15), 0 8px 16px rgba(2,12,35,0.4)">
           
           <!-- Default Culture Message (shows when no announcements) -->
-          <div id="cultureSloganSection" style="display:none;text-align:center">
-            <h3 style="margin:0 0 10px 0;font-size:22px;font-weight:700;color:#f7f9ff;letter-spacing:-0.02em">Excellence in Every Service</h3>
-            <p style="margin:0;font-size:15px;color:#9fb4d6;line-height:1.6;max-width:600px;margin:0 auto">Home2Smart pros deliver premium service with professionalism, integrity, and care. Every job is an opportunity to exceed expectations.</p>
+          <div id="cultureSloganSection" style="display:none">
+            <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:600;color:#e0f2fe;letter-spacing:-0.01em">No new updates</h3>
+            <p style="margin:0;font-size:13px;color:#94a3b8;opacity:.75;line-height:1.4">Check back later for team announcements</p>
           </div>
 
           <!-- Active Announcements Section (shows when announcements exist) -->
           <div id="activeAnnouncementsSection" style="display:none">
-            <div style="text-align:center;margin-bottom:24px">
-              <div style="display:inline-flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:8px" onclick="openAnnouncementsModal()" class="announcement-header-clickable">
-                <div style="width:48px;height:48px;background:#1493ff;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(20,147,255,0.35)" class="announcement-icon">
+            <div style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:var(--gap-md);cursor:pointer" onclick="openAnnouncementsModal()" class="announcement-header-clickable">
+                <div class="announcement-icon">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
                 </div>
-                <div>
-                  <h3 style="margin:0;font-size:20px;font-weight:700;color:#f7f9ff;letter-spacing:-0.01em;line-height:1.2" class="announcement-title">Team Updates</h3>
-                  <p style="margin:0;font-size:14px;color:#9fb4d6;margin-top:4px;line-height:1.3" id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
+                <div style="flex:1;min-width:0">
+                  <h3 class="announcement-title">Team Updates</h3>
+                  <p id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
                 </div>
               </div>
-              <button id="btnViewAllAnnouncements" onclick="openAnnouncementsModal()" style="background:rgba(20,147,255,0.15);border:1px solid rgba(20,147,255,0.3);color:#1493ff;padding:10px 24px;border-radius:9999px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:4px" onmouseover="this.style.background='rgba(20,147,255,0.25)'" onmouseout="this.style.background='rgba(20,147,255,0.15)'" class="view-all-btn">View All</button>
+              <button id="btnViewAllAnnouncements" onclick="openAnnouncementsModal()" style="background:rgba(20,147,255,0.15);border:1px solid rgba(20,147,255,0.3);color:#1493ff;padding:10px 24px;border-radius:9999px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px" onmouseover="this.style.background='rgba(20,147,255,0.25)'" onmouseout="this.style.background='rgba(20,147,255,0.15)'" class="view-all-btn">View All</button>
             </div>
 
             <!-- Announcement Cards Container -->
@@ -5394,85 +6392,79 @@ a:focus-visible{
         <div id="pf-err" class="error" role="alert"></div>
       </div>
 
-      <div id="tab-training" style="display:none; background:transparent; border:none; box-shadow:none">
-        <!-- ===== TRAINING DASHBOARD HEADER ===== -->
-        <div class="training-dashboard-header" style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;margin-bottom:24px">
-          <div class="training-header-content">
-            <h2 style="margin:0">Training Hub</h2>
-            <p class="muted" style="margin:8px 0 0">Level up your skills and earn certifications</p>
+      <div id="tab-training" style="display:none; background:transparent; border:none; box-shadow:none; width:100%; box-sizing:border-box; overflow-x:hidden; padding:0;">
+        <!-- ===== TRAINING HEADER ===== -->
+        <div class="training-page-header">
+          <h2 style="font-size:26px;font-weight:900;margin:0 0 8px;color:#fff;line-height:1.2">Training</h2>
+          <p style="font-size:14px;color:#94a3b8;margin:0;line-height:1.5;max-width:480px">Tell me what you're working on and I'll suggest the best video.</p>
+        </div>
+
+        <!-- ===== ASK TRAINING AI ===== -->
+        <div class="ask-training-container">
+          <div class="ask-training-input-wrapper">
+            <input 
+              id="askTrainingInput" 
+              type="text" 
+              placeholder="Example: install Nest thermostat" 
+              class="ask-training-input"
+            />
+            <button 
+              id="askTrainingMic" 
+              type="button" 
+              class="ask-training-mic"
+              title="Voice input"
+              aria-label="Voice input"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
           </div>
-          <div class="training-stats-cards">
-            <div class="stat-card stat-completed">
-              <div class="stat-icon"></div>
-              <div class="stat-info">
-                <div class="stat-value" id="statCompleted">0</div>
-                <div class="stat-label">Completed</div>
-              </div>
+          <button 
+            id="askTrainingSubmit" 
+            type="button" 
+            class="btn ask-training-submit"
+          >
+            Find Video
+          </button>
+          <div class="ask-training-suggestions-wrapper">
+            <div class="ask-training-label">Quick picks</div>
+            <div class="ask-training-suggestions">
+              <button class="suggestion-chip" data-query="install thermostat">Install thermostat</button>
+              <button class="suggestion-chip" data-query="mount TV">Mount TV</button>
+              <button class="suggestion-chip" data-query="doorbell camera setup">Doorbell camera setup</button>
+              <button class="suggestion-chip" data-query="Wi-Fi mesh">Wi-Fi / mesh</button>
             </div>
-            <div class="stat-card stat-progress">
-              <div class="stat-icon"></div>
-              <div class="stat-info">
-                <div class="stat-value" id="statInProgress">0</div>
-                <div class="stat-label">In Progress</div>
-              </div>
-            </div>
-            <div class="stat-card stat-hours">
-              <div class="stat-icon"></div>
-              <div class="stat-info">
-                <div class="stat-value" id="statHours">0h</div>
-                <div class="stat-label">Watch Time</div>
-              </div>
-            </div>
+          </div>
+          <div id="askTrainingResults" class="ask-training-results" style="display:none">
+            <!-- Results populated here -->
+          </div>
+          <div id="askTrainingClarifying" class="ask-training-clarifying" style="display:none">
+            <!-- Clarifying question shown here -->
           </div>
         </div>
 
-        <!-- ===== FILTERS & SEARCH ===== -->
-        <div class="training-section" style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;margin-bottom:24px">
-          <!-- Dynamic Category Pills Overview -->
-          <div class="categories-overview" id="trainingCategoriesOverview" style="display:none; background:linear-gradient(135deg, #1e293b 0%, #334155 100%); border:1px solid rgba(139, 92, 246, 0.3); border-radius:16px; padding:28px; margin-bottom:32px;">
-            <h3 style="font-size:18px; font-weight:600; color:#e2e8f0; margin-bottom:16px; ">
-              Your Training Categories
-            </h3>
-            <div id="trainingCategoryPills" style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-              <!-- Dynamic pills generated here -->
-            </div>
-            <div style="padding:12px 16px; background:rgba(59, 130, 246, 0.1); border-left:3px solid #3b82f6; border-radius:6px; font-size:13px; color:#93c5fd; line-height:1.6;">
-              💡 Click a category to filter videos. Categories are automatically organized from your training database.
-            </div>
-          </div>
-          
-          <div class="training-filters-bar">
-            <div class="filter-tabs" id="trainingFilterTabs" role="tablist">
-              <button class="filter-tab active" data-category="all" role="tab">
-                📚 All
-              </button>
-              <!-- Dynamic tabs generated here -->
-            </div>
-            <div class="filter-controls">
-              <div class="search-box-training">
-                <span class="search-icon"></span>
-                <input id="trainingSearch" type="search" placeholder="Search training..." class="search-input-training">
-              </div>
-              <select id="trainingStatusFilter" class="input-filter" aria-label="Filter by status">
-                <option value="">All Videos</option>
-                <option value="completed">✓ Completed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="not_started">Not Started</option>
-              </select>
-            </div>
-          </div>
+        <!-- ===== VIDEO COUNT (under Quick picks) ===== -->
+        <div class="training-video-count">
+          <p class="section-subtitle" id="currentSectionSubtitle">Loading videos...</p>
         </div>
+        
         <!-- ===== TRAINING CONTENT GRID ===== -->
         <div class="training-section">
-          <div class="section-header" style="margin-bottom:24px">
-            <div>
-              <h3 class="section-title" id="currentSectionTitle" style="font-size:20px;font-weight:700;color:#f8fafc">All Training Content</h3>
-              <p class="section-subtitle" id="currentSectionSubtitle" style="margin-top:4px;font-size:14px;color:#94a3b8">Loading videos...</p>
-            </div>
-          </div>
           
           <div id="training-content" class="training-grid">
             <!-- Populated dynamically -->
+          </div>
+          
+          <!-- Load more button container -->
+          <div id="training-load-more-container" style="display:none;padding:var(--gap-lg) var(--pad);text-align:center">
+            <button id="training-load-more-btn" class="btn" type="button" style="min-width:140px;padding:10px 20px;font-size:14px;min-height:40px;border-radius:var(--radius)">
+              Load more
+            </button>
+            <p id="training-load-more-counter" style="margin:var(--gap-sm) 0 0;font-size:12px;color:#94a3b8;opacity:.75"></p>
           </div>
           
           <div id="training-loading" style="display:none" class="training-grid">
@@ -5750,12 +6742,14 @@ a:focus-visible{
 <div id="announcementsModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(2,6,23,0.97);backdrop-filter:blur(12px);z-index:10000;padding:20px;overflow-y:auto;animation:fadeIn 0.2s ease">
   <div style="max-width:900px;margin:40px auto;background:var(--h2s-bg-card);border-radius:20px;box-shadow:var(--shadow-2xl);border:1px solid var(--h2s-border-subtle);overflow:hidden">
     <!-- Header -->
-    <div style="padding:28px 32px;border-bottom:1px solid var(--h2s-border-subtle);display:flex;justify-content:space-between;align-items:center;background:var(--h2s-bg-card-elevated)">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:42px;height:42px;border-radius:12px;background:rgba(20,147,255,0.15);display:flex;align-items:center;justify-content:center;color:var(--h2s-brand-azure)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V2.54a.5.5 0 0 0-.74-.43l-8.55 5.03a2 2 0 0 1-.97.25H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2.5a2 2 0 0 1 .8.17l3.7 1.48a2 2 0 0 0 1.6.04l6.66-2.66a.5.5 0 0 0 .74-.43V8.35z"></path><path d="M22 8.35A5.5 5.5 0 0 1 22 18.5"></path></svg>
+    <div style="padding:24px var(--pad);border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:10">
+      <div style="display:flex;align-items:center;gap:var(--gap-md)">
+        <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:#1493ff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(20,147,255,0.3);flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
         </div>
-        <h2 style="margin:0;font-size:26px;font-weight:700;color:var(--h2s-text-main)">All Announcements</h2>
+        <h2 style="margin:0;font-size:22px;font-weight:700;color:#f7f9ff;letter-spacing:-0.01em">All Announcements</h2>
       </div>
       <button onclick="closeAnnouncementsModal()" style="background:rgba(255,255,255,0.05);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-muted);width:40px;height:40px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-size:20px;font-weight:300" onmouseover="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='var(--h2s-accent-danger)';this.style.color='var(--h2s-accent-danger)'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='var(--h2s-border-subtle)';this.style.color='var(--h2s-text-muted)'">&times;</button>
     </div>
@@ -14915,38 +15909,8 @@ async function loadTraining() {
 }
 
 function updateTrainingStats() {
-  if (!trainingCatalog || !trainingCatalog.videos) return;
-  
-  let completed = 0;
-  let inProgress = 0;
-  let totalWatchSeconds = 0;
-  
-  trainingCatalog.videos.forEach(v => {
-    const status = getVideoStatus(v.id);
-    if (status === 'completed') completed++;
-    if (status === 'in_progress') inProgress++;
-    
-    const progress = trainingProgress[v.id];
-    // ✅ USE TOTAL WATCH TIME: More accurate than position_sec
-    if (progress && progress.total_watch_time) {
-      totalWatchSeconds += progress.total_watch_time;
-    } else if (progress && progress.position_sec) {
-      // Fallback to position if total_watch_time not available yet
-      totalWatchSeconds += progress.position_sec;
-    }
-  });
-  
-  $("statCompleted").textContent = completed;
-  $("statInProgress").textContent = inProgress;
-  
-  const hours = Math.floor(totalWatchSeconds / 3600);
-  const mins = Math.floor((totalWatchSeconds % 3600) / 60);
-  
-  if (hours > 0) {
-    $("statHours").textContent = `${hours}h ${mins}m`;
-  } else {
-    $("statHours").textContent = `${mins}m`;
-  }
+  // Stats card removed - function kept for compatibility but does nothing
+  return;
 }
 
 function buildDynamicCategoryTabs() {
@@ -14988,46 +15952,8 @@ function buildDynamicCategoryTabs() {
   });
   pillsContainer.innerHTML = pillsHTML;
   
-  // Build filter tabs
-  const tabsContainer = $("trainingFilterTabs");
-  let tabsHTML = '<button class="filter-tab active" data-category="all" role="tab">📚 All</button>';
-  
-  // Auto-detect emojis for common categories
-  const categoryEmojis = {
-    'onboarding': '🚀',
-    'getting started': '🚀',
-    'technical': '🔧',
-    'safety': '⚠️',
-    'customer': '👥',
-    'customer service': '👥',
-    'business': '💼',
-    'operations': '⚙️',
-    'training': '📖',
-    'advanced': '🎓',
-    'basics': '📘'
-  };
-  
-  modules.forEach(module => {
-    const moduleLower = module.toLowerCase();
-    const moduleSlug = moduleLower.replace(/\s+/g, '_');
-    let emoji = '📁';
-    
-    // Find matching emoji
-    for (const [key, icon] of Object.entries(categoryEmojis)) {
-      if (moduleLower.includes(key)) {
-        emoji = icon;
-        break;
-      }
-    }
-    
-    tabsHTML += `
-      <button class="filter-tab" data-category="${esc(moduleSlug)}" role="tab">
-        ${emoji} ${esc(module)}
-      </button>
-    `;
-  });
-  
-  tabsContainer.innerHTML = tabsHTML;
+  // Filter tabs UI removed - categories not used in UI
+  // Categories still exist in data and can be shown as tags on cards
   
   // Add click handlers for pills (scroll to category tab and activate it)
   pillsContainer.onclick = e => {
@@ -15097,12 +16023,23 @@ function getProgressPercentage(videoId) {
   return Math.min(100, Math.round((progress.position_sec / progress.duration_sec) * 100));
 }
 
+// Batching state for training videos
+let trainingBatchState = {
+  allVideos: [],
+  allVideosList: [], // Videos to show in "All videos" (excluding pinned/priority)
+  displayedCount: 0,
+  batchSize: 8 // Default mobile, will be updated on render
+};
+
 function renderTrainingContent() {
   if (!trainingCatalog) return;
   
-  const activeCategory = document.querySelector('.filter-tab.active')?.dataset.category || 'all';
-  const statusFilter = $("trainingStatusFilter").value;
-  const searchTerm = $("trainingSearch").value.toLowerCase().trim();
+  // Category filtering disabled - show all videos
+  const activeCategory = 'all';
+  const statusFilterEl = document.getElementById('trainingStatusFilter');
+  const statusFilter = statusFilterEl ? statusFilterEl.value : '';
+  const searchInputEl = document.getElementById('trainingSearch');
+  const searchTerm = searchInputEl ? searchInputEl.value.toLowerCase().trim() : '';
   
   let videos = trainingCatalog.videos || [];
 
@@ -15111,6 +16048,8 @@ function renderTrainingContent() {
     const box = $("training-content");
     box.innerHTML = "";
     box.appendChild(renderTrainingSkeletons(6));
+    $("training-load-more-container").style.display = "none";
+    return;
   }
   
   // Filter by category using actual module names
@@ -15133,6 +16072,25 @@ function renderTrainingContent() {
       return hay.includes(searchTerm);
     });
   }
+  
+  // Reset batching when filters/search change
+  const filtersChanged = JSON.stringify(videos.map(v => v.id)) !== JSON.stringify(trainingBatchState.allVideos.map(v => v.id));
+  if (filtersChanged) {
+    trainingBatchState.allVideos = videos;
+    trainingBatchState.displayedCount = 0;
+    // Scroll to top of training content
+    const box = $("training-content");
+    if (box) {
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } else {
+    // Keep existing displayed count if filters haven't changed
+    trainingBatchState.allVideos = videos;
+  }
+  
+  // Determine batch size based on viewport
+  const isMobile = window.innerWidth <= 480;
+  trainingBatchState.batchSize = isMobile ? 8 : 12;
   
   const box = $("training-content");
   const fragment = document.createDocumentFragment();
@@ -15169,17 +16127,37 @@ function renderTrainingContent() {
   if (videos.length === 0) {
     box.innerHTML = "";
     $("currentSectionSubtitle").textContent = "No videos match your filters";
+    $("training-load-more-container").style.display = "none";
     return;
   }
   
-  // Update section title with actual module name
-  const activeTab = document.querySelector('.filter-tab.active');
-  const categoryName = activeTab?.textContent?.trim() || 'All Training Content';
-  
-  $("currentSectionTitle").textContent = categoryName;
+  // Update section subtitle with count
   $("currentSectionSubtitle").textContent = `${videos.length} video${videos.length !== 1 ? 's' : ''} available`;
   
-  videos.forEach(v => {
+  // Get videos to display (excluding pinned and priority)
+  const allVideosList = videos.filter(v => 
+    !pinnedIds.includes(String(v.id)) && 
+    !priorityVideos.some(pv => String(pv.id) === String(v.id))
+  );
+  
+  // Store the full list for Load more functionality
+  trainingBatchState.allVideosList = allVideosList;
+  
+  // Reset displayed count if filters changed
+  if (filtersChanged) {
+    trainingBatchState.displayedCount = 0;
+  }
+  
+  // Calculate how many to show
+  const initialBatch = trainingBatchState.displayedCount === 0 
+    ? trainingBatchState.batchSize 
+    : trainingBatchState.displayedCount;
+  
+  const videosToShow = allVideosList.slice(0, initialBatch);
+  trainingBatchState.displayedCount = videosToShow.length;
+  
+  // Render the batch
+  videosToShow.forEach(v => {
     const status = getVideoStatus(v.id);
     const progressPct = getProgressPercentage(v.id);
     const el = createTrainingCard(v, progressPct, status);
@@ -15196,8 +16174,22 @@ function renderTrainingContent() {
     box.appendChild(renderShelf("Priority Next", priorityVideos));
   }
 
-  // Render All Videos (existing grid)
+  // Render All Videos batch
   box.appendChild(fragment);
+  
+  // Show/hide Load more button
+  const loadMoreContainer = $("training-load-more-container");
+  const loadMoreBtn = $("training-load-more-btn");
+  const loadMoreCounter = $("training-load-more-counter");
+  
+  if (allVideosList.length > trainingBatchState.displayedCount) {
+    loadMoreContainer.style.display = "block";
+    loadMoreCounter.textContent = `Showing ${trainingBatchState.displayedCount} of ${allVideosList.length}`;
+    loadMoreBtn.disabled = false;
+    loadMoreBtn.textContent = "Load more";
+  } else {
+    loadMoreContainer.style.display = "none";
+  }
   
   // Add click handler
   box.onclick = async e => {
@@ -15240,6 +16232,65 @@ function renderTrainingContent() {
       alert("Error: Video data not found. Please refresh.");
     }
   };
+}
+
+// Handle Load more button click
+function handleTrainingLoadMore() {
+  const btn = $("training-load-more-btn");
+  const counter = $("training-load-more-counter");
+  const box = $("training-content");
+  
+  if (!btn || !box || btn.disabled || !trainingBatchState.allVideosList) return;
+  
+  // Show loading state
+  btn.disabled = true;
+  btn.textContent = "Loading…";
+  
+  // Get next batch from the stored list
+  const allVideosList = trainingBatchState.allVideosList;
+  const nextBatch = allVideosList.slice(
+    trainingBatchState.displayedCount,
+    trainingBatchState.displayedCount + trainingBatchState.batchSize
+  );
+  
+  if (nextBatch.length === 0) {
+    btn.disabled = true;
+    btn.textContent = "Load more";
+    $("training-load-more-container").style.display = "none";
+    return;
+  }
+  
+  // Render next batch
+  const fragment = document.createDocumentFragment();
+  nextBatch.forEach(v => {
+    const status = getVideoStatus(v.id);
+    const progressPct = getProgressPercentage(v.id);
+    const el = createTrainingCard(v, progressPct, status);
+    fragment.appendChild(el);
+  });
+  
+  box.appendChild(fragment);
+  trainingBatchState.displayedCount += nextBatch.length;
+  
+  // Update counter and button
+  const totalDisplayed = trainingBatchState.displayedCount;
+  const totalAvailable = allVideosList.length;
+  
+  if (totalDisplayed >= totalAvailable) {
+    $("training-load-more-container").style.display = "none";
+  } else {
+    counter.textContent = `Showing ${totalDisplayed} of ${totalAvailable}`;
+    btn.disabled = false;
+    btn.textContent = "Load more";
+  }
+  
+  // Smooth scroll to newly loaded content
+  const lastCard = box.querySelector(".training-card:last-child");
+  if (lastCard) {
+    setTimeout(() => {
+      lastCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
 }
 
 // Sticky filter bar setup (called once after DOM ready)
@@ -15383,25 +16434,32 @@ function computePriorityScore(video, progress) {
 // ===== Render a shelf of cards =====
 function renderShelf(title, vids) {
   const section = document.createElement('section');
-  section.style.marginBottom = '16px';
+  section.className = 'training-shelf';
+  section.style.marginBottom = '24px';
   const h = document.createElement('h3');
+  h.className = 'training-shelf-title';
   h.textContent = title;
-  h.style.margin = '8px 0 12px';
-  h.style.fontSize = '16px';
-  h.style.fontWeight = '600';
   section.appendChild(h);
   const row = document.createElement('div');
+  row.className = 'shelf-row';
   row.style.display = 'flex';
   row.style.gap = '12px';
   row.style.overflowX = 'auto';
-  row.style.scrollSnapType = 'x proximity';
+  row.style.scrollSnapType = 'x mandatory';
+  row.style.scrollSnapStop = 'always';
   row.style.webkitOverflowScrolling = 'touch';
   row.style.paddingBottom = '8px';
+  row.style.scrollbarWidth = 'none';
+  row.style.msOverflowStyle = 'none';
+  row.style.scrollPaddingLeft = '16px';
+  row.style.scrollPaddingRight = '16px';
+  row.classList.add('shelf-row');
   vids.forEach(v => {
     const status = getVideoStatus(v.id);
     const pct = getProgressPercentage(v.id);
     const el = createTrainingCard(v, pct, status);
-    el.style.minWidth = '260px';
+    el.classList.add('shelf-card');
+    el.style.minWidth = '260px'; /* Desktop width */
     el.style.scrollSnapAlign = 'start';
     row.appendChild(el);
   });
@@ -15447,37 +16505,30 @@ function showTrainingAdminPanel(videos) {
 }
 
 function createTrainingCard(v, progressPct, status) {
-  // Simplified card: remove progress/status badges to reduce noise
+  // Clean card: icon placeholder only (no images/thumbnails)
   
   const el = document.createElement("div");
   el.className = "training-card";
   el.dataset.videoId = v.id;
   
-  // Thumbnail with gradient or image
-  const thumbStyle = v.thumbnail 
-    ? `background-image:url('${esc(v.thumbnail)}');background-size:cover;background-position:center` 
-    : "";
-  
   const duration = v.duration || formatDuration(v.duration_sec || 0);
   
   el.innerHTML = `
-    <div class="training-thumb" style="${thumbStyle}">
-      ${!v.thumbnail ? '🎬' : ''}
+    <div class="training-thumb">
+      🎬
     </div>
     <div class="training-body">
       <h3 class="training-title">${esc(v.title)}</h3>
       <div class="training-meta">
-        <span>${esc(v.module || 'General')}</span>
+        ${v.module ? `<span>${esc(v.module)}</span>` : ''}
         ${v.level ? `<span>${esc(v.level)}</span>` : ""}
         ${duration ? `<span>${esc(duration)}</span>` : ""}
         ${v.certificate ? '<span>Certificate</span>' : ''}
       </div>
       ${v.description ? `<div class="training-desc">${esc(v.description)}</div>` : ""}
-      <div class="actions" style="margin-top:12px">
-        <button class="btn" data-play="${esc(v.id)}" type="button">
-          ▶ Watch
-        </button>
-      </div>
+      <button class="btn" data-play="${esc(v.id)}" type="button">
+        ▶ Watch
+      </button>
     </div>
   `;
   
@@ -15612,25 +16663,241 @@ function formatFileSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+function setupTrainingScrollIndicators() {
+  const filterTabs = document.getElementById('trainingFilterTabs');
+  const leftIndicator = document.querySelector('.scroll-indicator-left');
+  const rightIndicator = document.querySelector('.scroll-indicator-right');
+  
+  if (!filterTabs || !leftIndicator || !rightIndicator) return;
+  
+  function updateIndicators() {
+    const { scrollLeft, scrollWidth, clientWidth } = filterTabs;
+    const canScrollLeft = scrollLeft > 0;
+    const canScrollRight = scrollLeft < scrollWidth - clientWidth - 1;
+    
+    leftIndicator.classList.toggle('visible', canScrollLeft);
+    rightIndicator.classList.toggle('visible', canScrollRight);
+  }
+  
+  // Initial check
+  updateIndicators();
+  
+  // Update on scroll
+  filterTabs.addEventListener('scroll', updateIndicators);
+  
+  // Update on resize
+  window.addEventListener('resize', updateIndicators);
+  
+  // Update after content loads
+  setTimeout(updateIndicators, 100);
+}
+
 function setupTrainingEventListeners() {
-  // Filter tab clicks
-  document.querySelectorAll('.filter-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      renderTrainingContent();
+  // Filter tabs removed - no category filtering UI
+  // Ask Training functionality
+  setupAskTraining();
+  
+  // Load more button
+  const loadMoreBtn = document.getElementById("training-load-more-btn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", handleTrainingLoadMore);
+  }
+  
+  // Update batch size on window resize
+  let resizeTimeout;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      const isMobile = window.innerWidth <= 480;
+      trainingBatchState.batchSize = isMobile ? 8 : 12;
+    }, 200);
+  });
+}
+
+// ===== ASK TRAINING AI =====
+function setupAskTraining() {
+  const input = document.getElementById('askTrainingInput');
+  const submitBtn = document.getElementById('askTrainingSubmit');
+  const micBtn = document.getElementById('askTrainingMic');
+  const resultsDiv = document.getElementById('askTrainingResults');
+  const clarifyingDiv = document.getElementById('askTrainingClarifying');
+  
+  if (!input || !submitBtn) return;
+  
+  // Check if Web Speech API is available
+  const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  if (!hasSpeechRecognition && micBtn) {
+    micBtn.style.display = 'none';
+  }
+  
+  // Submit handler
+  const handleSubmit = async () => {
+    const query = input.value.trim();
+    if (!query) return;
+    
+    if (!trainingCatalog || !trainingCatalog.videos) {
+      toast('Please wait for training catalog to load');
+      return;
+    }
+    
+    // Show loading state (fixed height to prevent layout shift)
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Searching...';
+    resultsDiv.style.display = 'block';
+    resultsDiv.style.minHeight = '60px';
+    resultsDiv.innerHTML = '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:14px;display:flex;align-items:center;justify-content:center;min-height:60px">Finding best videos...</div>';
+    clarifyingDiv.style.display = 'none';
+    
+    try {
+      const out = await POST('portal_training', {
+        token,
+        action: 'recommend',
+        query,
+        videos: trainingCatalog.videos.map(v => ({
+          id: v.id || v.video_id,
+          title: v.title,
+          description: v.description || '',
+          module: v.module || '',
+          tags: v.tags || []
+        }))
+      });
+      
+      if (!out.ok) {
+        throw new Error(out.error || 'Failed to get recommendations');
+      }
+      
+      if (out.clarifying_question) {
+        clarifyingDiv.style.display = 'block';
+        clarifyingDiv.textContent = out.clarifying_question;
+        resultsDiv.style.display = 'none';
+      } else if (out.recommendations && out.recommendations.length > 0) {
+        clarifyingDiv.style.display = 'none';
+        renderRecommendations(out.recommendations);
+      } else {
+        resultsDiv.innerHTML = '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:14px">No videos found. Try a different question.</div>';
+      }
+    } catch (err) {
+      console.error('[Ask Training] Error:', err);
+      const errorMsg = err.message || 'Failed to search';
+      if (errorMsg.includes('Connect API') || errorMsg.includes('API')) {
+        resultsDiv.innerHTML = '<div style="text-align:center;padding:16px;color:#fbbf24;font-size:14px">Connect API to test. Backend endpoint needs to be deployed.</div>';
+      } else {
+        resultsDiv.innerHTML = '<div style="text-align:center;padding:16px;color:#ef4444;font-size:14px">Error: ' + esc(errorMsg) + '</div>';
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Find Video';
+      resultsDiv.style.minHeight = '';
+    }
+  };
+  
+  // Render recommendations
+  function renderRecommendations(recs) {
+    resultsDiv.innerHTML = recs.map(rec => {
+      const video = trainingCatalog.videos.find(v => String(v.id || v.video_id) === String(rec.id));
+      if (!video) return '';
+      
+      return `
+        <div class="recommendation-card">
+          <div class="recommendation-content">
+            <h4 class="recommendation-title">${esc(video.title)}</h4>
+            <p class="recommendation-reason">${esc(rec.reason)}</p>
+          </div>
+          <button class="btn" data-play="${esc(rec.id)}" type="button">
+            ▶ Watch
+          </button>
+        </div>
+      `;
+    }).join('');
+    
+    // Add click handlers
+    resultsDiv.querySelectorAll('button[data-play]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const videoId = btn.dataset.play;
+        const video = trainingCatalog.videos.find(v => String(v.id || v.video_id) === String(videoId));
+        if (video) {
+          playVideo(video);
+        }
+      });
+    });
+  }
+  
+  // Submit on button click
+  submitBtn.addEventListener('click', handleSubmit);
+  
+  // Submit on Enter
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  });
+  
+  // Suggestion chips - fill input and trigger search
+  document.querySelectorAll('.suggestion-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const query = chip.dataset.query;
+      input.value = query;
+      handleSubmit();
     });
   });
   
-  // Search input
-  $("trainingSearch").addEventListener('input', debounce(() => {
-    renderTrainingContent();
-  }, 300));
-  
-  // Status filter
-  $("trainingStatusFilter").addEventListener('change', () => {
-    renderTrainingContent();
-  });
+  // Voice input
+  if (micBtn && hasSpeechRecognition) {
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+    } else if ('SpeechRecognition' in window) {
+      recognition = new SpeechRecognition();
+    }
+    
+    if (recognition) {
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      
+      let isListening = false;
+      
+      micBtn.addEventListener('click', () => {
+        if (isListening) {
+          recognition.stop();
+          isListening = false;
+          micBtn.style.background = 'rgba(59,130,246,.2)';
+          return;
+        }
+        
+        isListening = true;
+        micBtn.style.opacity = '0.6';
+        micBtn.style.color = '#ef4444';
+        
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          input.value = transcript;
+          isListening = false;
+          micBtn.style.opacity = '1';
+          micBtn.style.color = '#60a5fa';
+          handleSubmit();
+        };
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          isListening = false;
+          micBtn.style.opacity = '1';
+          micBtn.style.color = '#60a5fa';
+          toast('Voice input failed. Please type your question.');
+        };
+        
+        recognition.onend = () => {
+          isListening = false;
+          micBtn.style.opacity = '1';
+          micBtn.style.color = '#60a5fa';
+        };
+        
+        recognition.start();
+      });
+    }
+  }
 }
 
 // Debounce helper
@@ -15649,7 +16916,8 @@ function debounce(func, wait) {
 // Clear all training filters
 function clearTrainingFilters() {
   // Reset search
-  $("trainingSearch").value = '';
+  const searchInput = document.getElementById('trainingSearch');
+  if (searchInput) searchInput.value = '';
   
   // Reset category to "All"
   document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -15657,7 +16925,8 @@ function clearTrainingFilters() {
   if (allTab) allTab.classList.add('active');
   
   // Reset status to all
-  $("trainingStatusFilter").value = '';
+  const statusFilter = document.getElementById('trainingStatusFilter');
+  if (statusFilter) statusFilter.value = '';
   
   // Re-render
   renderTrainingContent();
@@ -15669,7 +16938,8 @@ function renderTrainingResources() {
   if (!trainingCatalog) return;
   
   const moduleFilter = $("trainingModule").value;
-  const searchTerm = $("trainingSearch").value.toLowerCase().trim();
+  const searchInput = document.getElementById('trainingSearch');
+  const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
   
   let resources = trainingCatalog.resources || [];
   

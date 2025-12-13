@@ -279,8 +279,77 @@ export default async function handler(req, res) {
       console.error('Error creating payout:', payoutErr);
     }
 
-    // TODO: Trigger customer review email via Apps Script webhook
-    // For now, emails still handled by Apps Script background triggers
+    // Send customer completion notification (with duplicate prevention)
+    try {
+      const { data: jobData } = await supabase
+        .from('h2s_dispatch_jobs')
+        .select('customer_email, customer_phone, customer_name, order_id, completed_at')
+        .eq('job_id', jobId)
+        .single();
+      
+      // Duplicate prevention: Check if completion notification already sent
+      if (jobData && !jobData.completed_at) {
+        // Only send if job wasn't already marked complete (prevents retry duplicates)
+        
+        if (jobData.customer_email) {
+          const emailEndpoint = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}/api/send-email`
+            : 'https://h2s-backend.vercel.app/api/send-email';
+          
+          const firstName = (jobData.customer_name || '').split(' ')[0] || 'there';
+          const reviewUrl = jobData.order_id 
+            ? `https://home2smart.com/review?order=${jobData.order_id}`
+            : 'https://home2smart.com/review';
+          
+          await fetch(emailEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to_email: jobData.customer_email,
+              template_key: 'job_completed_thank_you',
+              data: {
+                firstName: firstName,
+                reviewUrl: reviewUrl
+              },
+              order_id: jobData.order_id
+            })
+          });
+          console.log('[MARK DONE] ✅ Customer completion email sent');
+        }
+        
+        // Optional SMS (if phone exists and template available)
+        if (jobData.customer_phone && process.env.TWILIO_ENABLED !== 'false') {
+          try {
+            const smsEndpoint = process.env.VERCEL_URL
+              ? `https://${process.env.VERCEL_URL}/api/send-sms`
+              : 'https://h2s-backend.vercel.app/api/send-sms';
+            
+            await fetch(smsEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: jobData.customer_phone,
+                template_key: 'job_completed_thank_you',
+                data: {
+                  firstName: (jobData.customer_name || '').split(' ')[0] || 'there',
+                  reviewUrl: jobData.order_id 
+                    ? `https://home2smart.com/review?order=${jobData.order_id}`
+                    : 'https://home2smart.com/review'
+                },
+                job_id: jobId
+              })
+            });
+            console.log('[MARK DONE] ✅ Customer completion SMS sent');
+          } catch (smsErr) {
+            console.warn('[MARK DONE] SMS send failed (non-critical):', smsErr.message);
+          }
+        }
+      } else if (jobData?.completed_at) {
+        console.log('[MARK DONE] ⏭️ Skipping duplicate completion notification');
+      }
+    } catch (notifyErr) {
+      console.warn('[MARK DONE] Customer notification failed (non-critical):', notifyErr.message);
+    }
 
     // Silent reconciliation: ensure ALL completed assignments have ledger entries
     try {
