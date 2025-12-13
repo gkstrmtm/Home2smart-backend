@@ -98,19 +98,44 @@ if ('serviceWorker' in navigator) {
   --h2s-secondary:rgba(30, 58, 138, 0.4);
   --h2s-bg-card-soft:#081A33;
   
-  /* ===== TRAINING PAGE MOBILE DESIGN SYSTEM ===== */
-  --pad: 16px; /* Page padding constant */
-  --gap-sm: 8px; /* Small gap (chip spacing, tight groups) */
-  --gap-md: 12px; /* Medium gap (input to button, label to content) */
-  --gap-lg: 16px; /* Large gap (section spacing) */
-  --gap-xl: 24px; /* Extra large gap (major section breaks) */
-  --radius: 12px; /* Standard border radius */
-  --radius-sm: 10px; /* Smaller radius (buttons inside cards) */
-  --radius-pill: 20px; /* Pill shape (chips) */
-  --border: 1px solid rgba(255,255,255,.14); /* Standard border */
-  --surface: rgba(10,42,90,.4); /* Card/surface background */
-  --surface-input: rgba(10,42,90,.6); /* Input background */
-  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1); /* Standard transition */
+  /* ===== PORTAL-WIDE DESIGN SYSTEM (Mobile-First) ===== */
+  /* Spacing System (8pt grid) */
+  --page-pad: 16px;        /* Mobile baseline page padding */
+  --section-gap: 24px;     /* Gap between major sections */
+  --card-gap: 16px;        /* Gap between cards */
+  --control-gap: 12px;     /* Gap between form controls */
+  
+  /* Legacy aliases for backward compatibility */
+  --pad: var(--page-pad);
+  --gap-sm: 8px;
+  --gap-md: var(--control-gap);
+  --gap-lg: var(--card-gap);
+  --gap-xl: var(--section-gap);
+  
+  /* Visual System */
+  --radius: 12px;          /* Standard border radius */
+  --radius-sm: 8px;        /* Small radius (chips, badges) */
+  --radius-lg: 16px;       /* Large radius (cards, modals) */
+  --radius-pill: 20px;     /* Pill shape (chips) */
+  --border: 1px solid rgba(255,255,255,0.14);
+  --surface: rgba(10,42,90,0.4);
+  --surface-elevated: rgba(10,42,90,0.6);
+  --surface-input: rgba(10,42,90,0.6);
+  
+  /* Typography */
+  --text: var(--h2s-text-main);
+  --text-muted: var(--h2s-text-muted);
+  --text-soft: var(--h2s-text-soft);
+  
+  /* Controls */
+  --control-h: 44px;       /* Minimum tap target height */
+  --control-h-lg: 52px;    /* Large buttons */
+  --control-pad: 14px 16px; /* Standard control padding */
+  
+  /* Transitions */
+  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Legacy aliases for backward compatibility */
   --navy-950:#000108;
@@ -254,6 +279,9 @@ html,body{
   -ms-text-size-adjust:100%;
   text-size-adjust:100%;
   scroll-padding-top:80px;
+  width:100%;
+  max-width:100vw;
+  box-sizing:border-box;
 }
 body{
   margin:0;
@@ -537,16 +565,115 @@ body{
 .main{
   flex:1;
   display:block;
-  padding:16px;
+  padding:var(--page-pad);
   padding-top:88px;
   background:transparent;
   min-height:100vh;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  overflow-x:hidden;
 }
 .container{
   max-width:100%;
   width:100%;
   margin:0 auto;
   padding:0;
+  box-sizing:border-box;
+}
+
+/* Hard Guardrails: Prevent overflow on all tab containers */
+[id^="tab-"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure all cards respect container width */
+[id^="tab-"] > div[style*="background"],
+[id^="tab-"] > div[style*="linear-gradient"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+
+.team-updates-empty {
+  display: none;
+}
+
+.team-updates-empty-title {
+  margin: 0 0 var(--gap-sm) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.team-updates-empty-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.team-updates-header-wrapper {
+  margin-bottom: var(--card-gap);
+}
+
+.announcement-header-clickable {
+  display: flex;
+  align-items: center;
+  gap: var(--control-gap);
+  cursor: pointer;
+  margin-bottom: var(--gap-sm);
+}
+
+.announcement-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.announcement-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.team-updates-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle at center, rgba(20,147,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.view-all-btn {
+  background: rgba(20,147,255,0.15);
+  border: 1px solid rgba(20,147,255,0.3);
+  color: #1493ff;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: var(--gap-sm);
+}
+
+.view-all-btn:hover {
+  background: rgba(20,147,255,0.25);
+}
+
+.view-all-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
 /* Desktop: centered max-width container */
@@ -600,10 +727,13 @@ h3,.h3{
   background:var(--h2s-bg-card);
   border:1px solid var(--h2s-border-subtle);
   border-radius:var(--br);
-  padding:16px;
-  margin-bottom:16px;
+  padding:var(--page-pad);
+  margin-bottom:var(--card-gap);
   box-shadow:var(--shadow-sm);
-  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  transition:var(--transition);
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
 }
 .card:hover{
   border-color:var(--h2s-border-strong);
@@ -646,15 +776,17 @@ h3,.h3{
 }
 .input,.textarea,.select{
   width:100%;
+  max-width:100%;
   border:2px solid var(--h2s-border-subtle);
   background:var(--h2s-bg-input);
   color:var(--h2s-text-main);
-  border-radius:var(--br);
-  padding:14px 16px;
+  border-radius:var(--radius);
+  padding:var(--control-pad);
   font-size:16px;
-  transition:all .25s cubic-bezier(0.4,0,0.2,1);
+  transition:var(--transition);
   font-family:inherit;
   appearance:none;
+  box-sizing:border-box;
 }
 .input:focus,.textarea:focus,.select:focus{
   outline:none;
@@ -664,7 +796,7 @@ h3,.h3{
 .input::placeholder,.textarea::placeholder{
   color:var(--h2s-text-soft)
 }
-.input{min-height:48px}
+.input{min-height:var(--control-h)}
 .textarea{min-height:120px;resize:vertical}
 select.input,select.select{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2360b5ff' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
@@ -685,17 +817,19 @@ select.input:hover,select.select:hover{
   background:var(--h2s-brand-azure);
   color:#fff;
   font-weight:700;
-  border-radius:var(--br);
+  border-radius:var(--radius);
   cursor:pointer;
-  padding:14px 24px;
-  min-height:52px;
-  min-width:120px;
+  padding:var(--control-pad);
+  min-height:var(--control-h);
+  min-width:0;
+  max-width:100%;
   box-shadow:var(--shadow-md);
   touch-action:manipulation;
-  transition:transform 160ms ease-out,box-shadow 160ms ease-out,background-color 160ms ease-out;
+  transition:var(--transition);
   font-family:inherit;
   font-size:15px;
   position:relative;
+  box-sizing:border-box;
   overflow:hidden;
   letter-spacing:0.3px;
 }
@@ -2872,6 +3006,52 @@ select.input:hover,select.select:hover{
   }
 }
 /* Mobile-first list layout at 480px and below */
+/* W-9 Upload Mobile Optimization */
+@media (max-width:480px){
+  .w9-upload-section{
+    margin-top:var(--gap-lg) !important;
+  }
+  .w9-download-row{
+    flex-direction:column !important;
+    align-items:stretch !important;
+    gap:var(--gap-sm) !important;
+  }
+  .w9-download-btn{
+    width:100% !important;
+    flex:unset !important;
+    min-width:unset !important;
+  }
+  .w9-helper-text{
+    text-align:center !important;
+    margin-top:4px !important;
+  }
+  .w9-upload-tile{
+    padding:var(--gap-lg) var(--gap-md) !important;
+    min-height:120px !important;
+  }
+  #w9UploadTile svg{
+    width:40px !important;
+    height:40px !important;
+    margin-bottom:var(--gap-sm) !important;
+  }
+  #w9UploadContent > div:first-of-type{
+    font-size:14px !important;
+    margin-bottom:6px !important;
+  }
+  #w9UploadContent > div:last-of-type{
+    font-size:12px !important;
+  }
+  #w9UploadPreview > div{
+    flex-direction:column !important;
+    text-align:center !important;
+    gap:var(--gap-sm) !important;
+  }
+  #w9UploadPreview button{
+    width:100% !important;
+    margin-left:0 !important;
+  }
+}
+
 @media (max-width:480px){
   /* Hide stats panel */
   .training-dashboard-header{
@@ -3350,113 +3530,6 @@ select.input:hover,select.select:hover{
   /* TEAM UPDATES MOBILE - PREMIUM FEEL */
   .view-all-btn{
     display:none !important;
-  }
-  #communicationHub{
-    width:100% !important;
-    max-width:100% !important;
-    padding:var(--gap-md) var(--pad) !important;
-    margin-left:0 !important;
-    margin-right:0 !important;
-    margin-bottom:var(--gap-lg) !important;
-    margin-top:var(--gap-md) !important;
-    border-radius:var(--radius) !important;
-    box-sizing:border-box !important;
-    min-height:auto !important;
-    height:auto !important;
-  }
-  /* Left-align header on mobile (not centered) */
-  #activeAnnouncementsSection > div:first-child {
-    text-align:left !important;
-    margin-bottom:var(--gap-md) !important;
-  }
-  .announcement-header-clickable{
-    transition:all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    display:flex !important;
-    align-items:center !important;
-    gap:var(--gap-md) !important;
-    justify-content:flex-start !important;
-    width:100% !important;
-    text-align:left !important;
-    cursor:pointer !important;
-    padding:4px 0 !important;
-    border-radius:var(--radius-sm) !important;
-  }
-  .announcement-header-clickable:active{
-    opacity:0.85 !important;
-    transform:scale(0.97) !important;
-    background:rgba(20,147,255,0.05) !important;
-  }
-  .announcement-icon{
-    width:44px !important;
-    height:44px !important;
-    flex-shrink:0 !important;
-    border-radius:var(--radius-sm) !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    background:#1493ff !important;
-    box-shadow:0 4px 12px rgba(20,147,255,0.3) !important;
-  }
-  .announcement-icon svg{
-    width:22px !important;
-    height:22px !important;
-    stroke:#ffffff !important;
-    stroke-width:2.5 !important;
-  }
-  .announcement-title{
-    font-size:17px !important;
-    font-weight:700 !important;
-    letter-spacing:-0.01em !important;
-    margin:0 !important;
-    line-height:1.2 !important;
-    color:#f7f9ff !important;
-  }
-  .announcement-subtitle{
-    font-size:13px !important;
-    color:#94a3b8 !important;
-    opacity:0.9 !important;
-    margin-top:6px !important;
-    line-height:1.5 !important;
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-    white-space:nowrap !important;
-    max-width:100% !important;
-    display:block !important;
-  }
-  /* Show empty state message if no announcements */
-  #cultureSloganSection{
-    text-align:left !important;
-    padding:var(--gap-md) 0 !important;
-  }
-  #cultureSloganSection h3{
-    font-size:16px !important;
-    margin-bottom:var(--gap-sm) !important;
-  }
-  #cultureSloganSection p{
-    font-size:13px !important;
-    color:#94a3b8 !important;
-    opacity:.75 !important;
-  }
-  .announcement-card{
-    padding:16px !important;
-    gap:12px !important;
-    margin-bottom:12px !important;
-    border-radius:12px !important;
-    background:rgba(255,255,255,.03) !important;
-    border:1px solid rgba(255,255,255,.05) !important;
-  }
-  .announcement-card:active{
-    transform:scale(0.98) !important;
-    background:rgba(255,255,255,.06) !important;
-  }
-  
-  /* Communication Hub mobile - REFINED */
-  #communicationHub{
-    padding:16px !important;
-    margin-bottom:0 !important;
-    border-radius:0 !important;
-    border-left:none !important;
-    border-right:none !important;
   }
   
   /* Announcements Modal mobile optimization */
@@ -5003,6 +5076,52 @@ a:focus-visible{
     grid-template-columns: 1fr !important;
   }
   
+  /* Account page mobile layout fix - prevent overflow */
+  #tab-profile {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Account cards - ensure they respect container width */
+  #tab-profile > div[style*="background:linear-gradient"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: var(--page-pad) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Override any min-width on cards and nested containers */
+  #tab-profile > div,
+  #tab-profile > div > div {
+    min-width: 0 !important;
+  }
+  
+  /* Collapse two-column Service Availability grid on mobile */
+  #tab-profile > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Profile Photo buttons - ensure consistent height and spacing */
+  #tab-profile button[id^="btn"] {
+    min-height: var(--control-h) !important;
+    padding: var(--control-pad) !important;
+  }
+  
+  /* Ensure all inputs/textarea match design system */
+  #tab-profile .input,
+  #tab-profile .textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
   /* Photo upload section - better mobile layout */
   #pfPhotoPreview {
     width: 100px !important;
@@ -5502,54 +5621,6 @@ a:focus-visible{
     color: var(--h2s-text-muted);
   }
   
-  /* ===== M10 Slim Announcements Banner ===== */
-  #communicationHub, #activeAnnouncementsSection {
-    padding: 12px 14px !important;
-    margin-bottom: var(--space-lg) !important;
-    min-height: 64px;
-    max-height: 72px;
-    overflow: hidden;
-  }
-  
-  #communicationHub .announcement-icon {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px;
-  }
-  
-  #communicationHub .announcement-icon svg {
-    width: 18px !important;
-    height: 18px !important;
-  }
-  
-  #communicationHub .announcement-title {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    margin: 0 !important;
-    line-height: 1.3;
-  }
-  
-  #communicationHub .announcement-subtitle {
-    font-size: 12px !important;
-    margin: 0 !important;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  
-  #communicationHub .view-all-btn {
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-    white-space: nowrap;
-  }
-  
-  /* Hide announcement cards container on mobile - only show header */
-  #announcementCardsContainer {
-    display: none !important;
-  }
   
   /* Layout Grids */
   .grid-2, .grid-3, .learning-paths-grid {
@@ -5653,77 +5724,6 @@ a:focus-visible{
     margin-top: 16px !important;
   }
   
-  /* Announcement cards - match job card styling system */
-  #announcementBanner,
-  #communicationHub {
-    background: var(--h2s-bg-elevated) !important;
-    border: 1px solid var(--h2s-border-soft) !important;
-    border-radius: 14px !important;
-    padding: 16px !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  
-  /* New Announcement card spacing */
-  #announcementBanner {
-    margin-top: 0 !important;
-    margin-bottom: 12px !important;
-  }
-  
-  /* Team Updates card spacing */
-  #communicationHub {
-    margin-top: 0 !important;
-    margin-bottom: 24px !important;
-  }
-  
-  /* Remove special gradients and glows on mobile */
-  #communicationHub {
-    background: var(--h2s-bg-elevated) !important;
-  }
-  
-  /* Icon sizing consistency */
-  #announcementBanner .announcement-icon,
-  #communicationHub .announcement-icon {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    flex-shrink: 0;
-  }
-  
-  #announcementBanner .announcement-icon svg,
-  #communicationHub .announcement-icon svg {
-    width: 20px !important;
-    height: 20px !important;
-  }
-  
-  /* Team Updates internal layout */
-  #communicationHub .announcement-header-clickable {
-    gap: 12px !important;
-    margin-bottom: 0 !important;
-  }
-  
-  #communicationHub .announcement-title {
-    font-size: 16px !important;
-    line-height: 1.3;
-  }
-  
-  #communicationHub .announcement-subtitle {
-    font-size: 13px !important;
-    line-height: 1.3;
-  }
-  
-  #communicationHub .view-all-btn {
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-    white-space: nowrap;
-  }
-  
-  /* Hide announcement cards container on mobile - only show header */
-  #announcementCardsContainer {
-    display: none !important;
-  }
-  
   /* Section headings - clear hierarchy and spacing */
   #tab-dash h2 {
     font-size: 16px !important;
@@ -5733,9 +5733,9 @@ a:focus-visible{
     color: #e0f2fe;
   }
   
-  /* First section heading after announcements gets extra space */
-  #communicationHub ~ h2 {
-    margin-top: 28px !important;
+  /* First section heading - no extra space since card is removed */
+  #tab-dash > h2:first-of-type {
+    margin-top: 16px !important;
   }
 }
 
@@ -6068,41 +6068,6 @@ a:focus-visible{
           </div>
         </div>
 
-        <!-- Section 4.3: Team Updates with soft blue glow, no harsh square overlay -->
-        <div id="communicationHub" style="background:linear-gradient(135deg, #071b30 0%, #0b2238 100%);border:1px solid rgba(20,147,255,0.2);border-radius:var(--radius);padding:var(--gap-md) var(--pad);margin-bottom:var(--gap-lg);margin-top:var(--gap-md);position:relative;box-shadow:0 0 24px rgba(20,147,255,0.15), 0 8px 16px rgba(2,12,35,0.4)">
-          
-          <!-- Default Culture Message (shows when no announcements) -->
-          <div id="cultureSloganSection" style="display:none">
-            <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:600;color:#e0f2fe;letter-spacing:-0.01em">No new updates</h3>
-            <p style="margin:0;font-size:13px;color:#94a3b8;opacity:.75;line-height:1.4">Check back later for team announcements</p>
-          </div>
-
-          <!-- Active Announcements Section (shows when announcements exist) -->
-          <div id="activeAnnouncementsSection" style="display:none">
-            <div style="margin-bottom:16px">
-              <div style="display:flex;align-items:center;gap:var(--gap-md);cursor:pointer" onclick="openAnnouncementsModal()" class="announcement-header-clickable">
-                <div class="announcement-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </div>
-                <div style="flex:1;min-width:0">
-                  <h3 class="announcement-title">Team Updates</h3>
-                  <p id="announcementCount" class="announcement-subtitle">New messages from dispatch</p>
-                </div>
-              </div>
-              <button id="btnViewAllAnnouncements" onclick="openAnnouncementsModal()" style="background:rgba(20,147,255,0.15);border:1px solid rgba(20,147,255,0.3);color:#1493ff;padding:10px 24px;border-radius:9999px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px" onmouseover="this.style.background='rgba(20,147,255,0.25)'" onmouseout="this.style.background='rgba(20,147,255,0.15)'" class="view-all-btn">View All</button>
-            </div>
-
-            <!-- Announcement Cards Container -->
-            <div id="announcementCardsContainer" style="display:flex;flex-direction:column;gap:16px">
-              <!-- Dynamically populated announcement cards -->
-            </div>
-          </div>
-
-          <!-- Soft inner gradient glow instead of decorative overlay -->
-          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%);width:60%;height:60%;background:radial-gradient(circle at center, rgba(20,147,255,0.06) 0%, transparent 70%);pointer-events:none;z-index:0"></div>
-        </div>
 
         <h2 style="margin-top:32px">Pending offers</h2>
         <div id="list-offers" class="list"></div>
@@ -6247,14 +6212,14 @@ a:focus-visible{
         </div>
       </div>
 
-      <div id="tab-profile" style="display:none; background:transparent; border:none; box-shadow:none">
-        <div style="margin-bottom:32px">
+      <div id="tab-profile" style="display:none; background:transparent; border:none; box-shadow:none; width:100%; max-width:100%; box-sizing:border-box">
+        <div style="margin-bottom:32px; width:100%; max-width:100%; box-sizing:border-box">
           <h2 style="margin:0 0 8px">Account Settings</h2>
           <p class="muted" style="margin:0;font-size:15px">Manage your professional profile and service preferences</p>
         </div>
 
         <!-- Personal Info Section -->
-        <div style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:28px;margin-bottom:24px">
+        <div style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:28px;margin-bottom:24px;width:100%;max-width:100%;box-sizing:border-box">
           <h3 style="font-size:16px;font-weight:600;margin:0 0 20px;color:#cbd5e1;display:flex;align-items:center;gap:10px">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A9BFF" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -6265,16 +6230,16 @@ a:focus-visible{
           <div style="display:grid;gap:20px">
             <!-- Profile Photo Upload -->
             <div>
-              <label class="label" style="display:block;margin-bottom:12px;font-weight:600;color:#cbd5e1">
+              <label class="label" style="display:block;margin-bottom:var(--control-gap);font-weight:600;color:var(--text);font-size:14px">
                 Profile Photo
-                <span style="display:block;font-weight:400;font-size:13px;color:#94a3b8;margin-top:4px">
+                <span style="display:block;font-weight:400;font-size:13px;color:var(--text-muted);margin-top:4px;line-height:1.4">
                   This photo will be shared with customers when you accept a job. Please choose a professional, clear headshot.
                 </span>
               </label>
-              <div style="display:flex;gap:16px;align-items:start">
+              <div style="display:flex;gap:var(--card-gap);align-items:start">
                 <!-- Photo Preview -->
                 <div style="flex-shrink:0">
-                  <div id="pfPhotoPreview" style="width:120px;height:120px;border-radius:12px;overflow:hidden;background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);display:flex;align-items:center;justify-content:center">
+                  <div id="pfPhotoPreview" style="width:120px;height:120px;border-radius:var(--radius);overflow:hidden;background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);display:flex;align-items:center;justify-content:center;box-sizing:border-box">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1A9BFF" stroke-width="2" style="opacity:.3">
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
@@ -6288,28 +6253,28 @@ a:focus-visible{
                   <input type="file" id="pfPhotoInputLibrary" accept="image/*" style="display:none">
                   <input type="hidden" id="pfPhoto">
                   
-                  <div style="display:flex; gap:10px; margin-bottom:12px;">
-                    <button id="btnTakePhoto" type="button" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; font-size:13px; font-weight:500; color:#e0f2fe; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; cursor:pointer; transition:all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.1)'">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.9">
+                  <div style="display:flex; gap:var(--control-gap); margin-bottom:var(--control-gap); width:100%; box-sizing:border-box">
+                    <button id="btnTakePhoto" type="button" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--gap-sm); padding:var(--control-pad); min-height:var(--control-h); font-size:13px; font-weight:500; color:var(--text); background:var(--surface); border:var(--border); border-radius:var(--radius); cursor:pointer; transition:var(--transition); box-sizing:border-box; width:100%; max-width:100%" onmouseover="this.style.background='var(--surface-elevated)';this.style.borderColor='rgba(255,255,255,0.2)'" onmouseout="this.style.background='var(--surface)';this.style.borderColor='rgba(255,255,255,0.14)'" onmousedown="this.style.transform='scale(0.98)';this.style.opacity='0.9'" onmouseup="this.style.transform='scale(1)';this.style.opacity='1'">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.9;flex-shrink:0">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                         <circle cx="12" cy="13" r="4"></circle>
                       </svg>
-                      Take Photo
+                      <span>Take Photo</span>
                     </button>
-                    <button id="btnChooseLibrary" type="button" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px; font-size:13px; font-weight:500; color:#e0f2fe; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; cursor:pointer; transition:all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='rgba(255,255,255,0.1)'">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.9">
+                    <button id="btnChooseLibrary" type="button" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--gap-sm); padding:var(--control-pad); min-height:var(--control-h); font-size:13px; font-weight:500; color:var(--text); background:var(--surface); border:var(--border); border-radius:var(--radius); cursor:pointer; transition:var(--transition); box-sizing:border-box; width:100%; max-width:100%" onmouseover="this.style.background='var(--surface-elevated)';this.style.borderColor='rgba(255,255,255,0.2)'" onmouseout="this.style.background='var(--surface)';this.style.borderColor='rgba(255,255,255,0.14)'" onmousedown="this.style.transform='scale(0.98)';this.style.opacity='0.9'" onmouseup="this.style.transform='scale(1)';this.style.opacity='1'">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.9;flex-shrink:0">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                         <polyline points="21 15 16 10 5 21"></polyline>
                       </svg>
-                      Library
+                      <span>Library</span>
                     </button>
                   </div>
 
-                  <p class="muted" style="margin:0;font-size:13px;line-height:1.5">
+                  <p class="muted" style="margin:0;font-size:13px;line-height:1.4;color:var(--text-muted)">
                     Customers see this when you're assigned to their job
                   </p>
-                  <div id="pfPhotoUploading" style="display:none;margin-top:12px;padding:10px;background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);border-radius:8px;font-size:13px">
+                  <div id="pfPhotoUploading" style="display:none;margin-top:var(--control-gap);padding:var(--gap-sm) var(--control-gap);background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);border-radius:var(--radius-sm);font-size:13px;box-sizing:border-box">
                     <div style="display:flex;align-items:center;gap:8px">
                       <div class="spin" style="width:16px;height:16px;border-width:2px"></div>
                       <span>Uploading photo...</span>
@@ -6320,69 +6285,69 @@ a:focus-visible{
             </div>
             <!-- Vehicle Description -->
             <div>
-              <label class="label" for="pfVehicle" style="display:block;margin-bottom:8px;font-weight:600;color:#cbd5e1">Vehicle Description</label>
-              <input id="pfVehicle" class="input" placeholder="2018 blue Ford F-150" style="font-size:15px">
-              <p class="muted" style="margin:6px 0 0;font-size:13px">Helps customers identify you on arrival</p>
+              <label class="label" for="pfVehicle" style="display:block;margin-bottom:var(--gap-sm);font-weight:600;color:var(--text);font-size:14px">Vehicle Description</label>
+              <input id="pfVehicle" class="input" placeholder="2018 blue Ford F-150" style="width:100%;max-width:100%;box-sizing:border-box">
+              <p class="muted" style="margin:var(--gap-sm) 0 0;font-size:13px;color:var(--text-muted);line-height:1.4">Helps customers identify you on arrival</p>
             </div>
             <div>
-              <label class="label" for="pfBio" style="display:block;margin-bottom:8px;font-weight:600;color:#cbd5e1">Short Bio</label>
-              <textarea id="pfBio" class="textarea" placeholder="Hi! I'm a certified technician with 5+ years of experience. I specialize in smart home installations and pride myself on clean, professional work." style="min-height:100px;font-size:15px;line-height:1.6"></textarea>
-              <p class="muted" style="margin:6px 0 0;font-size:13px">Tell customers about your experience and what makes you great at your job</p>
+              <label class="label" for="pfBio" style="display:block;margin-bottom:var(--gap-sm);font-weight:600;color:var(--text);font-size:14px">Short Bio</label>
+              <textarea id="pfBio" class="textarea" placeholder="Hi! I'm a certified technician with 5+ years of experience. I specialize in smart home installations and pride myself on clean, professional work." style="width:100%;max-width:100%;min-height:100px;box-sizing:border-box;resize:vertical"></textarea>
+              <p class="muted" style="margin:var(--gap-sm) 0 0;font-size:13px;color:var(--text-muted);line-height:1.4">Tell customers about your experience and what makes you great at your job</p>
             </div>
             
             <!-- W-9 Form Upload -->
-            <div style="margin-top:24px">
-              <label class="label" style="display:block;margin-bottom:12px;font-weight:600;color:#cbd5e1">
+            <div class="w9-upload-section" style="margin-top:var(--gap-xl)">
+              <label class="label" style="display:block;margin-bottom:var(--gap-md);font-weight:600;color:#cbd5e1;line-height:1.5">
                 W-9 Tax Form
-                <span style="display:block;font-weight:400;font-size:13px;color:#94a3b8;margin-top:4px">
+                <span style="display:block;font-weight:400;font-size:13px;color:#94a3b8;margin-top:4px;line-height:1.5">
                   Required for payment processing. Download the form below, fill it out, then upload it here.
                 </span>
               </label>
               
               <div id="w9UploadContainer" style="position:relative">
                 <!-- Download W-9 Template Link -->
-                <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.2);border-radius:8px;color:var(--h2s-text-main);font-size:13px;font-weight:500;text-decoration:none;transition:all .2s" onmouseover="this.style.background='rgba(148,163,184,.12)';this.style.borderColor='rgba(148,163,184,.3)'" onmouseout="this.style.background='rgba(148,163,184,.08)';this.style.borderColor='rgba(148,163,184,.2)'">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <div class="w9-download-row" style="margin-bottom:var(--gap-md);display:flex;align-items:center;gap:var(--gap-sm);flex-wrap:wrap">
+                  <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener noreferrer" class="w9-download-btn" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px var(--gap-lg);background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.2);border-radius:var(--radius-sm);color:var(--h2s-text-main);font-size:13px;font-weight:500;text-decoration:none;transition:all var(--transition);min-height:40px;flex:1;min-width:0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
                       <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Download W-9 Form Template
+                    <span>Download W-9 Form Template</span>
                   </a>
-                  <span style="font-size:12px;color:var(--h2s-text-muted)">Fill it out, then upload below</span>
+                  <span class="w9-helper-text" style="font-size:12px;color:var(--h2s-text-muted);line-height:1.4;flex:1;min-width:100%">Fill it out, then upload below</span>
                 </div>
                 
                 <!-- Upload Tile (Dropbox-style) -->
-                <div id="w9UploadTile" style="border:2px dashed rgba(148,163,184,.3);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(148,163,184,.02)" onmouseover="this.style.borderColor='rgba(148,163,184,.5)';this.style.background='rgba(148,163,184,.04)'" onmouseout="this.style.borderColor='rgba(148,163,184,.3)';this.style.background='rgba(148,163,184,.02)'" onclick="$('w9FileInput').click()">
+                <div id="w9UploadTile" class="w9-upload-tile" style="border:2px dashed rgba(148,163,184,.3);border-radius:var(--radius);padding:var(--gap-xl);text-align:center;cursor:pointer;transition:all var(--transition);background:rgba(148,163,184,.02);min-height:140px;display:flex;align-items:center;justify-content:center" onclick="$('w9FileInput').click()">
                   <input type="file" id="w9FileInput" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" style="display:none">
-                  <div id="w9UploadContent">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 12px;color:var(--h2s-text-muted);opacity:.6">
+                  <div id="w9UploadContent" style="width:100%">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto var(--gap-md);color:var(--h2s-text-muted);opacity:.6;display:block">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="17 8 12 3 7 8"></polyline>
                       <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
-                    <div style="font-size:15px;font-weight:600;color:var(--h2s-text-main);margin-bottom:6px">Drop W-9 here or tap to upload</div>
-                    <div style="font-size:13px;color:var(--h2s-text-muted)">PDF, JPG, or PNG (max 10MB)</div>
+                    <div style="font-size:15px;font-weight:600;color:var(--h2s-text-main);margin-bottom:var(--gap-sm);line-height:1.4">Drop W-9 here or tap to upload</div>
+                    <div style="font-size:13px;color:var(--h2s-text-muted);line-height:1.4">PDF, JPG, or PNG (max 10MB)</div>
                   </div>
-                  <div id="w9UploadPreview" style="display:none">
-                    <div style="display:flex;align-items:center;gap:12px;justify-content:center">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--h2s-brand-green)">
+                  <div id="w9UploadPreview" style="display:none;width:100%">
+                    <div style="display:flex;align-items:center;gap:var(--gap-md);justify-content:center;flex-wrap:wrap">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--h2s-brand-green);flex-shrink:0">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                       </svg>
-                      <div>
-                        <div style="font-size:14px;font-weight:600;color:var(--h2s-text-main)" id="w9FileName">W-9 uploaded</div>
-                        <div style="font-size:12px;color:var(--h2s-text-muted)" id="w9UploadDate"></div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:14px;font-weight:600;color:var(--h2s-text-main);line-height:1.3;word-break:break-word" id="w9FileName">W-9 uploaded</div>
+                        <div style="font-size:12px;color:var(--h2s-text-muted);line-height:1.3;margin-top:2px" id="w9UploadDate"></div>
                       </div>
-                      <button type="button" onclick="event.stopPropagation();handleW9Reupload()" style="margin-left:auto;padding:6px 12px;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.2);border-radius:8px;color:var(--h2s-text-main);font-size:12px;cursor:pointer">Replace</button>
+                      <button type="button" onclick="event.stopPropagation();handleW9Reupload()" style="flex-shrink:0;padding:6px var(--gap-md);background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.2);border-radius:var(--radius-sm);color:var(--h2s-text-main);font-size:12px;cursor:pointer;transition:all var(--transition);min-height:32px">Replace</button>
                     </div>
                   </div>
                 </div>
                 
-                <div id="w9UploadStatus" style="display:none;margin-top:12px;padding:10px;background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);border-radius:8px;font-size:13px">
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <div class="spin" style="width:16px;height:16px;border-width:2px"></div>
+                <div id="w9UploadStatus" style="display:none;margin-top:var(--gap-md);padding:var(--gap-md);background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);border-radius:var(--radius-sm);font-size:13px">
+                  <div style="display:flex;align-items:center;gap:var(--gap-sm)">
+                    <div class="spin" style="width:16px;height:16px;border-width:2px;flex-shrink:0"></div>
                     <span>Uploading W-9...</span>
                   </div>
                 </div>
@@ -6392,7 +6357,7 @@ a:focus-visible{
         </div>
 
         <!-- Service Settings Section -->
-        <div style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:28px;margin-bottom:24px;position:relative;overflow:hidden">
+        <div style="background:linear-gradient(155deg, #0f172a, #020617);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:28px;margin-bottom:24px;position:relative;overflow:hidden;width:100%;max-width:100%;box-sizing:border-box">
           <div style="position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,rgba(16,155,103,.6) 0%,rgba(31,191,131,.4) 50%,rgba(16,155,103,.2) 100%)"></div>
           <h3 style="font-size:16px;font-weight:600;margin:0 0 20px;color:#cbd5e1;display:flex;align-items:center;gap:10px">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#109b67" stroke-width="2">
@@ -6418,11 +6383,11 @@ a:focus-visible{
               </p>
             </div>
             <div>
-              <label class="label" for="pfMax" style="display:block;margin-bottom:8px;font-weight:600;color:#cbd5e1">
+              <label class="label" for="pfMax" style="display:block;margin-bottom:var(--gap-sm);font-weight:600;color:var(--text);font-size:14px">
                 Daily Job Capacity
-                <span style="font-weight:400;opacity:.7;font-size:12px;margin-left:8px">(jobs per day)</span>
+                <span style="font-weight:400;opacity:.7;font-size:12px;margin-left:var(--gap-sm);color:var(--text-muted)">(jobs per day)</span>
               </label>
-              <input id="pfMax" class="input" inputmode="numeric" placeholder="5" style="font-size:18px;font-weight:600;padding:16px">
+              <input id="pfMax" class="input" inputmode="numeric" placeholder="5" style="width:100%;max-width:100%;box-sizing:border-box">
               <p class="muted" style="margin:8px 0 0;font-size:13px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -8401,8 +8366,10 @@ window.POST = async function POST(action, payload={}) {
       // Vercel expects JSON body
       const headers = { "Content-Type": "application/json" };
       
-      // Add Authorization header if token is present in payload
-      if (payload.token) {
+      // Note: Authorization header removed for portal_upload_w9 to avoid CORS preflight issues
+      // Token is sent in body instead (handled by endpoint)
+      // For other endpoints, Authorization header may still be needed
+      if (payload.token && action !== 'portal_upload_w9') {
         headers["Authorization"] = `Bearer ${payload.token}`;
       }
       
@@ -8477,7 +8444,8 @@ window.POST = async function POST(action, payload={}) {
       return data;
     }
   } catch (error) {
-    console.error(`[POST] ${action} exception:`, error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[POST] ${action} exception:`, errorMsg, error);
     throw error;
   }
 }
@@ -8751,12 +8719,6 @@ function showPortal() {
   $("view-auth").setAttribute("aria-hidden", "true");
   $("view-portal").setAttribute("aria-hidden", "false");
   $("view-admin").setAttribute("aria-hidden", "true");
-  
-  // Initialize communication hub with culture slogan while loading
-  const cultureSloganSection = $("cultureSloganSection");
-  const activeAnnouncementsSection = $("activeAnnouncementsSection");
-  if (cultureSloganSection) cultureSloganSection.style.display = "block";
-  if (activeAnnouncementsSection) activeAnnouncementsSection.style.display = "none";
   
   // 🚀 PARALLEL LOAD: Launch announcements in background (non-blocking)
   loadProAnnouncements().catch(err => {
@@ -13023,16 +12985,26 @@ if (w9FileInput) {
   if (w9UploadTile) {
     w9UploadTile.addEventListener("dragover", (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      w9UploadTile.classList.add("drag-over");
       w9UploadTile.style.borderColor = "rgba(148,163,184,.6)";
       w9UploadTile.style.background = "rgba(148,163,184,.06)";
     });
     w9UploadTile.addEventListener("dragleave", (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      w9UploadTile.classList.remove("drag-over");
       w9UploadTile.style.borderColor = "rgba(148,163,184,.3)";
       w9UploadTile.style.background = "rgba(148,163,184,.02)";
     });
+    w9UploadTile.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
     w9UploadTile.addEventListener("drop", (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      w9UploadTile.classList.remove("drag-over");
       w9UploadTile.style.borderColor = "rgba(148,163,184,.3)";
       w9UploadTile.style.background = "rgba(148,163,184,.02)";
       const files = e.dataTransfer.files;
@@ -13082,8 +13054,15 @@ async function handleW9Upload(e) {
           mimetype: file.type
         });
         
-        if (!response.ok) {
-          throw new Error(response.error || "Upload failed");
+        // Check if response is valid and has ok property
+        if (!response || response.ok === false) {
+          const errorMsg = response?.error || response?.error_code || "Upload failed";
+          throw new Error(errorMsg);
+        }
+        
+        // Verify we got the expected fields
+        if (!response.w9_file_url || !response.w9_status) {
+          throw new Error("Invalid response from server");
         }
         
         // Show success
@@ -13105,9 +13084,10 @@ async function handleW9Upload(e) {
         
       } catch (err) {
         console.error("[W9 Upload] Error:", err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
         if (statusDiv) statusDiv.style.display = "none";
         if (uploadContent) uploadContent.style.display = "block";
-        toast(err.message || "Failed to upload W-9", "error");
+        toast(errorMsg || "Failed to upload W-9", "error");
       }
     };
     
@@ -13121,9 +13101,10 @@ async function handleW9Upload(e) {
     
   } catch (err) {
     console.error("[W9 Upload] Error:", err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
     if (statusDiv) statusDiv.style.display = "none";
     if (uploadContent) uploadContent.style.display = "block";
-    toast(err.message || "Upload failed", "error");
+    toast(errorMsg || "Upload failed", "error");
   }
 }
 
@@ -15447,6 +15428,7 @@ async function rejectBOMImprovement(improvementId) {
     btnOpenTimeOffModal.addEventListener("click", () => window.openTimeOffModal());
   }
   
+  
   // Time off modal - cancel button
   const btnCancelTimeOffModal = $("btnCancelTimeOffModal");
   if (btnCancelTimeOffModal) {
@@ -15515,20 +15497,36 @@ async function rejectBOMImprovement(improvementId) {
 // NOTE: We're already inside an outer DOMContentLoaded; handlers attached above.
 
 /* ===== TIME OFF REQUESTS ===== */
+async function loadTimeOffRequests() {
+  console.log('[TimeOff] 🔄 loadTimeOffRequests() called (alias for loadSchedule)');
+  // Alias for loadSchedule to match modal call
+  return loadSchedule();
+}
+
 async function loadSchedule() {
+  console.log('[TimeOff] 🔄 loadSchedule() called');
   try {
     // ✅ PERFORMANCE: Check cache first (5 min TTL)
     const now = Date.now();
     if (scheduleCache && scheduleCache._timestamp && (now - scheduleCache._timestamp < 300000)) {
-      console.log("✅ Using cached schedule");
+      console.log('[TimeOff] ⚡ Using cached schedule (age:', Math.round((now - scheduleCache._timestamp)/1000), 's)');
       displayTimeOffRequests(scheduleCache.items);
       return;
     }
     
+    console.log('[TimeOff] 📡 Fetching from API...');
     loading(true);
     
     // Call availability endpoint
     const out = await GET("portal_availability", {token, action: 'get'});
+    
+    console.log('[TimeOff] 📥 API Response:', {
+      ok: out.ok,
+      error: out.error,
+      rowsCount: out.rows ? out.rows.length : 0,
+      itemsCount: out.items ? out.items.length : 0,
+      fullResponse: out
+    });
     
     if (!out.ok) {
       console.warn("⚠️ Could not load time off requests (non-critical):", out.error);
@@ -15537,8 +15535,10 @@ async function loadSchedule() {
       return;
     }
     
-    // ✅ Cache with timestamp
-    const items = out.items || [];
+    // ✅ Backend returns 'rows', not 'items' - fix the mismatch
+    const items = out.rows || out.items || [];
+    console.log('[TimeOff] Parsed items:', items.length, items);
+    
     scheduleCache = { items, _timestamp: now };
     
     displayTimeOffRequests(items);
@@ -15552,12 +15552,47 @@ async function loadSchedule() {
 }
 
 function displayTimeOffRequests(items) {
+  console.log('[TimeOff] 🎨 displayTimeOffRequests() called with', items ? items.length : 0, 'items');
   const container = $("time-off-list");
   
+  if (!container) {
+    console.error('[TimeOff] ❌ Container element #time-off-list not found!');
+    return;
+  }
+  
+  console.log('[TimeOff] ✅ Container found:', container);
+  
+  if (!items || !Array.isArray(items)) {
+    console.warn('[TimeOff] ⚠️ Invalid items array:', items);
+    items = [];
+  }
+  
+  console.log('[TimeOff] 📊 Displaying', items.length, 'total items from API');
+  
   // Filter to only vacation/time off requests
-  const timeOffRequests = items.filter(i => i.type === 'vacation').sort((a,b) => 
-    new Date(a.date_local) - new Date(b.date_local)
-  );
+  // Accept 'vacation', 'blocked', 'sick', 'personal' as time off types
+  const filteredOut = [];
+  const timeOffRequests = items.filter(i => {
+    if (!i || !i.type) {
+      filteredOut.push({item: i, reason: 'missing type or null item'});
+      return false;
+    }
+    const type = (i.type || '').toLowerCase();
+    const isTimeOff = type === 'vacation' || type === 'blocked' || type === 'sick' || type === 'personal';
+    if (!isTimeOff) {
+      filteredOut.push({item: i, reason: `type '${type}' not a time off type`});
+    }
+    return isTimeOff;
+  }).sort((a,b) => {
+    const dateA = a.date_local ? new Date(a.date_local) : new Date(0);
+    const dateB = b.date_local ? new Date(b.date_local) : new Date(0);
+    return dateA - dateB;
+  });
+  
+  console.log('[TimeOff] 🔍 Filtered to', timeOffRequests.length, 'time off requests:', timeOffRequests);
+  if (filteredOut.length > 0) {
+    console.log('[TimeOff] ⚠️ Filtered out', filteredOut.length, 'items:', filteredOut);
+  }
   
   if (timeOffRequests.length === 0) {
     container.innerHTML = `
@@ -15579,25 +15614,51 @@ function displayTimeOffRequests(items) {
   
   let html = '<div class="availability-section-modern">';
   timeOffRequests.forEach(item => {
-    const dateStr = new Date(item.date_local).toLocaleDateString('en-US', {
+    // Handle date parsing - backend may return date_local as string
+    let dateObj;
+    try {
+      dateObj = item.date_local ? new Date(item.date_local) : new Date();
+      if (isNaN(dateObj.getTime())) {
+        console.warn('[TimeOff] Invalid date:', item.date_local);
+        dateObj = new Date();
+      }
+    } catch(e) {
+      console.warn('[TimeOff] Date parse error:', e, item.date_local);
+      dateObj = new Date();
+    }
+    
+    const dateStr = dateObj.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
+    
+    // Use availability_id or avail_id (backend may use either)
+    const availId = item.availability_id || item.avail_id || item.id;
+    const reason = item.reason || item.type || 'Time Off';
+    
+    if (!availId) {
+      console.warn('[TimeOff] Missing ID for item:', item);
+      return; // Skip items without ID
+    }
+    
     html += `
       <div class="availability-item-modern type-vacation">
         <div class="availability-info-modern">
-          <div class="availability-type-badge vacation">${item.reason || 'Time Off'}</div>
+          <div class="availability-type-badge vacation">${reason}</div>
           <div class="availability-details-modern">${dateStr}</div>
         </div>
-        <button class="btn-delete-modern" onclick="deleteAvailability('${item.avail_id}')" type="button">Cancel</button>
+        <button class="btn-delete-modern" onclick="deleteAvailability('${availId}')" type="button">Cancel</button>
       </div>
     `;
   });
   html += '</div>';
   
   container.innerHTML = html;
+  console.log('[TimeOff] ✅ Rendered', timeOffRequests.length, 'time off requests');
+  console.log('[TimeOff] 📝 Container innerHTML length:', container.innerHTML.length, 'characters');
+  console.log('[TimeOff] ✅ displayTimeOffRequests() complete');
 }
 
 // ✅ Make time off modal functions globally accessible for onclick handlers
@@ -15615,6 +15676,9 @@ window.openTimeOffModal = function() {
   modal.style.display = "grid";
   modal.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
+  
+  // ✅ Load and display time off requests when modal opens
+  loadTimeOffRequests();
   
   // Set up date input with min/max
   const today = new Date();
@@ -16049,20 +16113,61 @@ window.submitSupportTicket = async function() {
 };
 
 window.deleteAvailability = async function(avail_id) {
-  if (!confirm("Cancel this time off request?")) return;
+  console.log('[TimeOff] 🗑️ deleteAvailability() called for ID:', avail_id);
+  
+  if (!avail_id) {
+    console.error('[TimeOff] ❌ No availability ID provided');
+    toast("Error: Missing request ID");
+    return;
+  }
+  
+  if (!confirm("Cancel this time off request?")) {
+    console.log('[TimeOff] ❌ User cancelled deletion');
+    return;
+  }
+  
   try {
     loading(true);
-    const out = await POST("portal_availability?action=remove", {token, avail_id});
+    console.log('[TimeOff] 📡 Sending delete request to API...');
+    
+    // Backend expects 'delete' action, not 'remove', and uses 'availability_id' or 'avail_id'
+    const out = await POST("portal_availability", {
+      token, 
+      action: 'delete', 
+      avail_id: avail_id, 
+      availability_id: avail_id
+    });
+    
+    console.log('[TimeOff] 📥 Delete API response:', {
+      ok: out.ok,
+      error: out.error,
+      error_code: out.error_code,
+      fullResponse: out
+    });
+    
     if (out.ok) {
-      toast("Availability removed");
+      console.log('[TimeOff] ✅ Delete successful - clearing cache and refreshing...');
+      toast("Time off request cancelled");
+      
+      // Clear cache to force refresh
+      scheduleCache = null;
+      console.log('[TimeOff] 🧹 Cache cleared');
+      
+      // Reload schedule to reflect deletion
       await loadSchedule();
+      console.log('[TimeOff] ✅ Schedule refreshed after deletion');
     } else {
-      toast(out.error || "Could not remove availability");
+      const errorMsg = out.error || "Could not cancel time off request";
+      console.error('[TimeOff] ❌ Delete failed:', errorMsg, out.error_code);
+      toast(errorMsg);
     }
   } catch(e) {
-    toast("Error removing availability");
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error('[TimeOff] ❌ Delete exception:', errorMsg, e);
+    toast("Error: " + errorMsg);
   } finally {
     loading(false);
+    console.log('[TimeOff] ✅ deleteAvailability() complete');
   }
 }
 
@@ -18188,7 +18293,6 @@ async function loadProAnnouncements() {
     viewedAnnouncementIds = new Set((cached.viewed_ids || []).map(String));
     console.log(`[Announcements] 📦 Cached: ${proAnnouncementsCache.length} announcements`);
     updateAnnouncementBanner();
-    updateCommunicationHub();
     return;
   }
   
@@ -18213,7 +18317,6 @@ async function loadProAnnouncements() {
     });
     
     updateAnnouncementBanner();
-    updateCommunicationHub();
     
     // Auto-show urgent unread announcements (delayed so it doesn't block portal load)
     const urgentUnread = proAnnouncementsCache.filter(a => 
@@ -18225,26 +18328,16 @@ async function loadProAnnouncements() {
     }
   } catch (err) {
     console.error('⚠️ Error loading announcements (non-critical):', err);
-    // Fallback UI - don't block portal
-    const cultureSloganSection = $("cultureSloganSection");
-    const activeAnnouncementsSection = $("activeAnnouncementsSection");
-    if (cultureSloganSection) cultureSloganSection.style.display = "block";
-    if (activeAnnouncementsSection) activeAnnouncementsSection.style.display = "none";
   }
 }
 
 function updateAnnouncementBanner() {
-  // If Communication Hub exists, don't use the legacy banner to avoid duplicates
-  if ($("communicationHub")) {
-    const banner = $("announcementBanner");
-    if (banner) banner.style.display = "none";
-    return;
-  }
-
-  // Legacy banner - may not exist on all views, so check first
+  // Announcement banner - shows unread announcements on dashboard
+  // Mobile-optimized: compact design, full-width on mobile
+  console.log('[Announcements] 🔄 updateAnnouncementBanner() called');
   const banner = $("announcementBanner");
   if (!banner) {
-    // console.log('[Banner] Old announcement banner element not found (OK - using Communication Hub instead)');
+    console.log('[Announcements] ⚠️ Banner element not found');
     return; // Exit gracefully if banner doesn't exist
   }
   
@@ -18257,13 +18350,22 @@ function updateAnnouncementBanner() {
   
   // ✅ FIX: Ensure banner only shows for ACTIVE announcements (matching Communication Hub logic)
   const now = new Date();
-  const activeUnreadCount = proAnnouncementsCache.filter(a => 
-    !viewedAnnouncementIds.has(a.announcement_id) && 
+  const activeAnnouncements = proAnnouncementsCache.filter(a => 
     (a.is_active !== false) && 
     (!a.expires_at || new Date(a.expires_at) > now)
-  ).length;
+  );
+  const activeUnreadCount = activeAnnouncements.filter(a => !viewedAnnouncementIds.has(a.announcement_id)).length;
+  
+  console.log('[Announcements] 📊 Cache state:', {
+    totalAnnouncements: proAnnouncementsCache.length,
+    activeAnnouncements: activeAnnouncements.length,
+    unreadCount: unreadCount,
+    activeUnreadCount: activeUnreadCount,
+    viewedIds: Array.from(viewedAnnouncementIds)
+  });
   
   if (activeUnreadCount > 0) {
+    console.log('[Announcements] ✅ Showing banner with', activeUnreadCount, 'unread announcement(s)');
     banner.style.display = "block";
     if (badge) badge.textContent = activeUnreadCount;
     
@@ -18296,8 +18398,11 @@ function updateAnnouncementBanner() {
       if (badge) badge.style.background = "#3b82f6";
     }
   } else {
+    console.log('[Announcements] ℹ️ No active unread announcements - hiding banner');
     banner.style.display = "none";
   }
+  
+  console.log('[Announcements] ✅ Banner update complete. Display:', banner.style.display);
 }
 
 function openAnnouncementsModal() {
@@ -18380,7 +18485,6 @@ async function markAnnouncementAsViewed(announcementId) {
     if (result.ok) {
       viewedAnnouncementIds.add(String(announcementId));
       updateAnnouncementBanner();
-      updateCommunicationHub(); // Update the communication hub
       openAnnouncementsModal(); // Refresh the modal display
       
       // Show subtle success feedback
@@ -18398,142 +18502,6 @@ async function markAnnouncementAsViewed(announcementId) {
   }
 }
 
-/* ===== COMMUNICATION HUB (PRO DASHBOARD) ===== */
-
-function updateCommunicationHub() {
-  console.log('[CommunicationHub] 🔄 Updating with', proAnnouncementsCache.length, 'announcements');
-  
-  const cultureSloganSection = $("cultureSloganSection");
-  const activeAnnouncementsSection = $("activeAnnouncementsSection");
-  const announcementCardsContainer = $("announcementCardsContainer");
-  const announcementCount = $("announcementCount");
-  
-  console.log('[CommunicationHub] DOM elements:', {
-    cultureSloganSection: !!cultureSloganSection,
-    activeAnnouncementsSection: !!activeAnnouncementsSection,
-    announcementCardsContainer: !!announcementCardsContainer,
-    announcementCount: !!announcementCount
-  });
-  
-  if (!cultureSloganSection || !activeAnnouncementsSection) {
-    console.warn('[CommunicationHub] ⚠️ Missing required DOM elements');
-    return;
-  }
-  
-  // Filter active, non-expired announcements
-  // ✅ FIX: Be permissive with is_active (treat undefined as true) to ensure announcements show up
-  const now = new Date();
-  const activeAnnouncements = proAnnouncementsCache.filter(a => 
-    (a.is_active !== false) && (!a.expires_at || new Date(a.expires_at) > now)
-  );
-  
-  console.log(`[CommunicationHub] 📊 Filtered: ${activeAnnouncements.length} active announcements`);
-  
-  if (activeAnnouncements.length === 0) {
-    console.log('[CommunicationHub] 💬 No active announcements - showing culture slogan');
-    cultureSloganSection.style.display = "block";
-    activeAnnouncementsSection.style.display = "none";
-  } else {
-    console.log('[CommunicationHub] 📢 Showing announcements section');
-    cultureSloganSection.style.display = "none";
-    activeAnnouncementsSection.style.display = "block";
-    
-    const unreadCount = activeAnnouncements.filter(a => !viewedAnnouncementIds.has(a.announcement_id)).length;
-    
-    console.log(`[CommunicationHub] 📬 Unread: ${unreadCount}, Total: ${activeAnnouncements.length}`);
-    
-    if (announcementCount) {
-      announcementCount.textContent = unreadCount > 0 
-        ? `${unreadCount} new message${unreadCount > 1 ? 's' : ''} from dispatch`
-        : `${activeAnnouncements.length} active message${activeAnnouncements.length > 1 ? 's' : ''}`;
-    }
-    
-    // Render top 2 announcements
-    console.log('[CommunicationHub] 🎨 Rendering announcement cards...');
-    
-    if (!announcementCardsContainer) {
-      console.error('[CommunicationHub] ❌ announcementCardsContainer not found!');
-      return;
-    }
-    
-    announcementCardsContainer.innerHTML = activeAnnouncements.slice(0, 2).map(a => {
-      const isUnread = !viewedAnnouncementIds.has(a.announcement_id);
-      // Clean date format: "Nov 27" instead of verbose timestamp
-      const createdDate = new Date(a.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-      
-      const typeStyles = {
-        info: { 
-            bg: 'rgba(59,130,246,0.08)', 
-            border: 'rgba(59,130,246,0.2)', 
-            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', 
-            color: '#60a5fa', 
-            label: 'Info' 
-        },
-        update: { 
-            bg: 'rgba(16,185,129,0.08)', 
-            border: 'rgba(16,185,129,0.2)', 
-            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>', 
-            color: '#34d399', 
-            label: 'Update' 
-        },
-        warning: { 
-            bg: 'rgba(245,158,11,0.08)', 
-            border: 'rgba(245,158,11,0.2)', 
-            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', 
-            color: '#fbbf24', 
-            label: 'Warning' 
-        },
-        urgent: { 
-            bg: 'rgba(239,68,68,0.08)', 
-            border: 'rgba(239,68,68,0.2)', 
-            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>', 
-            color: '#f87171', 
-            label: 'Urgent' 
-        }
-      };
-      
-      const style = typeStyles[a.type] || typeStyles.info;
-      
-      // Extract video embed (optimized)
-      let videoEmbed = '';
-      if (a.video_url) {
-        const loomMatch = a.video_url.match(/loom\.com\/share\/([a-f0-9]+)/);
-        const ytMatch = a.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
-        
-        if (loomMatch) {
-          videoEmbed = `<div style="margin-top:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.2)"><iframe src="https://www.loom.com/embed/${loomMatch[1]}" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="width:100%;height:100%"></iframe></div>`;
-        } else if (ytMatch) {
-          videoEmbed = `<div style="margin-top:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;box-shadow:0 4px 12px rgba(0,0,0,0.2)"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen style="width:100%;height:100%"></iframe></div>`;
-        }
-      }
-      
-      return `<div onclick="openAnnouncementsModal()" style="background:${style.bg};border:1px solid ${style.border};border-radius:16px;padding:20px;position:relative;${isUnread ? 'box-shadow:0 0 0 2px rgba(59,130,246,0.15)' : ''};cursor:pointer;transition:all 0.2s;margin-bottom:0" class="announcement-card" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='${isUnread ? '0 0 0 2px rgba(59,130,246,0.15)' : ''}'">
-          ${isUnread ? `<div style="position:absolute;top:16px;right:16px;width:10px;height:10px;background:#3b82f6;border-radius:50%;box-shadow:0 0 8px rgba(59,130,246,0.6)" class="unread-dot"></div>` : ''}
-          <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:12px">
-            <div style="display:flex;align-items:center;gap:14px">
-              <div style="color:${style.color};display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(255,255,255,0.1);border-radius:10px" class="announcement-card-icon">${style.icon}</div>
-              <div>
-                <h4 style="margin:0;font-size:17px;font-weight:700;color:#f1f5f9;line-height:1.3" class="announcement-card-title">${a.title}</h4>
-                <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
-                  <span style="font-size:11px;font-weight:600;color:${style.color};text-transform:uppercase;letter-spacing:0.5px">${style.label}</span>
-                  <span style="color:#64748b;font-size:12px">• ${createdDate}</span>
-                  ${a.priority > 50 ? `<span style="background:rgba(239,68,68,0.15);color:#f87171;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px">Priority ${a.priority}</span>` : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-          ${a.message ? `<p style="margin:10px 0 0 0;color:#cbd5e1;font-size:14px;line-height:1.6" class="announcement-preview">${a.message.split('\n').slice(0, 3).join('<br>')}</p>` : ''}
-          ${videoEmbed}
-          <div style="margin-top:14px;display:flex;gap:10px;align-items:center" class="announcement-actions">
-            ${isUnread ? `<button onclick="event.stopPropagation();markAnnouncementAsViewed('${a.announcement_id}')" style="background:${style.color};border:none;color:#0f172a;padding:8px 16px;border-radius:12px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s;box-shadow:0 2px 6px rgba(0,0,0,0.1)" onmouseover="this.style.opacity='0.9';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">Mark as Read</button>` : `<span style="color:#64748b;font-size:13px;display:flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Read</span>`}
-            ${a.video_url ? `<a href="${a.video_url}" target="_blank" onclick="event.stopPropagation()" style="color:${style.color};font-size:13px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:4px" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Open Video <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></a>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-    
-    console.log(`[CommunicationHub] ✅ Rendered ${activeAnnouncements.slice(0, 2).length} announcement cards`);
-  }
-}
 
 /* ===== PAYOUT ACTIONS ===== */
 
