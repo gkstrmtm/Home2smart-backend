@@ -2999,11 +2999,48 @@ function h2sTrack(event, data={}){
     fbq('track', event, data, params);
   }
   
-  // Send to dashboard webhook
+  // Send to Supabase tracking endpoint
+  const trackPayload = {
+    event: payload.event,
+    event_type: payload.event,
+    occurred_at: payload.timestamp,
+    visitor_id: localStorage.getItem('h2s_visitor_id') || (() => {
+      const vid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+      localStorage.setItem('h2s_visitor_id', vid);
+      return vid;
+    })(),
+    session_id: payload.session_id || sessionStorage.getItem('h2s_session_id') || (() => {
+      const sid = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+      sessionStorage.setItem('h2s_session_id', sid);
+      return sid;
+    })(),
+    page_url: payload.url || window.location.href,
+    page_path: window.location.pathname,
+    referrer: document.referrer || null,
+    user_agent: navigator.userAgent,
+    metadata: { ...payload, ...data }
+  };
+  
+  // Add UTM params if present
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('utm_source')) trackPayload.utm_source = urlParams.get('utm_source');
+  if (urlParams.get('utm_medium')) trackPayload.utm_medium = urlParams.get('utm_medium');
+  if (urlParams.get('utm_campaign')) trackPayload.utm_campaign = urlParams.get('utm_campaign');
+  if (urlParams.get('utm_term')) trackPayload.utm_term = urlParams.get('utm_term');
+  if (urlParams.get('utm_content')) trackPayload.utm_content = urlParams.get('utm_content');
+  
+  // Add business entity links if present
+  if (data.order_id) trackPayload.metadata.order_id = data.order_id;
+  if (data.job_id) trackPayload.metadata.job_id = data.job_id;
+  if (data.customer_email) trackPayload.metadata.customer_email = data.customer_email;
+  if (data.revenue) trackPayload.metadata.revenue = data.revenue;
+  
   fetch(DASH_URL, {
-    method:'POST',
-    body: JSON.stringify(payload)
-  }).catch(err => logger.warn('Dashboard track failed:', err));
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(trackPayload),
+    keepalive: true
+  }).catch(err => logger.warn('Tracking failed:', err));
 }
 
 async function sha256(text){
