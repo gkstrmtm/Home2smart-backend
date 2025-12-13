@@ -2340,6 +2340,45 @@ select.input:hover,select.select:hover{
     box-shadow:0 20px 40px rgba(20,147,255,.3), 0 8px 16px rgba(0,0,0,.2), 0 0 0 1px rgba(59,130,246,.4);
     border-color:rgba(20,147,255,.6);
   }
+  
+  /* Desktop: Priority Next shelf - grid layout instead of trapped carousel */
+  .shelf-row{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap:var(--gap-lg) !important;
+    overflow-x:visible !important;
+    overflow-y:visible !important;
+    padding-left:var(--pad) !important;
+    padding-right:var(--pad) !important;
+    padding-bottom:var(--gap-md) !important;
+    scrollbar-width:auto !important;
+    -ms-overflow-style:auto !important;
+    scroll-padding:0 !important;
+    scroll-snap-type:none !important;
+    -webkit-overflow-scrolling:auto !important;
+    mask-image:none !important;
+    -webkit-mask-image:none !important;
+  }
+  .shelf-row::-webkit-scrollbar{
+    display:block !important;
+    height:8px !important;
+  }
+  .shelf-row::-webkit-scrollbar-track{
+    background:rgba(255,255,255,.05) !important;
+    border-radius:4px !important;
+  }
+  .shelf-row::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,.2) !important;
+    border-radius:4px !important;
+  }
+  .shelf-row::-webkit-scrollbar-thumb:hover{
+    background:rgba(255,255,255,.3) !important;
+  }
+  .shelf-card{
+    min-width:auto !important;
+    max-width:100% !important;
+    width:100% !important;
+  }
 }
 .training-card::after{
   content:"";
