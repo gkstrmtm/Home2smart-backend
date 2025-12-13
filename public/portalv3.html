@@ -952,23 +952,23 @@ select.input:hover,select.select:hover{
 .date-section-label{font-size:13px;font-weight:700;color:var(--h2s-text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;display:block}
 .date-input-wrapper{position:relative}
 .date-display{background:var(--h2s-bg-input);border:2px solid var(--h2s-border-subtle);border-radius:var(--br-lg);padding:24px;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);min-height:80px;display:flex;align-items:center;justify-content:space-between}
-.date-display:hover{border-color:var(--h2s-brand-azure);box-shadow:0 8px 20px rgba(20,147,255,.15),0 0 0 4px rgba(20,147,255,.08);transform:translateY(-2px)}
+.date-display:hover{border-color:rgba(148,163,184,.4);box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
 .date-display-content{flex:1}
 .date-display-label{font-size:13px;color:var(--h2s-text-muted);margin-bottom:6px;font-weight:600}
 .date-display-value{font-size:24px;font-weight:800;color:var(--h2s-text-main);letter-spacing:-.01em}
-.date-display-icon{width:48px;height:48px;background:rgba(20,147,255,.15);border-radius:var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.date-display-icon svg{width:24px;height:24px;stroke:var(--h2s-brand-azure);stroke-width:2.5}
+.date-display-icon{width:48px;height:48px;background:rgba(148,163,184,.08);border-radius:var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.date-display-icon svg{width:24px;height:24px;stroke:var(--h2s-text-muted);stroke-width:2.5}
 .date-input-native{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 .quick-picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:20px}
-.quick-pick-chip{background:rgba(20,147,255,.1);border:2px solid rgba(20,147,255,.25);border-radius:var(--br);padding:14px 20px;color:var(--h2s-brand-azure);font-size:14px;font-weight:700;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;white-space:nowrap}
-.quick-pick-chip:hover{background:rgba(20,147,255,.2);border-color:rgba(20,147,255,.5);transform:translateY(-2px);box-shadow:0 4px 12px rgba(20,147,255,.2)}
+.quick-pick-chip{background:rgba(148,163,184,.06);border:1.5px solid rgba(148,163,184,.2);border-radius:var(--br);padding:14px 20px;color:var(--h2s-text-main);font-size:14px;font-weight:600;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;white-space:nowrap}
+.quick-pick-chip:hover{background:rgba(148,163,184,.1);border-color:rgba(148,163,184,.35);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .quick-pick-chip:active{transform:translateY(0)}
-.date-hint{margin-top:20px;padding:16px;background:rgba(34,201,111,.08);border-left:3px solid var(--h2s-brand-green);border-radius:var(--br);color:var(--h2s-brand-green);font-size:14px;line-height:1.6}
+.date-hint{margin-top:20px;padding:16px;background:rgba(148,163,184,.05);border-left:2px solid rgba(148,163,184,.3);border-radius:var(--br);color:var(--h2s-text-muted);font-size:14px;line-height:1.6}
 .reason-section{margin-bottom:32px}
 .reason-select-wrapper{position:relative}
-.reason-select{width:100%;background:var(--h2s-bg-input);border:2px solid var(--h2s-border-subtle);border-radius:var(--br-lg);padding:18px 20px;color:var(--h2s-text-main);font-size:16px;font-weight:600;cursor:pointer;transition:all .25s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' viewBox='0 0 24 24' stroke='%231493ff' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;background-size:20px;padding-right:52px}
-.reason-select:hover{border-color:rgba(20,147,255,.4);background-color:var(--h2s-bg-card-elevated)}
-.reason-select:focus{outline:none;border-color:var(--h2s-brand-azure);box-shadow:0 0 0 4px rgba(20,147,255,.15)}
+.reason-select{width:100%;background:var(--h2s-bg-input);border:2px solid var(--h2s-border-subtle);border-radius:var(--br-lg);padding:18px 20px;color:var(--h2s-text-main);font-size:16px;font-weight:600;cursor:pointer;transition:all .25s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;background-size:20px;padding-right:52px}
+.reason-select:hover{border-color:rgba(148,163,184,.3);background-color:var(--h2s-bg-card-elevated)}
+.reason-select:focus{outline:none;border-color:rgba(148,163,184,.4);box-shadow:0 0 0 3px rgba(148,163,184,.08)}
 .modal-actions{display:flex;gap:12px;margin-top:32px;padding-top:24px;border-top:1px solid var(--h2s-border-subtle)}
 .modal-actions .btn-modern{flex:1;min-height:56px;font-size:16px;font-weight:700;border-radius:var(--br-lg)}
 .btn.ghost{
@@ -6014,6 +6014,8 @@ a:focus-visible{
         <div style="display:flex;flex-direction:column;gap:24px">
           <div><label class="label" for="piName" style="font-size:13px;font-weight:400;color:var(--h2s-text-muted);margin-bottom:8px;display:block;letter-spacing:0.01em">Full name</label><input id="piName" class="input" placeholder="Jane Doe" autocomplete="name" style="font-size:15px;height:48px;padding:0 16px;border-radius:var(--br);background:var(--h2s-bg-card);border:1px solid var(--h2s-border-subtle);color:var(--h2s-text-main);transition:border-color 160ms ease-out,background-color 160ms ease-out,box-shadow 160ms ease-out"></div>
           <div><label class="label" for="piEmail" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Email</label><input id="piEmail" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div><label class="label" for="piEmailConfirm" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Confirm Email</label><input id="piEmailConfirm" class="input" type="email" placeholder="you@example.com" autocomplete="email" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
+          <div id="err-email" class="error" style="display:none;margin-top:8px"></div>
           <div><label class="label" for="piPhone" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.9);margin-bottom:8px;display:block">Phone</label><input id="piPhone" class="input" type="tel" placeholder="(###) ###-####" autocomplete="tel" style="font-size:16px;height:52px;padding:0 16px;border-radius:12px"></div>
         </div>
         <div style="display:flex;gap:12px;margin-top:24px">
@@ -6326,6 +6328,65 @@ a:focus-visible{
               <label class="label" for="pfBio" style="display:block;margin-bottom:8px;font-weight:600;color:#cbd5e1">Short Bio</label>
               <textarea id="pfBio" class="textarea" placeholder="Hi! I'm a certified technician with 5+ years of experience. I specialize in smart home installations and pride myself on clean, professional work." style="min-height:100px;font-size:15px;line-height:1.6"></textarea>
               <p class="muted" style="margin:6px 0 0;font-size:13px">Tell customers about your experience and what makes you great at your job</p>
+            </div>
+            
+            <!-- W-9 Form Upload -->
+            <div style="margin-top:24px">
+              <label class="label" style="display:block;margin-bottom:12px;font-weight:600;color:#cbd5e1">
+                W-9 Tax Form
+                <span style="display:block;font-weight:400;font-size:13px;color:#94a3b8;margin-top:4px">
+                  Required for payment processing. Download the form below, fill it out, then upload it here.
+                </span>
+              </label>
+              
+              <div id="w9UploadContainer" style="position:relative">
+                <!-- Download W-9 Template Link -->
+                <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <a href="https://www.irs.gov/pub/irs-pdf/fw9.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.2);border-radius:8px;color:var(--h2s-text-main);font-size:13px;font-weight:500;text-decoration:none;transition:all .2s" onmouseover="this.style.background='rgba(148,163,184,.12)';this.style.borderColor='rgba(148,163,184,.3)'" onmouseout="this.style.background='rgba(148,163,184,.08)';this.style.borderColor='rgba(148,163,184,.2)'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download W-9 Form Template
+                  </a>
+                  <span style="font-size:12px;color:var(--h2s-text-muted)">Fill it out, then upload below</span>
+                </div>
+                
+                <!-- Upload Tile (Dropbox-style) -->
+                <div id="w9UploadTile" style="border:2px dashed rgba(148,163,184,.3);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(148,163,184,.02)" onmouseover="this.style.borderColor='rgba(148,163,184,.5)';this.style.background='rgba(148,163,184,.04)'" onmouseout="this.style.borderColor='rgba(148,163,184,.3)';this.style.background='rgba(148,163,184,.02)'" onclick="$('w9FileInput').click()">
+                  <input type="file" id="w9FileInput" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" style="display:none">
+                  <div id="w9UploadContent">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 12px;color:var(--h2s-text-muted);opacity:.6">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <div style="font-size:15px;font-weight:600;color:var(--h2s-text-main);margin-bottom:6px">Drop W-9 here or tap to upload</div>
+                    <div style="font-size:13px;color:var(--h2s-text-muted)">PDF, JPG, or PNG (max 10MB)</div>
+                  </div>
+                  <div id="w9UploadPreview" style="display:none">
+                    <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--h2s-brand-green)">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                      <div>
+                        <div style="font-size:14px;font-weight:600;color:var(--h2s-text-main)" id="w9FileName">W-9 uploaded</div>
+                        <div style="font-size:12px;color:var(--h2s-text-muted)" id="w9UploadDate"></div>
+                      </div>
+                      <button type="button" onclick="event.stopPropagation();handleW9Reupload()" style="margin-left:auto;padding:6px 12px;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.2);border-radius:8px;color:var(--h2s-text-main);font-size:12px;cursor:pointer">Replace</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div id="w9UploadStatus" style="display:none;margin-top:12px;padding:10px;background:rgba(26,155,255,.08);border:1px solid rgba(26,155,255,.2);border-radius:8px;font-size:13px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="spin" style="width:16px;height:16px;border-width:2px"></div>
+                    <span>Uploading W-9...</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -7038,34 +7099,29 @@ a:focus-visible{
 
 <!-- Time Off Request Modal (Premium Design) -->
 <div id="timeOffModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="timeOffModalTitle">
-  <div class="sheet" style="max-width:600px;max-height:90vh;overflow-y:auto;padding:32px;background:linear-gradient(135deg, #020919 0%, #071b33 100%);border:2px solid rgba(20,147,255,0.2);box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
+  <div class="sheet" style="max-width:600px;max-height:90vh;overflow-y:auto;padding:32px;background:var(--h2s-bg-card-elevated);border:1px solid var(--h2s-border-subtle);box-shadow:var(--shadow-lg)">
     <style>
-      /* Branded scrollbar for Time Off modal container */
-      #timeOffModal .sheet { scrollbar-width:thin; scrollbar-color:#1493FF rgba(15,23,42,0.55); }
+      /* Minimal scrollbar for Time Off modal container */
+      #timeOffModal .sheet { scrollbar-width:thin; scrollbar-color:rgba(148,163,184,.4) rgba(15,23,42,0.3); }
       #timeOffModal .sheet::-webkit-scrollbar { width:14px; }
       #timeOffModal .sheet::-webkit-scrollbar-track {
-        background:linear-gradient(180deg,#0f172a 0%, #1e293b 100%);
+        background:var(--h2s-bg-card);
         border-radius:10px;
         margin:8px 0;
-        border:1px solid rgba(20,147,255,0.25);
+        border:1px solid var(--h2s-border-subtle);
       }
       #timeOffModal .sheet::-webkit-scrollbar-thumb {
-        background:linear-gradient(180deg,#1493FF 0%, #2b9cff 100%);
+        background:rgba(148,163,184,.3);
         border-radius:10px;
-        border:3px solid rgba(15,23,42,0.85);
-        box-shadow:0 2px 8px rgba(20,147,255,0.45);
+        border:2px solid var(--h2s-bg-card);
       }
       #timeOffModal .sheet::-webkit-scrollbar-thumb:hover {
-        background:linear-gradient(180deg,#2b9cff 0%, #1493FF 100%);
-        box-shadow:0 4px 12px rgba(20,147,255,0.6);
-      }
-      #timeOffModal .sheet::-webkit-scrollbar-thumb:active {
-        background:linear-gradient(180deg,#1493FF 0%, #2b9cff 100%);
+        background:rgba(148,163,184,.45);
       }
     </style>
-    <div style="background:linear-gradient(135deg,#0A2A5A 0%,#1493FF 100%);padding:32px;border-radius:16px;margin-bottom:32px;box-shadow:0 10px 30px rgba(20,147,255,0.3)">
-      <h3 id="timeOffModalTitle" style="font-size:32px;font-weight:800;color:#fff;margin:0 0 8px 0;letter-spacing:-0.02em">🌴 Request Time Off</h3>
-      <p style="font-size:15px;color:rgba(255,255,255,0.9);margin:0">Block dates when you're unavailable for jobs</p>
+    <div style="background:var(--h2s-bg-card);padding:32px;border-radius:16px;margin-bottom:32px;border:1px solid var(--h2s-border-subtle)">
+      <h3 id="timeOffModalTitle" style="font-size:32px;font-weight:800;color:var(--h2s-text-main);margin:0 0 8px 0;letter-spacing:-0.02em">🌴 Request Time Off</h3>
+      <p style="font-size:15px;color:var(--h2s-text-muted);margin:0">Block dates when you're unavailable for jobs</p>
     </div>
     
     <div style="margin-bottom:32px">
@@ -8879,6 +8935,7 @@ async function hydrateMe() {
     document.getElementById("pfPhoto").value = me.photo_url || "";
     document.getElementById("pfBio").value = me.bio_short || "";
     loadProfilePhotoPreview();
+    loadW9Status();
     return true;
   } catch(e) { 
     const oldCache = localStorage.getItem(`h2s_me_${token}`);
@@ -12739,16 +12796,47 @@ $("backToInfo").addEventListener("click", () => {
   $("step-info").style.display = "block";
 });
 
+// Email validation function
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const trimmed = email.trim();
+  if (trimmed.length === 0) return false;
+  if (trimmed.includes(' ')) return false; // No spaces
+  // Basic email regex (not overly strict)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(trimmed);
+}
+
 $("finishStep1").addEventListener("click", async () => {
   const payload = {
     name: $("piName").value.trim(),
     email: $("piEmail").value.trim(),
+    email_confirm: $("piEmailConfirm").value.trim(),
     phone: $("piPhone").value.trim(),
     address: $("adStreet").value.trim(),
     city: $("adCity").value.trim(),
     state: $("adState").value.trim(),
     zip: $("adZip").value.trim()
   };
+  
+  // Email validation
+  const emailErr = $("err-email");
+  if (emailErr) {
+    emailErr.style.display = "none";
+    
+    if (!validateEmail(payload.email)) {
+      emailErr.textContent = "Please enter a valid email address (no spaces)";
+      emailErr.style.display = "block";
+      return;
+    }
+    
+    if (payload.email !== payload.email_confirm) {
+      emailErr.textContent = "Email addresses do not match";
+      emailErr.style.display = "block";
+      return;
+    }
+  }
+  
   if (!payload.address || !payload.city || !payload.state || !payload.zip) {
     $("err-address").textContent = "All address fields required"; $("err-address").style.display = "block";
     return;
@@ -12924,6 +13012,148 @@ if (pfInputCamera) pfInputCamera.addEventListener("change", handlePhotoUpload);
 
 const pfInputLibrary = $("pfPhotoInputLibrary");
 if (pfInputLibrary) pfInputLibrary.addEventListener("change", handlePhotoUpload);
+
+// W-9 Upload Handler
+const w9FileInput = $("w9FileInput");
+if (w9FileInput) {
+  w9FileInput.addEventListener("change", handleW9Upload);
+  
+  // Drag and drop
+  const w9UploadTile = $("w9UploadTile");
+  if (w9UploadTile) {
+    w9UploadTile.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      w9UploadTile.style.borderColor = "rgba(148,163,184,.6)";
+      w9UploadTile.style.background = "rgba(148,163,184,.06)";
+    });
+    w9UploadTile.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      w9UploadTile.style.borderColor = "rgba(148,163,184,.3)";
+      w9UploadTile.style.background = "rgba(148,163,184,.02)";
+    });
+    w9UploadTile.addEventListener("drop", (e) => {
+      e.preventDefault();
+      w9UploadTile.style.borderColor = "rgba(148,163,184,.3)";
+      w9UploadTile.style.background = "rgba(148,163,184,.02)";
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        w9FileInput.files = files;
+        handleW9Upload({ target: w9FileInput });
+      }
+    });
+  }
+}
+
+async function handleW9Upload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Validate file type
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  if (!allowedTypes.includes(file.type)) {
+    toast('Invalid file type. Only PDF, JPG, and PNG are allowed.', 'error');
+    return;
+  }
+  
+  // Validate file size (10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    toast('File too large. Maximum size is 10MB.', 'error');
+    return;
+  }
+  
+  const statusDiv = $("w9UploadStatus");
+  const uploadContent = $("w9UploadContent");
+  const uploadPreview = $("w9UploadPreview");
+  
+  if (statusDiv) statusDiv.style.display = "block";
+  if (uploadContent) uploadContent.style.display = "none";
+  
+  try {
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target.result;
+      
+      try {
+        const response = await POST("portal_upload_w9", {
+          token,
+          file: base64Data,
+          filename: file.name,
+          mimetype: file.type
+        });
+        
+        if (!response.ok) {
+          throw new Error(response.error || "Upload failed");
+        }
+        
+        // Show success
+        if (statusDiv) statusDiv.style.display = "none";
+        if (uploadPreview) uploadPreview.style.display = "block";
+        const fileName = $("w9FileName");
+        const uploadDate = $("w9UploadDate");
+        if (fileName) fileName.textContent = file.name;
+        if (uploadDate) uploadDate.textContent = `Uploaded ${new Date().toLocaleDateString()}`;
+        
+        // Update me object
+        if (me) {
+          me.w9_file_url = response.w9_file_url;
+          me.w9_uploaded_at = response.w9_uploaded_at;
+          me.w9_status = response.w9_status;
+        }
+        
+        toast("✅ W-9 uploaded successfully", "success");
+        
+      } catch (err) {
+        console.error("[W9 Upload] Error:", err);
+        if (statusDiv) statusDiv.style.display = "none";
+        if (uploadContent) uploadContent.style.display = "block";
+        toast(err.message || "Failed to upload W-9", "error");
+      }
+    };
+    
+    reader.onerror = () => {
+      if (statusDiv) statusDiv.style.display = "none";
+      if (uploadContent) uploadContent.style.display = "block";
+      toast("Failed to read file", "error");
+    };
+    
+    reader.readAsDataURL(file);
+    
+  } catch (err) {
+    console.error("[W9 Upload] Error:", err);
+    if (statusDiv) statusDiv.style.display = "none";
+    if (uploadContent) uploadContent.style.display = "block";
+    toast(err.message || "Upload failed", "error");
+  }
+}
+
+function handleW9Reupload() {
+  const fileInput = $("w9FileInput");
+  const uploadContent = $("w9UploadContent");
+  const uploadPreview = $("w9UploadPreview");
+  if (fileInput) fileInput.value = "";
+  if (uploadContent) uploadContent.style.display = "block";
+  if (uploadPreview) uploadPreview.style.display = "none";
+  if (fileInput) fileInput.click();
+}
+
+// Load existing W-9 status on profile load
+function loadW9Status() {
+  if (me && me.w9_file_url) {
+    const uploadContent = $("w9UploadContent");
+    const uploadPreview = $("w9UploadPreview");
+    if (uploadContent && uploadPreview) {
+      uploadContent.style.display = "none";
+      uploadPreview.style.display = "block";
+      const fileName = $("w9FileName");
+      const uploadDate = $("w9UploadDate");
+      if (fileName) fileName.textContent = "W-9 on file";
+      if (uploadDate) uploadDate.textContent = me.w9_uploaded_at 
+        ? `Uploaded ${new Date(me.w9_uploaded_at).toLocaleDateString()}`
+        : "Uploaded";
+    }
+  }
+}
 
 // Load existing photo preview when showing profile tab
 function loadProfilePhotoPreview() {

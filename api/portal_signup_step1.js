@@ -79,7 +79,17 @@ export default async function handler(req, res) {
       body = JSON.parse(body);
     }
     
-    const { name, email, phone, address, city, state, zip } = body || {};
+    const { name, email, email_confirm, phone, address, city, state, zip } = body || {};
+
+    // Email validation function
+    function isValidEmail(email) {
+      if (!email || typeof email !== 'string') return false;
+      const trimmed = email.trim().toLowerCase();
+      if (trimmed.length === 0 || trimmed.includes(' ')) return false;
+      // Reasonable email regex (allows most valid formats, not overly strict)
+      const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+      return emailRegex.test(trimmed);
+    }
 
     // Validation
     if (!name || !email || !phone || !address || !city || !state || !zip) {
@@ -88,6 +98,24 @@ export default async function handler(req, res) {
         ok: false,
         error: 'All fields are required',
         error_code: 'missing_fields'
+      });
+    }
+
+    // Email format validation
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Invalid email format. Please check for spaces or typos.',
+        error_code: 'invalid_email'
+      });
+    }
+
+    // Email confirmation check (if provided)
+    if (email_confirm && email.trim().toLowerCase() !== email_confirm.trim().toLowerCase()) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Email addresses do not match',
+        error_code: 'email_mismatch'
       });
     }
 
@@ -140,6 +168,7 @@ export default async function handler(req, res) {
       geo_lng: lng,
       slug: slug,
       status: 'pending',
+      email_confirmed: email_confirm ? (email.trim().toLowerCase() === email_confirm.trim().toLowerCase()) : false,
       service_radius_miles: 35,
       max_jobs_per_day: 3,
       created_at: new Date().toISOString(),
@@ -187,18 +216,35 @@ export default async function handler(req, res) {
       console.warn('Signup succeeded but session failed - user will need to login');
     }
 
-    // Send welcome email (call Apps Script backend)
+    // Send welcome email (only if email is confirmed/valid)
+    // Migrate from Apps Script to Vercel endpoint
     try {
-      await fetch(process.env.APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          action: 'send_welcome_email',
-          email: email.trim().toLowerCase(),
-          name: name.trim()
-        })
-      });
-      console.log('Welcome email triggered');
+      // Only send if email is confirmed (double-entry match) or if no confirmation was required
+      const shouldSendEmail = !email_confirm || email.trim().toLowerCase() === email_confirm.trim().toLowerCase();
+      
+      if (shouldSendEmail && isValidEmail(email.trim().toLowerCase())) {
+        const baseUrl = process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : 'https://h2s-backend.vercel.app';
+        
+        await fetch(`${baseUrl}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_email: email.trim().toLowerCase(),
+            template_key: 'pro_welcome',
+            data: {
+              firstName: name.trim().split(' ')[0],
+              name: name.trim()
+            },
+            user_id: null, // Pro signup, not customer
+            order_id: null
+          })
+        });
+        console.log('Welcome email sent');
+      } else {
+        console.log('Welcome email skipped - email not confirmed or invalid');
+      }
     } catch (emailErr) {
       console.warn('Welcome email failed:', emailErr);
       // Don't fail signup if email fails

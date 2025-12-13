@@ -1,6 +1,15 @@
 // API endpoint: /api/notify-pro
 // Sends job alerts to pros via SMS
 
+// Validate email before sending notifications
+function shouldSendEmailToPro(pro) {
+  if (!pro || !pro.email) return false;
+  const email = pro.email.trim().toLowerCase();
+  if (email.length === 0 || email.includes(' ')) return false;
+  const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+}
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -321,7 +330,10 @@ Complete now: https://home2smart.com/portal?complete=${job_id}`;
 
     // Also send email if pro has email address (or debug mode with force_email_to)
     const shouldSendEmail = (pro && pro.email) || (debug === true && debugEmailRecipients && debugEmailRecipients.length > 0);
-    if (shouldSendEmail && process.env.SENDGRID_ENABLED !== 'false') {
+    // Validate email before sending
+    const canSendEmail = shouldSendEmail && shouldSendEmailToPro(pro) && process.env.SENDGRID_ENABLED !== 'false';
+    
+    if (canSendEmail) {
       try {
         const emailData = {
           proName: pro.name,
