@@ -88,7 +88,7 @@ async function getOrCreateVisitor(visitorId, payload, referrer, userAgent) {
   const deviceType = /mobile|android|iphone|ipad/i.test(userAgent || '') ? 'mobile' : 
                      /tablet|ipad/i.test(userAgent || '') ? 'tablet' : 'desktop';
   
-  await supabase
+  const { data, error } = await supabase
     .from('h2s_tracking_visitors')
     .insert({
       visitor_id: newVisitorId,
@@ -108,7 +108,13 @@ async function getOrCreateVisitor(visitorId, payload, referrer, userAgent) {
       last_referrer: referrer || null,
       user_agent: userAgent || null,
       device_type: deviceType
-    });
+    })
+    .select();
+  
+  if (error) {
+    console.error('Failed to create visitor:', error);
+    return null; // Return null so events can still be stored without visitor_id
+  }
   
   return newVisitorId;
 }
